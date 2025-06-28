@@ -2,13 +2,19 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
 
+**Latest Version**: 0.0.1
+
 ## Installation
 
 ### From crates.io
 
+Not Yet Available.
+
 ```bash
 cargo install comchan
 ```
+
+
 ### From source
 
 ```bash
@@ -26,3 +32,15 @@ cargo build --release
 
 cargo run
 ```
+
+## Features
+
+- [x] Read incoming Serial data from Serial ports
+- [ ] Write to Serial port i.e Send data to Serial device.
+- [ ] Write serial data to a file for later use (can be .txt , .csv and more)
+- [ ] Terminal based Serial Plotter (to be implemented with the `--plot` command)
+
+### Legends
+
+- [x] Implemented Features
+- [ ] Yet to me implemented

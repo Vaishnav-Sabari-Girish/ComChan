@@ -30,12 +30,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 io::stdout().flush().ok();
             }
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                continue;
+            }
+            Err(e) => {
                 eprintln!("❌ Error: {e}");
-                break;
+                return Err(Box::new(e)); // graceful exit
             }
             _ => {}
         }
     }
-
-    Ok(())
 }
