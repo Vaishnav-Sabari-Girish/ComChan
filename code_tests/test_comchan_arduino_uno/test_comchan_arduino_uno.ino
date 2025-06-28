@@ -1,9 +1,13 @@
-
 void setup() {
-  Serial.begin(9600);
+    Serial.begin(9600); // Make sure baud rate matches
+    Serial.println("Arduino Ready");
 }
 
 void loop() {
-  Serial.println("Hello World");
-  delay(1000);
+    while (Serial.available()) {
+        String data = Serial.readStringUntil('\n');
+        data.trim(); // Remove whitespace/newlines
+        Serial.print("Received: ");
+        Serial.println(data);
+    }
 }
