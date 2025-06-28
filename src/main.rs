@@ -5,7 +5,10 @@ use std::time::Duration;
 
 #[derive(Parser)]
 struct Args {
+    #[arg(short = 'p', long = "port")]
     port: String,
+
+    #[arg(short = 'r', long = "baud")]
     baud: u32,
 }
 
