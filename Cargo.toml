@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
+inline_colorization = "0.1.6"
 serialport = "4.7.2"

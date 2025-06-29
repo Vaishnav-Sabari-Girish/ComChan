@@ -121,6 +121,7 @@ name = "comchan"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "inline_colorization",
  "serialport",
 ]
 
@@ -145,6 +146,12 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "inline_colorization"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc1804bdb6a9784758b200007273a8b84e2b0b0b97a8f1e18e763eceb3e9f98a"
 
 [[package]]
 name = "io-kit-sys"
