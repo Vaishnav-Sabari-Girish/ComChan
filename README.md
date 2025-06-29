@@ -36,7 +36,7 @@ cargo run
 ## Features
 
 - [x] Read incoming Serial data from Serial ports
-- [ ] Write to Serial port i.e Send data to Serial device. (Partially Implemented)
+- [x] Write to Serial port i.e Send data to Serial device.
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
 - [ ] Terminal based Serial Plotter (to be implemented with the `--plot` command)
 
