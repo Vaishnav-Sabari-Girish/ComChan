@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chapter 1 - ComChan: The Blazingly Fast minmal Serial Monitor</title>
+        <title>Introduction - ComChan: The Blazingly Fast minmal Serial Monitor</title>
 
 
         <!-- Custom HTML head -->
@@ -166,7 +166,57 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="chapter-1"><a class="header" href="#chapter-1">Chapter 1</a></h1>
+                        <h1 id="-introduction-to-comchan"><a class="header" href="#-introduction-to-comchan">📘 Introduction to Comchan</a></h1>
+<p><strong>Comchan</strong> (short for <em>"Communication Channel"</em>) is a <strong>blazingly fast, minimal, and beginner-friendly serial monitor</strong> made with 💖 in Rust.</p>
+<p>It’s built for makers, tinkerers, students, embedded developers — <strong>anyone</strong> who works with serial-connected devices like <strong>Arduino</strong>, <strong>ESP32</strong>, <strong>Teensy</strong>, or <strong>Raspberry Pi</strong>, and wants a clean, modern, and reliable way to talk to them from the terminal.</p>
+<blockquote>
+<p>🚀 Whether you're debugging a sensor or sending messages to a microcontroller — <em>Comchan</em> is your calm, capable companion.</p>
+</blockquote>
+<hr />
+<h2 id="-why-comchan"><a class="header" href="#-why-comchan">✨ Why Comchan?</a></h2>
+<p>Most serial tools out there are either:</p>
+<ul>
+<li>❌ Too basic (like <code>screen</code>, which doesn’t handle inputs well)</li>
+<li>❌ Too bloated (like GUIs you don’t need)</li>
+<li>❌ Confusing for newcomers</li>
+</ul>
+<p>Comchan is:</p>
+<ul>
+<li>🧼 <strong>Minimal</strong> – Does one thing and does it well</li>
+<li>⚡ <strong>Fast</strong> – Built in Rust with snappy performance</li>
+<li>🎨 <strong>Pretty</strong> – Uses emoji + colored output for clarity</li>
+<li>🧠 <strong>Smart</strong> – Handles line buffering, timeouts, and clean exits</li>
+<li>✍️ <strong>Simple to Use</strong> – Just tell it your port and baud rate and you’re set!</li>
+</ul>
+<hr />
+<h2 id="-what-can-it-do"><a class="header" href="#-what-can-it-do">🔧 What Can It Do?</a></h2>
+<ul>
+<li>📥 <strong>Read data from your Arduino or ESP32</strong></li>
+<li>📤 <strong>Send messages directly to your device</strong></li>
+<li>🧃 <strong>See real-time communication</strong> as it happens</li>
+<li>🎨 <strong>Colorful logs</strong> that are clean and easy to follow</li>
+<li>🙋‍♂️ <strong>Beginner-safe</strong> – Doesn’t crash on common mistakes</li>
+</ul>
+<hr />
+<h2 id="-sample-use"><a class="header" href="#-sample-use">🛠 Sample Use</a></h2>
+<pre><code class="language-bash"># For Linux Users 
+comchan -p /dev/ttyUSB0 -r 9600
+
+# OR 
+
+comchan --port /dev/ttyUSB0 --baud 9600
+
+# For Windows Users 
+comchan -p COM3 -r 9600
+
+# OR 
+
+comchan --port COM3 --baud 9600
+</code></pre>
+<h2 id="-the-goal"><a class="header" href="#-the-goal">💡 The Goal</a></h2>
+<p>Comchan was built to make embedded development more joyful, less frustrating, and a little bit cute 🐣.
+Whether you're writing your first <code>Serial.println("Hello")</code>, or debugging complex protocols, Comchan will stay out of your way and do exactly what you ask.</p>
+<p><em>✨ Made with Rust and a little anime soul.</em></p>
 
                     </main>
 
@@ -185,6 +235,22 @@
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 
