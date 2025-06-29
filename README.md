@@ -8,7 +8,6 @@ ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Commu
 
 ### From crates.io
 
-Not Yet Available.
 
 ```bash
 cargo install comchan
