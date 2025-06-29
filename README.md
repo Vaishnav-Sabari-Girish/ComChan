@@ -19,6 +19,11 @@ cargo install comchan
 cargo binstall comchan
 ```
 
+After installing, check if it has been installed with
+
+```bash
+comchan --version
+```
 
 ### From source
 
