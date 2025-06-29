@@ -2,12 +2,15 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
 
-**Latest Version**: 0.0.1
+**Latest Version**: 0.1.0
 
 ## Installation
 
 ### From crates.io
 
+
+> [!NOTE]
+> `cargo install` NOW AVAILABLE
 
 ```bash
 cargo install comchan
