@@ -218,6 +218,29 @@ comchan --port COM3 --baud 9600
 <p>Comchan was built to make embedded development more joyful, less frustrating, and a little bit cute 🐣.
 Whether you're writing your first <code>Serial.println("Hello")</code>, or debugging complex protocols, Comchan will stay out of your way and do exactly what you ask.</p>
 <p><em>✨ Made with Rust and a little anime soul.</em></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="how-to-install-comchan"><a class="header" href="#how-to-install-comchan">How to Install ComChan</a></h1>
+<p>There are multiple ways to install ComChan.</p>
+<h2 id="install-using-cargo-install"><a class="header" href="#install-using-cargo-install">Install using <code>cargo install</code></a></h2>
+<p>The easiest way is via <code>cargo</code></p>
+<pre><code class="language-bash"># cargo install
+cargo install comchan
+
+#cargo binstall
+cargo binstall comchan
+</code></pre>
+<p>Or you can download the binary from the latest <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan/releases/tag/v0.1.3">release</a>
+To verify that <code>comchan</code> has been installed type the below command :</p>
+<pre><code class="language-bash">comchan --version
+
+# OR
+
+comchan --help
+</code></pre>
+<h2 id="install-from-source"><a class="header" href="#install-from-source">Install from source</a></h2>
+<p>Clone the repository and <code>cd</code> in <code>ComChan</code></p>
+<pre><code class="language-bash">cargo build --release
+cargo run
+</code></pre>
 
                     </main>
 
@@ -236,22 +259,6 @@ Whether you're writing your first <code>Serial.println("Hello")</code>, or debug
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

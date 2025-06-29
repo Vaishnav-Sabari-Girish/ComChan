@@ -141,6 +141,9 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
 
+                        <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan" title="GitHub Repository" aria-label="GitHub Repository">
+                            <i id="git-repo" class="fa fa-github"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -223,6 +226,9 @@ Whether you're writing your first <code>Serial.println("Hello")</code>, or debug
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
 
+                            <a rel="next prefetch" href="install.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -231,26 +237,13 @@ Whether you're writing your first <code>Serial.println("Hello")</code>, or debug
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
 
+                    <a rel="next prefetch" href="install.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

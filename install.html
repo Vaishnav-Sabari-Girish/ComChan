@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - ComChan: The Blazingly Fast minmal Serial Monitor</title>
+        <title>Installation - ComChan: The Blazingly Fast minmal Serial Monitor</title>
 
 
         <!-- Custom HTML head -->
@@ -169,66 +169,38 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="-introduction-to-comchan"><a class="header" href="#-introduction-to-comchan">📘 Introduction to Comchan</a></h1>
-<p><strong>Comchan</strong> (short for <em>"Communication Channel"</em>) is a <strong>blazingly fast, minimal, and beginner-friendly serial monitor</strong> made with 💖 in Rust.</p>
-<p>It’s built for makers, tinkerers, students, embedded developers — <strong>anyone</strong> who works with serial-connected devices like <strong>Arduino</strong>, <strong>ESP32</strong>, <strong>Teensy</strong>, or <strong>Raspberry Pi</strong>, and wants a clean, modern, and reliable way to talk to them from the terminal.</p>
-<blockquote>
-<p>🚀 Whether you're debugging a sensor or sending messages to a microcontroller — <em>Comchan</em> is your calm, capable companion.</p>
-</blockquote>
-<hr />
-<h2 id="-why-comchan"><a class="header" href="#-why-comchan">✨ Why Comchan?</a></h2>
-<p>Most serial tools out there are either:</p>
-<ul>
-<li>❌ Too basic (like <code>screen</code>, which doesn’t handle inputs well)</li>
-<li>❌ Too bloated (like GUIs you don’t need)</li>
-<li>❌ Confusing for newcomers</li>
-</ul>
-<p>Comchan is:</p>
-<ul>
-<li>🧼 <strong>Minimal</strong> – Does one thing and does it well</li>
-<li>⚡ <strong>Fast</strong> – Built in Rust with snappy performance</li>
-<li>🎨 <strong>Pretty</strong> – Uses emoji + colored output for clarity</li>
-<li>🧠 <strong>Smart</strong> – Handles line buffering, timeouts, and clean exits</li>
-<li>✍️ <strong>Simple to Use</strong> – Just tell it your port and baud rate and you’re set!</li>
-</ul>
-<hr />
-<h2 id="-what-can-it-do"><a class="header" href="#-what-can-it-do">🔧 What Can It Do?</a></h2>
-<ul>
-<li>📥 <strong>Read data from your Arduino or ESP32</strong></li>
-<li>📤 <strong>Send messages directly to your device</strong></li>
-<li>🧃 <strong>See real-time communication</strong> as it happens</li>
-<li>🎨 <strong>Colorful logs</strong> that are clean and easy to follow</li>
-<li>🙋‍♂️ <strong>Beginner-safe</strong> – Doesn’t crash on common mistakes</li>
-</ul>
-<hr />
-<h2 id="-sample-use"><a class="header" href="#-sample-use">🛠 Sample Use</a></h2>
-<pre><code class="language-bash"># For Linux Users 
-comchan -p /dev/ttyUSB0 -r 9600
+                        <h1 id="how-to-install-comchan"><a class="header" href="#how-to-install-comchan">How to Install ComChan</a></h1>
+<p>There are multiple ways to install ComChan.</p>
+<h2 id="install-using-cargo-install"><a class="header" href="#install-using-cargo-install">Install using <code>cargo install</code></a></h2>
+<p>The easiest way is via <code>cargo</code></p>
+<pre><code class="language-bash"># cargo install
+cargo install comchan
 
-# OR 
-
-comchan --port /dev/ttyUSB0 --baud 9600
-
-# For Windows Users 
-comchan -p COM3 -r 9600
-
-# OR 
-
-comchan --port COM3 --baud 9600
+#cargo binstall
+cargo binstall comchan
 </code></pre>
-<h2 id="-the-goal"><a class="header" href="#-the-goal">💡 The Goal</a></h2>
-<p>Comchan was built to make embedded development more joyful, less frustrating, and a little bit cute 🐣.
-Whether you're writing your first <code>Serial.println("Hello")</code>, or debugging complex protocols, Comchan will stay out of your way and do exactly what you ask.</p>
-<p><em>✨ Made with Rust and a little anime soul.</em></p>
+<p>Or you can download the binary from the latest <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan/releases/tag/v0.1.3">release</a>
+To verify that <code>comchan</code> has been installed type the below command :</p>
+<pre><code class="language-bash">comchan --version
+
+# OR
+
+comchan --help
+</code></pre>
+<h2 id="install-from-source"><a class="header" href="#install-from-source">Install from source</a></h2>
+<p>Clone the repository and <code>cd</code> in <code>ComChan</code></p>
+<pre><code class="language-bash">cargo build --release
+cargo run
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-
-                            <a rel="next prefetch" href="install.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
+                            <a rel="prev" href="intro.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
                             </a>
+
 
                         <div style="clear: both"></div>
                     </nav>
@@ -236,10 +208,10 @@ Whether you're writing your first <code>Serial.println("Hello")</code>, or debug
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-
-                    <a rel="next prefetch" href="install.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
+                    <a rel="prev" href="intro.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
                     </a>
+
             </nav>
 
         </div>
