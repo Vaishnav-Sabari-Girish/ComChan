@@ -1,13 +1,13 @@
 [package]
 name = "comchan"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Vaishnav Sabari Girish forgamesonly684@gmail.com"]
 license = "MIT"
 description = "A Blazingly Fast and Minimal Serial Monitor for Embedded Applications"
 readme = "README.md"
-homepage = "https://codeberg.org/Vaishnav-Sabari-Girish/ComChan"
-repository = "https://codeberg.org/Vaishnav-Sabari-Girish/ComChan"
+homepage = "https://github.com/Vaishnav-Sabari-Girish/ComChan"
+repository = "https://github.com/Vaishnav-Sabari-Girish/ComChan"
 keywords = ["cli", "embedded-systems", "serial-communication"]
 categories = ["command-line-utilities", "embedded"]
 
