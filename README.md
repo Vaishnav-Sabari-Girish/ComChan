@@ -14,6 +14,9 @@ ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Commu
 
 ```bash
 cargo install comchan
+
+#Install the binary directly
+cargo binstall comchan
 ```
 
 
