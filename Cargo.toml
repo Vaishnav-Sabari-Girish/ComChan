@@ -8,7 +8,7 @@ description = "A Blazingly Fast and Minimal Serial Monitor for Embedded Applicat
 readme = "README.md"
 homepage = "https://codeberg.org/Vaishnav-Sabari-Girish/ComChan"
 repository = "https://codeberg.org/Vaishnav-Sabari-Girish/ComChan"
-keywords = ["cli", "embedded systems", "serial communication"]
+keywords = ["cli", "embedded-systems", "serial-communication"]
 categories = ["command-line-utilities", "embedded-systems"]
 
 [dependencies]
