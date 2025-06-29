@@ -5,7 +5,7 @@ use std::time::Duration;
 use inline_colorization::*;
 
 #[derive(Parser)]
-#[command(name = "comchan", version = "0.0.1", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor")]
+#[command(name = "comchan", version = "0.1.3", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor")]
 struct Args {
     #[arg(short = 'p', long = "port")]
     port: String,
