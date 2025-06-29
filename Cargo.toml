@@ -9,7 +9,7 @@ readme = "README.md"
 homepage = "https://codeberg.org/Vaishnav-Sabari-Girish/ComChan"
 repository = "https://codeberg.org/Vaishnav-Sabari-Girish/ComChan"
 keywords = ["cli", "embedded-systems", "serial-communication"]
-categories = ["command-line-utilities", "embedded-systems"]
+categories = ["command-line-utilities", "embedded"]
 
 [dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
