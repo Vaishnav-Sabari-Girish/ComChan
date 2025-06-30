@@ -100,3 +100,15 @@ For an example log file , get it [here](./test.log)
 ## User Input
 
 ![User IP](./docs/src/videos/basic_user_input.gif)
+
+
+# Feedback Form
+
+The Feedback form was created using Bashforms (Forms in the terminal itself). 
+
+To give you feedback, please type this on your terminal 
+
+```bash
+ssh -t bashform.me f comchan
+```
+
