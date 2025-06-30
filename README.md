@@ -1,3 +1,24 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<!--**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*-->
+
+- [ComChan](#comchan)
+  - [Installation](#installation)
+    - [From crates.io](#from-cratesio)
+    - [From source](#from-source)
+  - [Common Commands](#common-commands)
+    - [Basic Serial Monitor](#basic-serial-monitor)
+    - [Verbose Mode](#verbose-mode)
+    - [Log Mode](#log-mode)
+  - [Features](#features)
+    - [Legends](#legends)
+- [Examples](#examples)
+  - ["Hello World" Program](#hello-world-program)
+  - [User Input](#user-input)
+- [Feedback Form](#feedback-form)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # ComChan
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
