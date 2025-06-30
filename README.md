@@ -2,7 +2,7 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
 
-**Latest Version**: 0.1.0
+**Latest Version**: 0.1.4
 
 ## Installation
 
