@@ -54,7 +54,9 @@ Here are the GIF's :
 
 <br>
 
-<img src = "./videos/arduino.gif" width = "600">
+<video controls width = "900">
+    <source src="./videos/arduino.mp4" type="video/mp4">
+</video>
 
 ## Verbose Mode
 
