@@ -75,3 +75,16 @@ RX [1751259866.350]: Hello World
 RX [1751259866.360]: Received: off
 RX [1751259867.353]: Hello World
 ERROR [1751259867.953]: Serial read error: Interrupted system call
+RX [1751280973.875]: Heorld
+RX [1751280973.875]: Hello World
+RX [1751280973.875]: Hello World
+RX [1751280974.578]: Arduino Ready
+RX [1751280975.577]: Hello World
+RX [1751280976.577]: Hello World
+RX [1751280977.576]: Hello World
+RX [1751280978.580]: Hello World
+RX [1751280979.580]: Hello World
+RX [1751280980.580]: Hello World
+RX [1751280981.579]: Hello World
+RX [1751280982.583]: Hello World
+ERROR [1751280982.810]: Serial read error: Interrupted system call
