@@ -90,3 +90,13 @@ For an example log file , get it [here](./test.log)
 
 - [x] Implemented Features
 - [ ] Yet to me implemented
+
+# Examples
+
+## "Hello World" Program
+
+![GIF](./docs/src/videos/basic_serial_mon.gif)
+
+## User Input
+
+![User IP](./docs/src/videos/basic_user_input.gif)
