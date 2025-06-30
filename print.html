@@ -241,6 +241,73 @@ comchan --help
 <pre><code class="language-bash">cargo build --release
 cargo run
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="how-to-use-comchan"><a class="header" href="#how-to-use-comchan">How to use ComChan</a></h1>
+<p>Currently in the latest version, ComChan has the following features</p>
+<ol>
+<li><a href="usage.html#basic-serial-monitor">Basic Serial Monitor</a></li>
+<li><a href="usage.html#verbose-mode">Verbose Mode of Basic Serial Monitor</a></li>
+<li><a href="usage.html#logging">Logging data into a file</a></li>
+</ol>
+<h2 id="basic-serial-monitor"><a class="header" href="#basic-serial-monitor">Basic Serial Monitor</a></h2>
+<p>ComChan can be used as a basic serial monitor for EMbedded Applications.</p>
+<p>In the Basic Serial Monitor mode, it has Read/Write capabilities.</p>
+<p>Here is a GIF showing how it works in basic mode :</p>
+<h3 id="video-1-hello-world-printing"><a class="header" href="#video-1-hello-world-printing">Video 1 (Hello World printing)</a></h3>
+<p>We will run a basic Arduino application that continuously prints <strong>Hello World</strong></p>
+<p><strong>Apparatus Used</strong>:</p>
+<ol>
+<li>Arduino Uno</li>
+<li>ComChan</li>
+</ol>
+<p><strong>Configuration</strong></p>
+<ol>
+<li>Port: /dev/ttyACM0 (for Linux) <strong>OR</strong> COM3 (for windows)  (can be any number)</li>
+<li>Baud Rate: 9600</li>
+</ol>
+<p><strong>Command Used</strong> :</p>
+<pre><code class="language-bash">comchan -p &lt;port&gt; -r &lt;baud_rate&gt;
+</code></pre>
+<br>
+<p><img src="./videos/basic_serial_mon.gif" alt="Basic mode Hello World" /></p>
+<br>
+<h3 id="video-2-user-input"><a class="header" href="#video-2-user-input">Video 2 (User Input)</a></h3>
+<p>We will now run another Arduino Application that takes User Input (1 or 0) to turn on and off the LED.</p>
+<p><strong>Working</strong>:</p>
+<p>When the user types <code>on</code> or <code>ON</code>, the LED on the Arduino Turn ON and when the user types <code>off</code> or <code>OFF</code>, the LED turn OFF.</p>
+<p>Here are the GIF's :</p>
+<br>
+<img src="./videos/basic_user_input.gif" width = "900">
+<br>
+<video controls width = "900">
+    <source src="./videos/arduino.mp4" type="video/mp4">
+</video>
+<h2 id="verbose-mode"><a class="header" href="#verbose-mode">Verbose Mode</a></h2>
+<p><strong>Command Used</strong> :</p>
+<pre><code class="language-bash">comchan -p &lt;port&gt; -r &lt;baud_rate&gt; -v 
+
+# OR 
+
+comchan --port &lt;port&gt; --baud &lt;baud_rate&gt; --verbose
+</code></pre>
+<p>ComChan also has a verbose mode where the timestamps are available.</p>
+<p>The time stamps the time in milliseconds since January 1 1970 (Unix Epoch).</p>
+<p>Here is the GIF</p>
+<img src = "./videos/verbose_serial_mon.gif" width = "900">
+<br> 
+<h2 id="logging"><a class="header" href="#logging">Logging</a></h2>
+<p><strong>Command Used</strong> :</p>
+<pre><code class="language-bash">comchan -p &lt;port&gt; -r &lt;baud_rate&gt; -l &lt;file_name&gt;.log
+
+# OR 
+
+comchan --port &lt;port&gt; --baud &lt;baud_rate&gt; --log &lt;file_name&gt;.log
+</code></pre>
+<p>Log Files can be used to access the Serial Monitor data on a later date to debug Embedded Applications.</p>
+<p>Here is the GIF of a Normal Serial Monitor</p>
+<img src = "./videos/logging_mon.gif" width = "900">
+<p>Here is the GIF of a log file</p>
+<img src = "./videos/logging_file.gif" width = "900">
+<p>You can access the sample log file <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan/blob/main/test.log">here</a>.</p>
 
                     </main>
 
@@ -259,6 +326,22 @@ cargo run
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 
