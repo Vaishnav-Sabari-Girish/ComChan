@@ -7,7 +7,10 @@ void setup() {
 }
 
 void loop() {
+  delay(1000);
+  Serial.println("Hello World");
   while (Serial.available()) {
+
     String data = Serial.readStringUntil('\n');
     data.trim(); // Remove whitespace/newlines
     Serial.print("Received: ");
