@@ -140,10 +140,10 @@
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
-
-                        <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan" title="Github Repository" aria-label="Github Repository">
-                            <i id="git-repo" class="fa fa-github"></i>
+                        <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
+
                     </div>
                 </div>
 
@@ -266,6 +266,22 @@ comchan --port &lt;port&gt; --baud &lt;baud_rate&gt; --log &lt;file_name&gt;.log
 
         </div>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
 
