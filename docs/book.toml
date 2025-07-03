@@ -3,3 +3,6 @@ authors = ["Vaishnav-Sabari-Girish"]
 language = "en"
 src = "src"
 title = "ComChan: The Blazingly Fast minmal Serial Monitor"
+
+[output.html]
+git-repository-url = "https://github.com/Vaishnav-Sabari-Girish/ComChan"
