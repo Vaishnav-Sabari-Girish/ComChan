@@ -141,7 +141,7 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
 
-                        <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan" title="GitHub Repo" aria-label="GitHub Repository">
+                        <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan" title="Github Repository" aria-label="Github Repository">
                             <i id="git-repo" class="fa fa-github"></i>
                         </a>
                     </div>
@@ -245,6 +245,9 @@ comchan --port &lt;port&gt; --baud &lt;baud_rate&gt; --log &lt;file_name&gt;.log
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
+                            <a rel="next prefetch" href="feedback.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -256,26 +259,13 @@ comchan --port &lt;port&gt; --baud &lt;baud_rate&gt; --log &lt;file_name&gt;.log
                         <i class="fa fa-angle-left"></i>
                     </a>
 
+                    <a rel="next prefetch" href="feedback.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

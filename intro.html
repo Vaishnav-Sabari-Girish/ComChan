@@ -141,7 +141,7 @@
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
 
-                        <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan" title="GitHub Repo" aria-label="GitHub Repository">
+                        <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan" title="Github Repository" aria-label="Github Repository">
                             <i id="git-repo" class="fa fa-github"></i>
                         </a>
                     </div>
@@ -244,22 +244,6 @@ Whether you're writing your first <code>Serial.println("Hello")</code>, or debug
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 
