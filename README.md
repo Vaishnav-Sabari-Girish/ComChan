@@ -20,6 +20,7 @@
   - ["Hello World" Program](#hello-world-program)
   - [User Input](#user-input)
 - [Feedback Form](#feedback-form)
+- [Stargazers over time](#stargazers-over-time)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -137,3 +138,10 @@ To give you feedback, please type this on your terminal
 ssh -t bashform.me f comchan
 ```
 
+
+                        
+# Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=dark)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
+
+                    
