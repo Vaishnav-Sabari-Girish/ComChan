@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use inline_colorization::*;
 
 #[derive(Parser)]
-#[command(name = "comchan", version = "0.1.4.1", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor")]
+#[command(name = "comchan", version = "0.1.5", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor")]
 struct Args {
     #[arg(short = 'p', long = "port")]
     port: String,
