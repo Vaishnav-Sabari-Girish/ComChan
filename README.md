@@ -29,7 +29,7 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
 
-**Latest Version**: 0.1.4
+**Latest Version**: 0.1.6
 
 ## Installation
 
@@ -115,10 +115,8 @@ For an example log file , get it [here](./test.log)
 - [x] Write to Serial port i.e Send data to Serial device.
 - [x] Basic logging.
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
-- [ ] Terminal based Serial Plotter (to be implemented with the `--plot` command)
+- [x] Terminal based Serial Plotter (to be implemented with the `--plot` command)
 
-> [!NOTE]
-> The Serial Plotter has been implemented in the `add_tui` branch. You can test it out by cloning that branch.
 
 ### Legends
 

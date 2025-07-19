@@ -27,7 +27,7 @@ use ratatui::{
 };
 
 #[derive(Parser)]
-#[command(name = "comchan", version = "0.1.5", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor with Plotting")]
+#[command(name = "comchan", version = "0.1.6", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor with Plotting")]
 struct Args {
     #[arg(short = 'p', long = "port")]
     port: String,
