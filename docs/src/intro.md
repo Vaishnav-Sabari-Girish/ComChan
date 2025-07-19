@@ -28,11 +28,12 @@ Comchan is:
 
 ## 🔧 What Can It Do?
 
-- 📥 **Read data from your Arduino or ESP32**
+- 📥 **Read data from your Arduino or ESP32** or any microcontroller for that matter
 - 📤 **Send messages directly to your device**
 - 🧃 **See real-time communication** as it happens
 - 🎨 **Colorful logs** that are clean and easy to follow
 - 🙋‍♂️ **Beginner-safe** – Doesn’t crash on common mistakes
+- 📊 **Real-time data visualization from your microcontroller**
 
 ---
 

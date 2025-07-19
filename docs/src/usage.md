@@ -5,6 +5,7 @@ Currently in the latest version, ComChan has the following features
 1. [Basic Serial Monitor](#basic-serial-monitor)
 2. [Verbose Mode of Basic Serial Monitor](#verbose-mode)
 3. [Logging data into a file](#logging)
+4. [Serial Plotter](./serial_plotter.md)
 
 ## Basic Serial Monitor
 
