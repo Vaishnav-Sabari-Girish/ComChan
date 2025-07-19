@@ -15,11 +15,13 @@
     - [Basic Serial Monitor](#basic-serial-monitor)
     - [Verbose Mode](#verbose-mode)
     - [Log Mode](#log-mode)
+    - [Serial Plotter](#serial-plotter)
   - [Features](#features)
     - [Legends](#legends)
 - [Examples](#examples)
   - ["Hello World" Program](#hello-world-program)
   - [User Input](#user-input)
+  - [Serial Plotter](#serial-plotter-1)
 - [Feedback Form](#feedback-form)
 - [Stargazers over time](#stargazers-over-time)
 
@@ -109,6 +111,17 @@ comchan --port <port> --baud <baud_rate> --log <log_file_name>
 
 For an example log file , get it [here](./test.log)
 
+### Serial Plotter
+
+```bash
+comchan --port <port> --baud <baud_rate> --plot
+
+# OR 
+
+comchan -p <port> -r <baud_rate> --plot
+```
+
+
 ## Features
 
 - [x] Read incoming Serial data from Serial ports
@@ -132,6 +145,10 @@ For an example log file , get it [here](./test.log)
 ## User Input
 
 ![User IP](./docs/src/videos/basic_user_input.gif)
+
+## Serial Plotter
+
+![Serial Plotter](./docs/src/videos/plotter.gif)
 
 
 # Feedback Form
