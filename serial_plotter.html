@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - ComChan: The Blazingly Fast minmal Serial Monitor</title>
+        <title>Serial Plotter - ComChan: The Blazingly Fast minmal Serial Monitor</title>
 
 
         <!-- Custom HTML head -->
@@ -169,65 +169,58 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="-introduction-to-comchan"><a class="header" href="#-introduction-to-comchan">📘 Introduction to Comchan</a></h1>
-<p><strong>Comchan</strong> (short for <em>"Communication Channel"</em>) is a <strong>blazingly fast, minimal, and beginner-friendly serial monitor</strong> made with 💖 in Rust.</p>
-<p>It’s built for makers, tinkerers, students, embedded developers — <strong>anyone</strong> who works with serial-connected devices like <strong>Arduino</strong>, <strong>ESP32</strong>, <strong>Teensy</strong>, or <strong>Raspberry Pi</strong>, and wants a clean, modern, and reliable way to talk to them from the terminal.</p>
-<blockquote>
-<p>🚀 Whether you're debugging a sensor or sending messages to a microcontroller — <em>Comchan</em> is your calm, capable companion.</p>
-</blockquote>
-<hr />
-<h2 id="-why-comchan"><a class="header" href="#-why-comchan">✨ Why Comchan?</a></h2>
-<p>Most serial tools out there are either:</p>
-<ul>
-<li>❌ Too basic (like <code>screen</code>, which doesn’t handle inputs well)</li>
-<li>❌ Too bloated (like GUIs you don’t need)</li>
-<li>❌ Confusing for newcomers</li>
-</ul>
-<p>Comchan is:</p>
-<ul>
-<li>🧼 <strong>Minimal</strong> – Does one thing and does it well</li>
-<li>⚡ <strong>Fast</strong> – Built in Rust with snappy performance</li>
-<li>🎨 <strong>Pretty</strong> – Uses emoji + colored output for clarity</li>
-<li>🧠 <strong>Smart</strong> – Handles line buffering, timeouts, and clean exits</li>
-<li>✍️ <strong>Simple to Use</strong> – Just tell it your port and baud rate and you’re set!</li>
-</ul>
-<hr />
-<h2 id="-what-can-it-do"><a class="header" href="#-what-can-it-do">🔧 What Can It Do?</a></h2>
-<ul>
-<li>📥 <strong>Read data from your Arduino or ESP32</strong> or any microcontroller for that matter</li>
-<li>📤 <strong>Send messages directly to your device</strong></li>
-<li>🧃 <strong>See real-time communication</strong> as it happens</li>
-<li>🎨 <strong>Colorful logs</strong> that are clean and easy to follow</li>
-<li>🙋‍♂️ <strong>Beginner-safe</strong> – Doesn’t crash on common mistakes</li>
-<li>📊 <strong>Real-time data visualization from your microcontroller</strong></li>
-</ul>
-<hr />
-<h2 id="-sample-use"><a class="header" href="#-sample-use">🛠 Sample Use</a></h2>
-<pre><code class="language-bash"># For Linux Users 
-comchan -p /dev/ttyUSB0 -r 9600
+                        <h1 id="the-serial-plotter"><a class="header" href="#the-serial-plotter">The Serial Plotter</a></h1>
+<p>A Serial Plotter is a powerful visualization tool that transforms numerical data received through serial communication into real-time graphical representations. Originally introduced in Arduino IDE version 1.6.6, this tool has become an essential component for developers, engineers, and makers working with microcontrollers and embedded systems.</p>
+<h2 id="how-to-use-the-serial-plotter-in-comchan"><a class="header" href="#how-to-use-the-serial-plotter-in-comchan">How to use the Serial Plotter in <code>ComChan</code></a></h2>
+<p>To use the terminal based Serial Plotter in <code>ComChan</code>, you just have to add a <code>--plot</code> flag with the other flags as shown below:</p>
+<pre><code class="language-bash">comchan --port /dev/ttyUSB0 --baud 9600 --plot
 
 # OR 
 
-comchan --port /dev/ttyUSB0 --baud 9600
-
-# For Windows Users 
-comchan -p COM3 -r 9600
-
-# OR 
-
-comchan --port COM3 --baud 9600
+comchan -p /dev/ttyUSB0 -r 9600 --plot
 </code></pre>
-<h2 id="-the-goal"><a class="header" href="#-the-goal">💡 The Goal</a></h2>
-<p>Comchan was built to make embedded development more joyful, less frustrating, and a little bit cute 🐣.
-Whether you're writing your first <code>Serial.println("Hello")</code>, or debugging complex protocols, Comchan will stay out of your way and do exactly what you ask.</p>
-<p><em>✨ Made with Rust and a little anime soul.</em></p>
+<p>Once you do that, you will get this as your output:</p>
+<p><img src="./videos/plotter.gif" alt="Serial Plotter output" /></p>
+<hr />
+<h2 id="features-of-comchan-serial-plotter"><a class="header" href="#features-of-comchan-serial-plotter">Features of <code>ComChan</code> Serial Plotter</a></h2>
+<ul>
+<li><strong>Real-time plotting</strong>: Instantly visualize incoming data from your microcontroller.</li>
+<li><strong>Single stream support</strong>: Currently supports plotting one stream of numerical data at a time.</li>
+<li><strong>Color-coded lines</strong>: The data stream is rendered with a distinct color.</li>
+<li><strong>Terminal-friendly</strong>: No GUI required. Works completely inside the terminal.</li>
+</ul>
+<hr />
+<h2 id="formatting-data-for-plotting"><a class="header" href="#formatting-data-for-plotting">Formatting Data for Plotting</a></h2>
+<p>To make your data compatible with the plotter, ensure that your microcontroller prints a single numerical value per line using <code>Serial.println()</code> like this:</p>
+<pre><code class="language-cpp">Serial.println(sensor_value);
+</code></pre>
+<p>Currently, only one stream is plotted. If multiple values are sent, only the first one will be considered.</p>
+<hr />
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<ul>
+<li><strong>Sensor Monitoring</strong>: Plot values from temperature, humidity, or light sensors.</li>
+<li><strong>PID Tuning</strong>: Visualize control loop behavior in real time.</li>
+<li><strong>Data Debugging</strong>: Spot anomalies in system behavior quickly.</li>
+</ul>
+<hr />
+<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
+<ul>
+<li>Multi-series plotting support</li>
+<li>Zoom &amp; pan capabilities</li>
+<li>Export plots as image files</li>
+<li>Custom axis labeling</li>
+<li>Interactive TUI integration</li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="usage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-                            <a rel="next prefetch" href="install.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="feedback.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -237,8 +230,11 @@ Whether you're writing your first <code>Serial.println("Hello")</code>, or debug
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="usage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
-                    <a rel="next prefetch" href="install.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="feedback.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
