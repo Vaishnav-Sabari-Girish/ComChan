@@ -7,8 +7,27 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use inline_colorization::*;
 
+// Plotting imports
+use crossterm::{
+    event::{self, KeyCode},
+    execute,
+    terminal::{
+        disable_raw_mode,
+        enable_raw_mode,
+        EnterAlternateScreen,
+        LeaveAlternateScreen
+    },
+};
+use ratatui::{
+    backend::CrosstermBackend,
+    widgets::*,
+    prelude::*,
+    symbols,
+    Terminal
+};
+
 #[derive(Parser)]
-#[command(name = "comchan", version = "0.1.4", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor")]
+#[command(name = "comchan", version = "0.1.5", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor with Plotting")]
 struct Args {
     #[arg(short = 'p', long = "port")]
     port: String,
@@ -42,6 +61,12 @@ struct Args {
 
     #[arg(short = 'v', long = "verbose", action = clap::ArgAction::SetTrue)]
     verbose: bool,
+
+    #[arg(long = "plot", action = clap::ArgAction::SetTrue)]
+    plot: bool,
+
+    #[arg(long = "plot-points", default_value = "100")]
+    plot_points: usize,
 }
 
 fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
@@ -115,14 +140,200 @@ fn get_timestamp() -> String {
     format!("{}.{:03}", secs, millis)
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Args::parse();
+fn parse_numeric_value(line: &str) -> Option<f64> {
+    // Try to parse the entire line as a number first
+    if let Ok(value) = line.trim().parse::<f64>() {
+        return Some(value);
+    }
+    
+    // Look for numbers in the line (handles cases like "Temperature: 25.3")
+    let words: Vec<&str> = line.split_whitespace().collect();
+    for word in words {
+        // Remove common non-numeric characters
+        let cleaned = word.trim_matches(|c: char| !c.is_ascii_digit() && c != '.' && c != '-');
+        if let Ok(value) = cleaned.parse::<f64>() {
+            return Some(value);
+        }
+    }
+    
+    None
+}
 
-    // Handle list ports command
-    if args.list_ports {
-        return list_available_ports();
+fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+    // Setup terminal for plotting
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    // Parse serial port configuration
+    let data_bits = parse_data_bits(args.data_bits)?;
+    let stop_bits = parse_stop_bits(args.stop_bits)?;
+    let parity = parse_parity(&args.parity)?;
+    let flow_control = parse_flow_control(&args.flow_control)?;
+
+    // Open serial port
+    let mut port = serialport::new(&args.port, args.baud)
+        .timeout(Duration::from_millis(args.timeout_ms))
+        .data_bits(data_bits)
+        .stop_bits(stop_bits)
+        .parity(parity)
+        .flow_control(flow_control)
+        .open()?;
+
+    // Optional log file setup
+    let mut log_writer = if let Some(log_path) = &args.log_file {
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(log_path)?;
+        Some(BufWriter::new(file))
+    } else {
+        None
+    };
+
+    thread::sleep(Duration::from_millis(args.reset_delay_ms));
+
+    let mut data: Vec<(f64, f64)> = Vec::with_capacity(args.plot_points);
+    let mut x = 0.0;
+    let mut buffer = [0u8; 1024];
+    let mut received = String::new();
+    let mut y_min = f64::INFINITY;
+    let mut y_max = f64::NEG_INFINITY;
+
+    loop {
+        // Check for exit condition first
+        if event::poll(Duration::from_millis(10))? {
+            if let event::Event::Key(key) = event::read()? {
+                if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                    break;
+                }
+            }
+        }
+
+        // Read from serial port
+        match port.read(&mut buffer) {
+            Ok(n) => {
+                if n > 0 {
+                    let output = String::from_utf8_lossy(&buffer[..n]);
+                    received.push_str(&output);
+                    
+                    // Process complete lines
+                    while let Some(line_end) = received.find('\n') {
+                        let line = received.drain(..=line_end).collect::<String>();
+                        let clean_line = line.trim();
+                        
+                        // Try to parse numeric value from the line
+                        if let Some(y) = parse_numeric_value(clean_line) {
+                            data.push((x, y));
+                            
+                            // Update y bounds for dynamic scaling
+                            if y < y_min { y_min = y; }
+                            if y > y_max { y_max = y; }
+                            
+                            // Maintain rolling window
+                            if data.len() > args.plot_points {
+                                data.remove(0);
+                            }
+                            
+                            x += 1.0;
+                        }
+                        
+                        // Log to file if enabled
+                        if let Some(ref mut writer) = log_writer {
+                            writeln!(writer, "RX [{}]: {}", get_timestamp(), clean_line)?;
+                            writer.flush()?;
+                        }
+                    }
+                }
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                // Timeout is normal, continue
+            }
+            Err(_e) => {
+                // Handle error silently in plot mode
+            }
+        }
+
+        // Calculate dynamic bounds for x-axis
+        let (x_min, x_max) = if data.is_empty() {
+            (0.0, 10.0)
+        } else {
+            (data[0].0, data[data.len() - 1].0)
+        };
+
+        // Calculate y-axis bounds with some padding
+        let (chart_y_min, chart_y_max) = if y_min.is_finite() && y_max.is_finite() && y_min != y_max {
+            let padding = (y_max - y_min) * 0.1;
+            (y_min - padding, y_max + padding)
+        } else if y_min.is_finite() && y_max.is_finite() {
+            (y_min - 1.0, y_max + 1.0)
+        } else {
+            (-1.0, 1.0)
+        };
+
+        // Create labels outside the closure
+        let x_min_label = format!("{:.0}", x_min);
+        let x_mid_label = format!("{:.0}", (x_min + x_max) / 2.0);
+        let x_max_label = format!("{:.0}", x_max);
+        
+        let y_min_label = format!("{:.2}", chart_y_min);
+        let y_mid_label = format!("{:.2}", (chart_y_min + chart_y_max) / 2.0);
+        let y_max_label = format!("{:.2}", chart_y_max);
+
+        // Draw the chart
+        terminal.draw(|f| {
+            let size = f.area();
+            
+            let chart = Chart::new(vec![
+                Dataset::default()
+                    .name("Serial Data")
+                    .marker(symbols::Marker::Braille)
+                    .graph_type(GraphType::Line)
+                    .style(Style::default().fg(Color::Cyan))
+                    .data(&data)
+            ])
+            .block(
+                Block::default()
+                    .title(format!("Live Serial Plotter - {} @ {} baud (Press 'q' or ESC to exit)", args.port, args.baud))
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::White))
+            )
+            .x_axis(
+                Axis::default()
+                    .title("Sample")
+                    .style(Style::default().fg(Color::Gray))
+                    .bounds([x_min, x_max])
+                    .labels(vec![
+                        x_min_label.as_str(),
+                        x_mid_label.as_str(),
+                        x_max_label.as_str(),
+                    ])
+            )
+            .y_axis(
+                Axis::default()
+                    .title("Value")
+                    .style(Style::default().fg(Color::Gray))
+                    .bounds([chart_y_min, chart_y_max])
+                    .labels(vec![
+                        y_min_label.as_str(),
+                        y_mid_label.as_str(),
+                        y_max_label.as_str(),
+                    ])
+            );
+            
+            f.render_widget(chart, size);
+        })?;
     }
 
+    // Cleanup
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    Ok(())
+}
+
+fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     // Parse serial port configuration
     let data_bits = parse_data_bits(args.data_bits)
         .map_err(|e| format!("Configuration error: {}", e))?;
@@ -286,4 +497,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{color_green}✅ ComChan disconnected cleanly{color_reset}");
     Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+
+    // Handle list ports command
+    if args.list_ports {
+        return list_available_ports();
+    }
+
+    // Choose mode based on plot flag
+    if args.plot {
+        run_plotter_mode(args)
+    } else {
+        run_normal_mode(args)
+    }
 }
