@@ -13,6 +13,8 @@ categories = ["command-line-utilities", "embedded"]
 
 [dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
+crossterm = "0.29.0"
 ctrlc = "3.4.7"
 inline_colorization = "0.1.6"
+ratatui = "0.29.0"
 serialport = "4.7.2"
