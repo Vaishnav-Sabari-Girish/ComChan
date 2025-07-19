@@ -117,6 +117,9 @@ For an example log file , get it [here](./test.log)
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
 - [ ] Terminal based Serial Plotter (to be implemented with the `--plot` command)
 
+> [!NOTE]
+> The Serial Plotter has been implemented in the `add_tui` branch. You can test it out by cloning that branch.
+
 ### Legends
 
 - [x] Implemented Features
