@@ -3,5 +3,5 @@
 - [Introduction](./intro.md)
 - [Installation](./install.md)
 - [Usage](./usage.md)
-- [Serial Plotter](./serial_plotter.md)
+- [Other Features](./other_features.md)
 - [Feedback](./feedback.md)
