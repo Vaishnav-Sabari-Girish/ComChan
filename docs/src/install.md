@@ -25,6 +25,21 @@ comchan --version
 comchan --help
 ```
 
+## Install from the AUR 
+
+Thanks to [Orhun](https://github.com/orhun), ComChan now has an Arch package. You can install it using any package manager for arch like `yay` or `paru`
+
+```bash
+#Using yay 
+
+yay -S comchan 
+
+# Using paru
+
+paru -S comchan
+```
+
+
 ## Install from source
 
 Clone the repository and `cd` in `ComChan`
