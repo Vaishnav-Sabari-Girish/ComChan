@@ -9,6 +9,7 @@
 - [ComChan](#comchan)
   - [Installation](#installation)
     - [From crates.io](#from-cratesio)
+    - [From AUR](#from-aur)
     - [From source](#from-source)
 - [Documentation Link](#documentation-link)
   - [Common Commands](#common-commands)
@@ -16,12 +17,14 @@
     - [Verbose Mode](#verbose-mode)
     - [Log Mode](#log-mode)
     - [Serial Plotter](#serial-plotter)
+    - [Automatically detect serial ports](#automatically-detect-serial-ports)
   - [Features](#features)
     - [Legends](#legends)
 - [Examples](#examples)
   - ["Hello World" Program](#hello-world-program)
   - [User Input](#user-input)
   - [Serial Plotter](#serial-plotter-1)
+  - [Auto Serial Port Detector](#auto-serial-port-detector)
 - [Feedback Form](#feedback-form)
 - [Stargazers over time](#stargazers-over-time)
 
@@ -31,7 +34,7 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
 
-**Latest Version**: 0.1.6
+**Latest Version**: 0.1.8
 
 ## Installation
 
@@ -135,13 +138,29 @@ comchan --port <port> --baud <baud_rate> --plot
 comchan -p <port> -r <baud_rate> --plot
 ```
 
+### Automatically detect serial ports
+
+
+```bash
+
+comchan --auto    ##Defaults baud rate to 9600
+
+#OR 
+
+comchan --auto --baud <baud_rate>  # For non-default baud rates like 115200
+
+# OR 
+
+comchan --auto -r <baud_rate>
+
+```
 
 ## Features
 
 - [x] Read incoming Serial data from Serial ports
 - [x] Write to Serial port i.e Send data to Serial device.
 - [x] Basic logging.
-- [ ] Auto detect Serial Ports
+- [x] Auto detect Serial Ports
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
 - [x] Terminal based Serial Plotter (to be implemented with the `--plot` command)
 
@@ -165,6 +184,10 @@ comchan -p <port> -r <baud_rate> --plot
 
 ![Serial Plotter](./docs/src/videos/plotter.gif)
 
+
+## Auto Serial Port Detector 
+
+![auto](./docs/src/videos/auto.gif)
 
 # Feedback Form
 
