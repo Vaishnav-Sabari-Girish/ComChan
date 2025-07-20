@@ -240,6 +240,16 @@ To verify that <code>comchan</code> has been installed type the below command :<
 
 comchan --help
 </code></pre>
+<h2 id="install-from-the-aur"><a class="header" href="#install-from-the-aur">Install from the AUR</a></h2>
+<p>Thanks to <a href="https://github.com/orhun">Orhun</a>, ComChan now has an Arch package. You can install it using any package manager for arch like <code>yay</code> or <code>paru</code></p>
+<pre><code class="language-bash">#Using yay 
+
+yay -S comchan 
+
+# Using paru
+
+paru -S comchan
+</code></pre>
 <h2 id="install-from-source"><a class="header" href="#install-from-source">Install from source</a></h2>
 <p>Clone the repository and <code>cd</code> in <code>ComChan</code></p>
 <pre><code class="language-bash">cargo build --release
@@ -313,7 +323,12 @@ comchan --port &lt;port&gt; --baud &lt;baud_rate&gt; --log &lt;file_name&gt;.log
 <p>Here is the GIF of a log file</p>
 <img src = "./videos/logging_file.gif" width = "900">
 <p>You can access the sample log file <a href="https://github.com/Vaishnav-Sabari-Girish/ComChan/blob/main/test.log">here</a>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="the-serial-plotter"><a class="header" href="#the-serial-plotter">The Serial Plotter</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="other-features-of-comchan"><a class="header" href="#other-features-of-comchan">Other Features of ComChan</a></h1>
+<ol>
+<li><a href="other_features.html#the-serial-plotter">Serial Plotter</a></li>
+<li><a href="other_features.html#auto-port-detection">Automatic Port Detection</a></li>
+</ol>
+<h1 id="the-serial-plotter"><a class="header" href="#the-serial-plotter">The Serial Plotter</a></h1>
 <p>A Serial Plotter is a powerful visualization tool that transforms numerical data received through serial communication into real-time graphical representations. Originally introduced in Arduino IDE version 1.6.6, this tool has become an essential component for developers, engineers, and makers working with microcontrollers and embedded systems.</p>
 <h2 id="how-to-use-the-serial-plotter-in-comchan"><a class="header" href="#how-to-use-the-serial-plotter-in-comchan">How to use the Serial Plotter in <code>ComChan</code></a></h2>
 <p>To use the terminal based Serial Plotter in <code>ComChan</code>, you just have to add a <code>--plot</code> flag with the other flags as shown below:</p>
@@ -347,6 +362,28 @@ comchan -p /dev/ttyUSB0 -r 9600 --plot
 <li><strong>Data Debugging</strong>: Spot anomalies in system behavior quickly.</li>
 </ul>
 <hr />
+<h1 id="auto-port-detection"><a class="header" href="#auto-port-detection">Auto Port Detection</a></h1>
+<p>You can run ComChan with the <code>--auto</code> flag like so:</p>
+<pre><code class="language-bash">comchan --auto
+</code></pre>
+<p>This automatically detects and connects to the appropriate serial port, so you don’t have to manually specify it using a <code>--port</code> flag.</p>
+<p>This is especially useful if:</p>
+<ul>
+<li>You’re not sure which port your board is connected to.</li>
+<li>You’re frequently connecting/disconnecting devices.</li>
+<li>You want a faster, zero-config setup.</li>
+</ul>
+<p>Under the hood, ComChan scans all available serial ports and identifies the most likely candidate based on device names and connection responses.</p>
+<blockquote>
+<p><strong>Note:</strong> If needed, you can still specify the port manually like so:</p>
+<pre><code class="language-bash">comchan --port /dev/ttyUSB0
+</code></pre>
+</blockquote>
+<h3 id="demo"><a class="header" href="#demo">Demo</a></h3>
+<p>Here’s a quick demonstration:</p>
+<p><img src="./videos/auto.gif" alt="Auto" /></p>
+<p>As shown above, ComChan detects the port, connects, and begins serial communication — all without any extra configuration.</p>
+<p>This feature aims to offer both <strong>convenience</strong> and <strong>control</strong> for developers and embedded enthusiasts alike.</p>
 <h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
 <ul>
 <li>Multi-series plotting support</li>
