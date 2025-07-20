@@ -15,16 +15,19 @@ use crossterm::{
 };
 use ratatui::{Terminal, backend::CrosstermBackend, prelude::*, symbols, widgets::*};
 
+// Add the port finder module
+mod port_finder;
+
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.1.7",
+    version = "0.1.8",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
 struct Args {
-    #[arg(short = 'p', long = "port")]
-    port: String,
+    #[arg(short = 'p', long = "port", help = "Serial port to connect to")]
+    port: Option<String>,
 
     #[arg(short = 'r', long = "baud", default_value = "9600")]
     baud: u32,
@@ -53,6 +56,9 @@ struct Args {
     #[arg(long = "list-ports", action = clap::ArgAction::SetTrue)]
     list_ports: bool,
 
+    #[arg(long = "auto", action = clap::ArgAction::SetTrue, help = "Auto-detect USB serial port")]
+    auto: bool,
+
     #[arg(short = 'v', long = "verbose", action = clap::ArgAction::SetTrue)]
     verbose: bool,
 
@@ -64,7 +70,7 @@ struct Args {
 }
 
 fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
-    println!("{color_cyan}📋 Available Serial Ports:{color_reset}");
+    println!("{color_cyan}📋 All Available Serial Ports:{color_reset}");
     let ports = serialport::available_ports()?;
 
     if ports.is_empty() {
@@ -86,6 +92,11 @@ fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
             }
         );
     }
+    
+    println!();
+    // Show detailed USB info
+    port_finder::show_usb_ports()?;
+    
     Ok(())
 }
 
@@ -163,7 +174,7 @@ fn parse_numeric_value(line: &str) -> Option<f64> {
     None
 }
 
-fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+fn run_plotter_mode(args: Args, port_name: String) -> Result<(), Box<dyn std::error::Error>> {
     // Setup terminal for plotting
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -178,7 +189,7 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let flow_control = parse_flow_control(&args.flow_control)?;
 
     // Open serial port
-    let mut port = serialport::new(&args.port, args.baud)
+    let mut port = serialport::new(&port_name, args.baud)
         .timeout(Duration::from_millis(args.timeout_ms))
         .data_bits(data_bits)
         .stop_bits(stop_bits)
@@ -307,7 +318,7 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                 Block::default()
                     .title(format!(
                         "Live Serial Plotter - {} @ {} baud (Press 'q' or ESC to exit)",
-                        args.port, args.baud
+                        port_name, args.baud
                     ))
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(Color::White)),
@@ -345,7 +356,7 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+fn run_normal_mode(args: Args, port_name: String) -> Result<(), Box<dyn std::error::Error>> {
     // Parse serial port configuration
     let data_bits =
         parse_data_bits(args.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
@@ -356,14 +367,14 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|e| format!("Configuration error: {}", e))?;
 
     // Open serial port with full configuration
-    let mut port = serialport::new(&args.port, args.baud)
+    let mut port = serialport::new(&port_name, args.baud)
         .timeout(Duration::from_millis(args.timeout_ms))
         .data_bits(data_bits)
         .stop_bits(stop_bits)
         .parity(parity)
         .flow_control(flow_control)
         .open()
-        .map_err(|e| format!("Failed to open port {}: {}", args.port, e))?;
+        .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
 
     // Optional log file setup
     let log_writer = if let Some(log_path) = &args.log_file {
@@ -383,7 +394,7 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     // Print connection info
     println!(
         "{color_green}📡 ComChan connected to {} at {} baud{color_reset}",
-        args.port, args.baud
+        port_name, args.baud
     );
     if args.verbose {
         println!(
@@ -528,10 +539,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return list_available_ports();
     }
 
+    // Handle auto port detection or manual port specification
+    let port_name = if args.auto {
+        match port_finder::find_usb_port()? {
+            Some(port) => {
+                println!("{color_green}🔍 Auto-detected USB port: {}{color_reset}", port);
+                port
+            }
+            None => {
+                eprintln!("{color_red}❌ No USB serial ports found for auto-detection{color_reset}");
+                eprintln!("{color_yellow}💡 Try --list-ports to see available ports{color_reset}");
+                std::process::exit(1);
+            }
+        }
+    } else if let Some(ref port) = args.port {
+        port.clone()
+    } else {
+        eprintln!("{color_red}❌ No port specified. Use --port <PORT> or --auto{color_reset}");
+        eprintln!("{color_yellow}💡 Try --list-ports to see available ports or --auto to detect automatically{color_reset}");
+        std::process::exit(1);
+    };
+
     // Choose mode based on plot flag
     if args.plot {
-        run_plotter_mode(args)
+        run_plotter_mode(args, port_name)
     } else {
-        run_normal_mode(args)
+        run_normal_mode(args, port_name)
     }
 }
