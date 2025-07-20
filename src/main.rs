@@ -1,33 +1,27 @@
 use clap::Parser;
+use inline_colorization::*;
 use serialport::{self, DataBits, FlowControl, Parity, StopBits};
 use std::fs::OpenOptions;
-use std::io::{self, Read, Write, BufWriter};
+use std::io::{self, BufWriter, Read, Write};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use inline_colorization::*;
 
 // Plotting imports
 use crossterm::{
     event::{self, KeyCode},
     execute,
-    terminal::{
-        disable_raw_mode,
-        enable_raw_mode,
-        EnterAlternateScreen,
-        LeaveAlternateScreen
-    },
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{
-    backend::CrosstermBackend,
-    widgets::*,
-    prelude::*,
-    symbols,
-    Terminal
-};
+use ratatui::{Terminal, backend::CrosstermBackend, prelude::*, symbols, widgets::*};
 
 #[derive(Parser)]
-#[command(name = "comchan", version = "0.1.7", author = "Vaishnav-Sabari-Girish", about = "Blazingly Fast Minimal Serial Monitor with Plotting")]
+#[command(
+    name = "comchan",
+    version = "0.1.7",
+    author = "Vaishnav-Sabari-Girish",
+    about = "Blazingly Fast Minimal Serial Monitor with Plotting"
+)]
 struct Args {
     #[arg(short = 'p', long = "port")]
     port: String,
@@ -72,19 +66,20 @@ struct Args {
 fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
     println!("{color_cyan}📋 Available Serial Ports:{color_reset}");
     let ports = serialport::available_ports()?;
-    
+
     if ports.is_empty() {
         println!("  {color_yellow}⚠️  No serial ports found{color_reset}");
         return Ok(());
     }
 
     for port in ports {
-        println!("  🔌 {} - {}", port.port_name, 
+        println!(
+            "  🔌 {} - {}",
+            port.port_name,
             match port.port_type {
                 serialport::SerialPortType::UsbPort(info) => {
-                    format!("USB Device (VID: {:04x}, PID: {:04x})", 
-                        info.vid, info.pid)
-                },
+                    format!("USB Device (VID: {:04x}, PID: {:04x})", info.vid, info.pid)
+                }
                 serialport::SerialPortType::BluetoothPort => "Bluetooth".to_string(),
                 serialport::SerialPortType::PciPort => "PCI".to_string(),
                 serialport::SerialPortType::Unknown => "Unknown".to_string(),
@@ -100,7 +95,10 @@ fn parse_data_bits(bits: u8) -> Result<DataBits, String> {
         6 => Ok(DataBits::Six),
         7 => Ok(DataBits::Seven),
         8 => Ok(DataBits::Eight),
-        _ => Err(format!("Invalid data bits: {}. Must be 5, 6, 7, or 8", bits)),
+        _ => Err(format!(
+            "Invalid data bits: {}. Must be 5, 6, 7, or 8",
+            bits
+        )),
     }
 }
 
@@ -117,7 +115,10 @@ fn parse_parity(parity: &str) -> Result<Parity, String> {
         "none" | "n" => Ok(Parity::None),
         "odd" | "o" => Ok(Parity::Odd),
         "even" | "e" => Ok(Parity::Even),
-        _ => Err(format!("Invalid parity: {}. Must be 'none', 'odd', or 'even'", parity)),
+        _ => Err(format!(
+            "Invalid parity: {}. Must be 'none', 'odd', or 'even'",
+            parity
+        )),
     }
 }
 
@@ -126,7 +127,10 @@ fn parse_flow_control(flow: &str) -> Result<FlowControl, String> {
         "none" | "n" => Ok(FlowControl::None),
         "software" | "s" => Ok(FlowControl::Software),
         "hardware" | "h" => Ok(FlowControl::Hardware),
-        _ => Err(format!("Invalid flow control: {}. Must be 'none', 'software', or 'hardware'", flow)),
+        _ => Err(format!(
+            "Invalid flow control: {}. Must be 'none', 'software', or 'hardware'",
+            flow
+        )),
     }
 }
 
@@ -145,7 +149,7 @@ fn parse_numeric_value(line: &str) -> Option<f64> {
     if let Ok(value) = line.trim().parse::<f64>() {
         return Some(value);
     }
-    
+
     // Look for numbers in the line (handles cases like "Temperature: 25.3")
     let words: Vec<&str> = line.split_whitespace().collect();
     for word in words {
@@ -155,7 +159,7 @@ fn parse_numeric_value(line: &str) -> Option<f64> {
             return Some(value);
         }
     }
-    
+
     None
 }
 
@@ -218,28 +222,32 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                 if n > 0 {
                     let output = String::from_utf8_lossy(&buffer[..n]);
                     received.push_str(&output);
-                    
+
                     // Process complete lines
                     while let Some(line_end) = received.find('\n') {
                         let line = received.drain(..=line_end).collect::<String>();
                         let clean_line = line.trim();
-                        
+
                         // Try to parse numeric value from the line
                         if let Some(y) = parse_numeric_value(clean_line) {
                             data.push((x, y));
-                            
+
                             // Update y bounds for dynamic scaling
-                            if y < y_min { y_min = y; }
-                            if y > y_max { y_max = y; }
-                            
+                            if y < y_min {
+                                y_min = y;
+                            }
+                            if y > y_max {
+                                y_max = y;
+                            }
+
                             // Maintain rolling window
                             if data.len() > args.plot_points {
                                 data.remove(0);
                             }
-                            
+
                             x += 1.0;
                         }
-                        
+
                         // Log to file if enabled
                         if let Some(ref mut writer) = log_writer {
                             writeln!(writer, "RX [{}]: {}", get_timestamp(), clean_line)?;
@@ -264,7 +272,8 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         };
 
         // Calculate y-axis bounds with some padding
-        let (chart_y_min, chart_y_max) = if y_min.is_finite() && y_max.is_finite() && y_min != y_max {
+        let (chart_y_min, chart_y_max) = if y_min.is_finite() && y_max.is_finite() && y_min != y_max
+        {
             let padding = (y_max - y_min) * 0.1;
             (y_min - padding, y_max + padding)
         } else if y_min.is_finite() && y_max.is_finite() {
@@ -277,7 +286,7 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         let x_min_label = format!("{:.0}", x_min);
         let x_mid_label = format!("{:.0}", (x_min + x_max) / 2.0);
         let x_max_label = format!("{:.0}", x_max);
-        
+
         let y_min_label = format!("{:.2}", chart_y_min);
         let y_mid_label = format!("{:.2}", (chart_y_min + chart_y_max) / 2.0);
         let y_max_label = format!("{:.2}", chart_y_max);
@@ -285,20 +294,23 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         // Draw the chart
         terminal.draw(|f| {
             let size = f.area();
-            
+
             let chart = Chart::new(vec![
                 Dataset::default()
                     .name("Serial Data")
                     .marker(symbols::Marker::Braille)
                     .graph_type(GraphType::Line)
                     .style(Style::default().fg(Color::Cyan))
-                    .data(&data)
+                    .data(&data),
             ])
             .block(
                 Block::default()
-                    .title(format!("Live Serial Plotter - {} @ {} baud (Press 'q' or ESC to exit)", args.port, args.baud))
+                    .title(format!(
+                        "Live Serial Plotter - {} @ {} baud (Press 'q' or ESC to exit)",
+                        args.port, args.baud
+                    ))
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::White))
+                    .border_style(Style::default().fg(Color::White)),
             )
             .x_axis(
                 Axis::default()
@@ -309,7 +321,7 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                         x_min_label.as_str(),
                         x_mid_label.as_str(),
                         x_max_label.as_str(),
-                    ])
+                    ]),
             )
             .y_axis(
                 Axis::default()
@@ -320,9 +332,9 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                         y_min_label.as_str(),
                         y_mid_label.as_str(),
                         y_max_label.as_str(),
-                    ])
+                    ]),
             );
-            
+
             f.render_widget(chart, size);
         })?;
     }
@@ -335,12 +347,11 @@ fn run_plotter_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     // Parse serial port configuration
-    let data_bits = parse_data_bits(args.data_bits)
-        .map_err(|e| format!("Configuration error: {}", e))?;
-    let stop_bits = parse_stop_bits(args.stop_bits)
-        .map_err(|e| format!("Configuration error: {}", e))?;
-    let parity = parse_parity(&args.parity)
-        .map_err(|e| format!("Configuration error: {}", e))?;
+    let data_bits =
+        parse_data_bits(args.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
+    let stop_bits =
+        parse_stop_bits(args.stop_bits).map_err(|e| format!("Configuration error: {}", e))?;
+    let parity = parse_parity(&args.parity).map_err(|e| format!("Configuration error: {}", e))?;
     let flow_control = parse_flow_control(&args.flow_control)
         .map_err(|e| format!("Configuration error: {}", e))?;
 
@@ -370,10 +381,15 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     thread::sleep(Duration::from_millis(args.reset_delay_ms));
 
     // Print connection info
-    println!("{color_green}📡 ComChan connected to {} at {} baud{color_reset}", args.port, args.baud);
+    println!(
+        "{color_green}📡 ComChan connected to {} at {} baud{color_reset}",
+        args.port, args.baud
+    );
     if args.verbose {
-        println!("{color_blue}⚙️  Configuration: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}",
-            args.data_bits, args.stop_bits, args.parity, args.flow_control);
+        println!(
+            "{color_blue}⚙️  Configuration: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}",
+            args.data_bits, args.stop_bits, args.parity, args.flow_control
+        );
         if let Some(log_path) = &args.log_file {
             println!("{color_blue}📝 Logging to: {}{color_reset}", log_path);
         }
@@ -382,7 +398,7 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
     // Setup channels for non-blocking input
     let (input_tx, input_rx) = mpsc::channel::<String>();
-    
+
     // Spawn input handling thread
     thread::spawn(move || {
         let stdin = io::stdin();
@@ -419,11 +435,11 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                 if n > 0 {
                     let output = String::from_utf8_lossy(&buffer[..n]);
                     received.push_str(&output);
-                    
+
                     // Process complete lines
                     while let Some(line_end) = received.find('\n') {
                         let line = received.drain(..=line_end).collect::<String>();
-                        
+
                         // Display received data
                         if args.verbose {
                             print!("📥 [{}] {}", get_timestamp(), line);
@@ -431,7 +447,7 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                             print!("📥 {}", line);
                         }
                         io::stdout().flush()?;
-                        
+
                         // Log to file if enabled
                         if let Some(ref mut writer) = log_writer {
                             writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end())?;
@@ -446,7 +462,12 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             Err(e) => {
                 eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
                 if let Some(ref mut writer) = log_writer {
-                    writeln!(writer, "ERROR [{}]: Serial read error: {}", get_timestamp(), e)?;
+                    writeln!(
+                        writer,
+                        "ERROR [{}]: Serial read error: {}",
+                        get_timestamp(),
+                        e
+                    )?;
                     writer.flush()?;
                 }
             }
@@ -466,7 +487,7 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                     }
                     continue;
                 }
-                
+
                 if let Err(e) = port.flush() {
                     eprintln!("{color_red}❌ Flush error: {e}{color_reset}");
                     if let Some(ref mut writer) = log_writer {
@@ -480,12 +501,12 @@ fn run_normal_mode(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                 if args.verbose {
                     println!("📤 [{}] Sent: {}", get_timestamp(), clean);
                 }
-                
+
                 if let Some(ref mut writer) = log_writer {
                     writeln!(writer, "TX [{}]: {}", get_timestamp(), clean)?;
                     writer.flush()?;
                 }
-                
+
                 // Small delay for processing
                 thread::sleep(Duration::from_millis(100));
             }
