@@ -54,6 +54,20 @@ After installing, check if it has been installed with
 comchan --version
 ```
 
+### From AUR 
+
+Thanks to [orhun](https://github.com/orhun), ComChan now has an AUR package 
+
+```bash 
+# Using yay 
+
+yay -S comchan
+
+# Using paru 
+
+paru -S comchan
+```
+
 ### From source
 
 ```bash
@@ -127,6 +141,7 @@ comchan -p <port> -r <baud_rate> --plot
 - [x] Read incoming Serial data from Serial ports
 - [x] Write to Serial port i.e Send data to Serial device.
 - [x] Basic logging.
+- [ ] Auto detect Serial Ports
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
 - [x] Terminal based Serial Plotter (to be implemented with the `--plot` command)
 
