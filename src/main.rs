@@ -58,7 +58,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.1.8",
+    version = "0.1.9",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -100,7 +100,7 @@ struct Args {
     verbose: Option<bool>,
 
     #[arg(long = "plot", action = clap::ArgAction::SetTrue)]
-    plot: Option<bool>,
+    plot: bool,    
 
     #[arg(long = "plot-points")]
     plot_points: Option<usize>,
@@ -217,7 +217,7 @@ fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         log_file: args.log_file.or(config.log_file),
         list_ports: args.list_ports,
         verbose: args.verbose.or(config.verbose).unwrap_or(false),
-        plot: args.plot.or(config.plot).unwrap_or(false),
+        plot: args.plot || config.plot.unwrap_or(false),
         plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
     }
 }

@@ -18,6 +18,7 @@
     - [Log Mode](#log-mode)
     - [Serial Plotter](#serial-plotter)
     - [Automatically detect serial ports](#automatically-detect-serial-ports)
+    - [Use a Configuration file](#use-a-configuration-file)
   - [Features](#features)
     - [Legends](#legends)
 - [Examples](#examples)
@@ -25,6 +26,9 @@
   - [User Input](#user-input)
   - [Serial Plotter](#serial-plotter-1)
   - [Auto Serial Port Detector](#auto-serial-port-detector)
+  - [Using the Configuration file](#using-the-configuration-file)
+    - [Serial Monitor (`plot = false`)](#serial-monitor-plot--false)
+    - [Serial Plotter (`plot = true`)](#serial-plotter-plot--true)
 - [Feedback Form](#feedback-form)
 - [Stargazers over time](#stargazers-over-time)
 
@@ -34,7 +38,7 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
 
-**Latest Version**: 0.1.8
+**Latest Version**: 0.1.9
 
 ## Installation
 
@@ -155,12 +159,57 @@ comchan --auto -r <baud_rate>
 
 ```
 
+### Use a Configuration file 
+
+As of version 0.1.9, you can now create your own configuration file to use ComChan, which means that you won't have to type all the flags. 
+
+```bash
+# Generate default configuration file 
+
+comchan --generate-config   # Generates the default config file at ~/.config/comchan/comchan.toml
+```
+
+Here is an example configuration file 
+
+```toml
+
+# ComChan Configuration File
+# 
+# This file contains default settings for comchan serial monitor.
+# Command line arguments will override these settings.
+# 
+# To use auto-detection, set port = "auto"
+# Available parity options: "none", "odd", "even"
+# Available flow control options: "none", "software", "hardware"
+
+port = "auto"
+baud = 9600
+data_bits = 8
+stop_bits = 1
+parity = "none"
+flow_control = "none"
+timeout_ms = 500
+reset_delay_ms = 1000
+verbose = false
+plot = false
+plot_points = 100
+
+```
+
+> [!NOTE]
+> Note that the default baud rate is `9600`, you can change it later on in the config file
+
+
+The above default config file values can be overridden by using the flags (`--auto`, `--port or -p`, `--baud or -r`, `--plot`).
+
+
 ## Features
 
 - [x] Read incoming Serial data from Serial ports
 - [x] Write to Serial port i.e Send data to Serial device.
 - [x] Basic logging.
 - [x] Auto detect Serial Ports
+- [x] Use a `.toml` file for config instead of flags
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
 - [x] Terminal based Serial Plotter (to be implemented with the `--plot` command)
 
@@ -188,6 +237,16 @@ comchan --auto -r <baud_rate>
 ## Auto Serial Port Detector 
 
 ![auto](./docs/src/videos/auto.gif)
+
+## Using the Configuration file
+
+### Serial Monitor (`plot = false`)
+
+![plotfalse](./docs/src/videos/config_mon.gif)
+
+### Serial Plotter (`plot = true`)
+
+![plottrue](./docs/src/videos/config_plot.gif)
 
 # Feedback Form
 
