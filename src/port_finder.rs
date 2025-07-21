@@ -1,9 +1,8 @@
 use serialport;
-
 /// Find the first available USB serial port
 pub fn find_usb_port() -> Result<Option<String>, Box<dyn std::error::Error>> {
     let ports = serialport::available_ports()?;
-    
+
     for port in ports {
         if let serialport::SerialPortType::UsbPort(_) = port.port_type {
             return Ok(Some(port.port_name));
@@ -11,14 +10,13 @@ pub fn find_usb_port() -> Result<Option<String>, Box<dyn std::error::Error>> {
     }
     Ok(None)
 }
-
 /// Display detailed USB port information
 pub fn show_usb_ports() -> Result<(), Box<dyn std::error::Error>> {
     let ports = serialport::available_ports()?;
-    
+
     println!("🔍 USB Serial Ports:");
     let mut found_usb = false;
-    
+
     for port in ports {
         if let serialport::SerialPortType::UsbPort(ref info) = port.port_type {
             found_usb = true;
@@ -36,11 +34,10 @@ pub fn show_usb_ports() -> Result<(), Box<dyn std::error::Error>> {
             println!();
         }
     }
-    
+
     if !found_usb {
         println!("  ⚠️  No USB serial ports found");
     }
-    
+
     Ok(())
 }
-
