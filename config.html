@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Other Features - ComChan: The Blazingly Fast minmal Serial Monitor</title>
+        <title>Configuration - ComChan: The Blazingly Fast minmal Serial Monitor</title>
 
 
         <!-- Custom HTML head -->
@@ -169,85 +169,75 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="other-features-of-comchan"><a class="header" href="#other-features-of-comchan">Other Features of ComChan</a></h1>
-<ol>
-<li><a href="#the-serial-plotter">Serial Plotter</a></li>
-<li><a href="#auto-port-detection">Automatic Port Detection</a></li>
-</ol>
-<h1 id="the-serial-plotter"><a class="header" href="#the-serial-plotter">The Serial Plotter</a></h1>
-<p>A Serial Plotter is a powerful visualization tool that transforms numerical data received through serial communication into real-time graphical representations. Originally introduced in Arduino IDE version 1.6.6, this tool has become an essential component for developers, engineers, and makers working with microcontrollers and embedded systems.</p>
-<h2 id="how-to-use-the-serial-plotter-in-comchan"><a class="header" href="#how-to-use-the-serial-plotter-in-comchan">How to use the Serial Plotter in <code>ComChan</code></a></h2>
-<p>To use the terminal based Serial Plotter in <code>ComChan</code>, you just have to add a <code>--plot</code> flag with the other flags as shown below:</p>
-<pre><code class="language-bash">comchan --port /dev/ttyUSB0 --baud 9600 --plot
+                        <h1 id="-using-a-configuration-file"><a class="header" href="#-using-a-configuration-file">🔧 Using a Configuration File</a></h1>
+<p>Starting from <strong>ComChan v0.1.9</strong>, you can use a configuration file to streamline your workflow by saving frequently used options. This avoids the need to repeatedly pass flags through the command line every time you run <code>comchan</code>.</p>
+<h2 id="-generate-the-default-config-file"><a class="header" href="#-generate-the-default-config-file">📁 Generate the Default Config File</a></h2>
+<p>You can generate a default configuration file by running:</p>
+<pre><code class="language-bash">comchan --generate-config
+</code></pre>
+<p>This will create a file at:</p>
+<pre><code class="language-bash">~/.config/comchan/comchan.toml
+</code></pre>
+<hr />
+<h2 id="-example-comchantoml"><a class="header" href="#-example-comchantoml">📝 Example <code>comchan.toml</code></a></h2>
+<pre><code class="language-toml"># ComChan Configuration File
+#
+# This file contains default settings for ComChan serial monitor.
+# Command-line arguments will override these settings.
+#
+# To use auto-detection, set port = "auto"
+# Available parity options: "none", "odd", "even"
+# Available flow control options: "none", "software", "hardware"
 
-# OR 
-
-comchan -p /dev/ttyUSB0 -r 9600 --plot
+port = "auto"
+baud = 9600
+data_bits = 8
+stop_bits = 1
+parity = "none"
+flow_control = "none"
+timeout_ms = 500
+reset_delay_ms = 1000
+verbose = false
+plot = false
+plot_points = 100
 </code></pre>
-<p>Once you do that, you will get this as your output:</p>
-<p><img src="./videos/plotter.gif" alt="Serial Plotter output" /></p>
 <hr />
-<h2 id="features-of-comchan-serial-plotter"><a class="header" href="#features-of-comchan-serial-plotter">Features of <code>ComChan</code> Serial Plotter</a></h2>
-<ul>
-<li><strong>Real-time plotting</strong>: Instantly visualize incoming data from your microcontroller.</li>
-<li><strong>Single stream support</strong>: Currently supports plotting one stream of numerical data at a time.</li>
-<li><strong>Color-coded lines</strong>: The data stream is rendered with a distinct color.</li>
-<li><strong>Terminal-friendly</strong>: No GUI required. Works completely inside the terminal.</li>
-</ul>
+<h2 id="-configuration-fields-explained"><a class="header" href="#-configuration-fields-explained">⚙️ Configuration Fields Explained</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Key</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>port</code></td><td><code>string</code></td><td>The serial port to connect to. Set to <code>"auto"</code> to let ComChan pick the first available serial port automatically. You can also manually specify a port like <code>"/dev/ttyUSB0"</code> or <code>"COM3"</code> depending on your OS.</td></tr>
+<tr><td><code>baud</code></td><td><code>integer</code></td><td>The baud rate used for communication. Common values include <code>9600</code>, <code>115200</code>, etc. Default is <code>9600</code>.</td></tr>
+<tr><td><code>data_bits</code></td><td><code>integer</code></td><td>Number of data bits per frame. Valid values are usually <code>5</code>, <code>6</code>, <code>7</code>, or <code>8</code>. Default is <code>8</code>.</td></tr>
+<tr><td><code>stop_bits</code></td><td><code>integer</code></td><td>Number of stop bits. Set to <code>1</code> or <code>2</code>. Default is <code>1</code>.</td></tr>
+<tr><td><code>parity</code></td><td><code>string</code></td><td>Parity checking mode. Options are <code>"none"</code>, <code>"odd"</code>, or <code>"even"</code>. Default is <code>"none"</code>.</td></tr>
+<tr><td><code>flow_control</code></td><td><code>string</code></td><td>Flow control method. Valid options: <code>"none"</code>, <code>"software"</code> (XON/XOFF), or <code>"hardware"</code> (RTS/CTS). Default is <code>"none"</code>.</td></tr>
+<tr><td><code>timeout_ms</code></td><td><code>integer</code></td><td>Timeout in milliseconds for reading from the serial port. Prevents indefinite blocking. Default is <code>500</code>.</td></tr>
+<tr><td><code>reset_delay_ms</code></td><td><code>integer</code></td><td>Optional delay (in ms) after opening the port. Useful for microcontrollers that reset on port open (e.g., Arduino). Default is <code>1000</code>.</td></tr>
+<tr><td><code>verbose</code></td><td><code>boolean</code></td><td>Enables detailed logging if set to <code>true</code>. Helpful for debugging configuration or runtime behavior. Default is <code>false</code>.</td></tr>
+<tr><td><code>plot</code></td><td><code>boolean</code></td><td>Enables the real-time serial plotter if set to <code>true</code>. Default is <code>false</code>.</td></tr>
+<tr><td><code>plot_points</code></td><td><code>integer</code></td><td>Maximum number of data points shown on the plot at once. Only applicable if <code>plot = true</code>. Default is <code>100</code>.</td></tr>
+</tbody></table>
+</div>
 <hr />
-<h2 id="formatting-data-for-plotting"><a class="header" href="#formatting-data-for-plotting">Formatting Data for Plotting</a></h2>
-<p>To make your data compatible with the plotter, ensure that your microcontroller prints a single numerical value per line using <code>Serial.println()</code> like this:</p>
-<pre><code class="language-cpp">Serial.println(sensor_value);
-</code></pre>
-<p>Currently, only one stream is plotted. If multiple values are sent, only the first one will be considered.</p>
-<hr />
-<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
-<ul>
-<li><strong>Sensor Monitoring</strong>: Plot values from temperature, humidity, or light sensors.</li>
-<li><strong>PID Tuning</strong>: Visualize control loop behavior in real time.</li>
-<li><strong>Data Debugging</strong>: Spot anomalies in system behavior quickly.</li>
-</ul>
-<hr />
-<h1 id="auto-port-detection"><a class="header" href="#auto-port-detection">Auto Port Detection</a></h1>
-<p>You can run ComChan with the <code>--auto</code> flag like so:</p>
-<pre><code class="language-bash">comchan --auto
-</code></pre>
-<p>This automatically detects and connects to the appropriate serial port, so you don’t have to manually specify it using a <code>--port</code> flag.</p>
-<p>This is especially useful if:</p>
-<ul>
-<li>You’re not sure which port your board is connected to.</li>
-<li>You’re frequently connecting/disconnecting devices.</li>
-<li>You want a faster, zero-config setup.</li>
-</ul>
-<p>Under the hood, ComChan scans all available serial ports and identifies the most likely candidate based on device names and connection responses.</p>
 <blockquote>
-<p><strong>Note:</strong> If needed, you can still specify the port manually like so:</p>
-<pre><code class="language-bash">comchan --port /dev/ttyUSB0
-</code></pre>
+<p><strong>NOTE</strong></p>
+<p>The default baud rate is <code>9600</code>, but you can customize it in the config file as needed</p>
+<p>All values in the config file <strong>can still be overridden</strong> at runtime via command-line arguments like <code>--port</code>, <code>--baud</code>, <code>--plot</code>, etc.</p>
 </blockquote>
-<h3 id="demo"><a class="header" href="#demo">Demo</a></h3>
-<p>Here’s a quick demonstration:</p>
-<p><img src="./videos/auto.gif" alt="Auto" /></p>
-<p>As shown above, ComChan detects the port, connects, and begins serial communication — all without any extra configuration.</p>
-<p>This feature aims to offer both <strong>convenience</strong> and <strong>control</strong> for developers and embedded enthusiasts alike.</p>
-<h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
-<ul>
-<li>Multi-series plotting support</li>
-<li>Zoom &amp; pan capabilities</li>
-<li>Export plots as image files</li>
-<li>Custom axis labeling</li>
-<li>Interactive TUI integration</li>
-</ul>
+<h1 id="outputs"><a class="header" href="#outputs">Outputs</a></h1>
+<h2 id="serial-monitor-plot--false"><a class="header" href="#serial-monitor-plot--false">Serial monitor (<code>plot = false</code>)</a></h2>
+<p><img src="./videos/config_mon.gif" alt="plotfalse" /></p>
+<h2 id="serial-plotter-plot--true"><a class="header" href="#serial-plotter-plot--true">Serial Plotter (<code>plot = true</code>)</a></h2>
+<p><img src="./videos/config_plot.gif" alt="plottrue" /></p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="usage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="other_features.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="config.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="feedback.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -257,11 +247,11 @@ comchan -p /dev/ttyUSB0 -r 9600 --plot
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="usage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="other_features.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="config.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="feedback.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

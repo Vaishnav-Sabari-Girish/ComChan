@@ -392,6 +392,65 @@ comchan -p /dev/ttyUSB0 -r 9600 --plot
 <li>Custom axis labeling</li>
 <li>Interactive TUI integration</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="-using-a-configuration-file"><a class="header" href="#-using-a-configuration-file">🔧 Using a Configuration File</a></h1>
+<p>Starting from <strong>ComChan v0.1.9</strong>, you can use a configuration file to streamline your workflow by saving frequently used options. This avoids the need to repeatedly pass flags through the command line every time you run <code>comchan</code>.</p>
+<h2 id="-generate-the-default-config-file"><a class="header" href="#-generate-the-default-config-file">📁 Generate the Default Config File</a></h2>
+<p>You can generate a default configuration file by running:</p>
+<pre><code class="language-bash">comchan --generate-config
+</code></pre>
+<p>This will create a file at:</p>
+<pre><code class="language-bash">~/.config/comchan/comchan.toml
+</code></pre>
+<hr />
+<h2 id="-example-comchantoml"><a class="header" href="#-example-comchantoml">📝 Example <code>comchan.toml</code></a></h2>
+<pre><code class="language-toml"># ComChan Configuration File
+#
+# This file contains default settings for ComChan serial monitor.
+# Command-line arguments will override these settings.
+#
+# To use auto-detection, set port = "auto"
+# Available parity options: "none", "odd", "even"
+# Available flow control options: "none", "software", "hardware"
+
+port = "auto"
+baud = 9600
+data_bits = 8
+stop_bits = 1
+parity = "none"
+flow_control = "none"
+timeout_ms = 500
+reset_delay_ms = 1000
+verbose = false
+plot = false
+plot_points = 100
+</code></pre>
+<hr />
+<h2 id="-configuration-fields-explained"><a class="header" href="#-configuration-fields-explained">⚙️ Configuration Fields Explained</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Key</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>port</code></td><td><code>string</code></td><td>The serial port to connect to. Set to <code>"auto"</code> to let ComChan pick the first available serial port automatically. You can also manually specify a port like <code>"/dev/ttyUSB0"</code> or <code>"COM3"</code> depending on your OS.</td></tr>
+<tr><td><code>baud</code></td><td><code>integer</code></td><td>The baud rate used for communication. Common values include <code>9600</code>, <code>115200</code>, etc. Default is <code>9600</code>.</td></tr>
+<tr><td><code>data_bits</code></td><td><code>integer</code></td><td>Number of data bits per frame. Valid values are usually <code>5</code>, <code>6</code>, <code>7</code>, or <code>8</code>. Default is <code>8</code>.</td></tr>
+<tr><td><code>stop_bits</code></td><td><code>integer</code></td><td>Number of stop bits. Set to <code>1</code> or <code>2</code>. Default is <code>1</code>.</td></tr>
+<tr><td><code>parity</code></td><td><code>string</code></td><td>Parity checking mode. Options are <code>"none"</code>, <code>"odd"</code>, or <code>"even"</code>. Default is <code>"none"</code>.</td></tr>
+<tr><td><code>flow_control</code></td><td><code>string</code></td><td>Flow control method. Valid options: <code>"none"</code>, <code>"software"</code> (XON/XOFF), or <code>"hardware"</code> (RTS/CTS). Default is <code>"none"</code>.</td></tr>
+<tr><td><code>timeout_ms</code></td><td><code>integer</code></td><td>Timeout in milliseconds for reading from the serial port. Prevents indefinite blocking. Default is <code>500</code>.</td></tr>
+<tr><td><code>reset_delay_ms</code></td><td><code>integer</code></td><td>Optional delay (in ms) after opening the port. Useful for microcontrollers that reset on port open (e.g., Arduino). Default is <code>1000</code>.</td></tr>
+<tr><td><code>verbose</code></td><td><code>boolean</code></td><td>Enables detailed logging if set to <code>true</code>. Helpful for debugging configuration or runtime behavior. Default is <code>false</code>.</td></tr>
+<tr><td><code>plot</code></td><td><code>boolean</code></td><td>Enables the real-time serial plotter if set to <code>true</code>. Default is <code>false</code>.</td></tr>
+<tr><td><code>plot_points</code></td><td><code>integer</code></td><td>Maximum number of data points shown on the plot at once. Only applicable if <code>plot = true</code>. Default is <code>100</code>.</td></tr>
+</tbody></table>
+</div>
+<hr />
+<blockquote>
+<p><strong>NOTE</strong></p>
+<p>The default baud rate is <code>9600</code>, but you can customize it in the config file as needed</p>
+<p>All values in the config file <strong>can still be overridden</strong> at runtime via command-line arguments like <code>--port</code>, <code>--baud</code>, <code>--plot</code>, etc.</p>
+</blockquote>
+<h1 id="outputs"><a class="header" href="#outputs">Outputs</a></h1>
+<h2 id="serial-monitor-plot--false"><a class="header" href="#serial-monitor-plot--false">Serial monitor (<code>plot = false</code>)</a></h2>
+<p><img src="./videos/config_mon.gif" alt="plotfalse" /></p>
+<h2 id="serial-plotter-plot--true"><a class="header" href="#serial-plotter-plot--true">Serial Plotter (<code>plot = true</code>)</a></h2>
+<p><img src="./videos/config_plot.gif" alt="plottrue" /></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="feedback"><a class="header" href="#feedback">Feedback</a></h1>
 <p>Thank you for using ComChan, I really appreciate you giving your time to read the full documentation.</p>
 <p>Please give me your feedback on what you think of ComChan.</p>
@@ -418,22 +477,6 @@ comchan -p /dev/ttyUSB0 -r 9600 --plot
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 
