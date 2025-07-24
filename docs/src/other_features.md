@@ -23,27 +23,62 @@ Once you do that, you will get this as your output:
 
 ![Serial Plotter output](./videos/plotter.gif)
 
+
+
+## Added Multiple Sensor Support for Serial plotter 
+
+As of Version 0.2.0, you can now plot the values of multiple sensors at once.
+
+
 ---
 
 ## Features of `ComChan` Serial Plotter
 
 * **Real-time plotting**: Instantly visualize incoming data from your microcontroller.
-* **Single stream support**: Currently supports plotting one stream of numerical data at a time.
 * **Color-coded lines**: The data stream is rendered with a distinct color.
 * **Terminal-friendly**: No GUI required. Works completely inside the terminal.
+* **Multiple Sensor Plotting** : As of Version 0.2.0, you can now plot the values of multiple sensors at once.
 
 ---
 
 ## Formatting Data for Plotting
 
-To make your data compatible with the plotter, ensure that your microcontroller prints a single numerical value per line using `Serial.println()` like this:
+To make your data compatible with the plotter, ensure you label the data to be printed (For the legends), in the format given below:
 
 ```cpp
+Serial.print("Label 1 : ");
 Serial.println(sensor_value);
+
+Serial.print("Label 2 : ");
+Serial.println(sensor_value_2);
 ```
 
-Currently, only one stream is plotted. If multiple values are sent, only the first one will be considered.
+This makes sure that the data being taken is of 2 different sensors.
 
+In the below output, the example that was taken is for 3 sensors (Magnetometer, Gyroscope and Accelerometer).
+
+
+![multiple_plot](./videos/multiple_sensor_plot.gif)
+
+Below if the code file for this 
+
+```cpp 
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  Serial.print("Magnetometer : ");
+  Serial.println(random(100));
+  Serial.print("Gyroscope : ");
+  Serial.println(random(100));
+  Serial.print("Accelerometer : ");
+  Serial.println(random(100));
+  delay(1000);
+}
+```
+
+The above code generates 3 sets of random numbers for the plotter to plot.
 ---
 
 ## Use Cases
@@ -89,7 +124,6 @@ This feature aims to offer both **convenience** and **control** for developers a
 
 ## Coming Soon
 
-* Multi-series plotting support
 * Zoom & pan capabilities
 * Export plots as image files
 * Custom axis labeling
