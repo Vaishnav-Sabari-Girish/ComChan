@@ -29,6 +29,7 @@
   - [Using the Configuration file](#using-the-configuration-file)
     - [Serial Monitor (`plot = false`)](#serial-monitor-plot--false)
     - [Serial Plotter (`plot = true`)](#serial-plotter-plot--true)
+    - [Serial Plotter Multiple sensor values](#serial-plotter-multiple-sensor-values)
 - [Feedback Form](#feedback-form)
 - [Stargazers over time](#stargazers-over-time)
 
@@ -38,7 +39,7 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
 
-**Latest Version**: 0.1.9
+  **Latest Version**: 0.2.0
 
 ## Installation
 
@@ -212,6 +213,7 @@ The above default config file values can be overridden by using the flags (`--au
 - [x] Use a `.toml` file for config instead of flags
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
 - [x] Terminal based Serial Plotter (to be implemented with the `--plot` command)
+- [x] Plot multiple sensor values in the Serial Plotter with legends 
 
 
 ### Legends
@@ -225,14 +227,20 @@ The above default config file values can be overridden by using the flags (`--au
 
 ![GIF](./docs/src/videos/basic_serial_mon.gif)
 
+[code file hw](./code_tests/test_comchan_arduino_uno/test_comchan_arduino_uno.ino) 
+
+
 ## User Input
 
 ![User IP](./docs/src/videos/basic_user_input.gif)
+
+[Code file](./code_tests/test_user_input/test_user_input.ino)
 
 ## Serial Plotter
 
 ![Serial Plotter](./docs/src/videos/plotter.gif)
 
+[code file 2](./code_tests/random_sensor_vals/random_sensor_vals.ino) 
 
 ## Auto Serial Port Detector 
 
@@ -247,6 +255,12 @@ The above default config file values can be overridden by using the flags (`--au
 ### Serial Plotter (`plot = true`)
 
 ![plottrue](./docs/src/videos/config_plot.gif)
+
+### Serial Plotter Multiple sensor values
+
+![multiple_plot](./docs/src/videos/multiple_sensor_plot.gif)
+
+[code file multiple vals](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino) 
 
 # Feedback Form
 
