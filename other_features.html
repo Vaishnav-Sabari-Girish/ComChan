@@ -186,20 +186,44 @@ comchan -p /dev/ttyUSB0 -r 9600 --plot
 </code></pre>
 <p>Once you do that, you will get this as your output:</p>
 <p><img src="./videos/plotter.gif" alt="Serial Plotter output" /></p>
+<h2 id="added-multiple-sensor-support-for-serial-plotter"><a class="header" href="#added-multiple-sensor-support-for-serial-plotter">Added Multiple Sensor Support for Serial plotter</a></h2>
+<p>As of Version 0.2.0, you can now plot the values of multiple sensors at once.</p>
 <hr />
 <h2 id="features-of-comchan-serial-plotter"><a class="header" href="#features-of-comchan-serial-plotter">Features of <code>ComChan</code> Serial Plotter</a></h2>
 <ul>
 <li><strong>Real-time plotting</strong>: Instantly visualize incoming data from your microcontroller.</li>
-<li><strong>Single stream support</strong>: Currently supports plotting one stream of numerical data at a time.</li>
 <li><strong>Color-coded lines</strong>: The data stream is rendered with a distinct color.</li>
 <li><strong>Terminal-friendly</strong>: No GUI required. Works completely inside the terminal.</li>
+<li><strong>Multiple Sensor Plotting</strong> : As of Version 0.2.0, you can now plot the values of multiple sensors at once.</li>
 </ul>
 <hr />
 <h2 id="formatting-data-for-plotting"><a class="header" href="#formatting-data-for-plotting">Formatting Data for Plotting</a></h2>
-<p>To make your data compatible with the plotter, ensure that your microcontroller prints a single numerical value per line using <code>Serial.println()</code> like this:</p>
-<pre><code class="language-cpp">Serial.println(sensor_value);
+<p>To make your data compatible with the plotter, ensure you label the data to be printed (For the legends), in the format given below:</p>
+<pre><code class="language-cpp">Serial.print("Label 1 : ");
+Serial.println(sensor_value);
+
+Serial.print("Label 2 : ");
+Serial.println(sensor_value_2);
 </code></pre>
-<p>Currently, only one stream is plotted. If multiple values are sent, only the first one will be considered.</p>
+<p>This makes sure that the data being taken is of 2 different sensors.</p>
+<p>In the below output, the example that was taken is for 3 sensors (Magnetometer, Gyroscope and Accelerometer).</p>
+<p><img src="./videos/multiple_sensor_plot.gif" alt="multiple_plot" /></p>
+<p>Below if the code file for this</p>
+<pre><code class="language-cpp">void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  Serial.print("Magnetometer : ");
+  Serial.println(random(100));
+  Serial.print("Gyroscope : ");
+  Serial.println(random(100));
+  Serial.print("Accelerometer : ");
+  Serial.println(random(100));
+  delay(1000);
+}
+</code></pre>
+<p>The above code generates 3 sets of random numbers for the plotter to plot.</p>
 <hr />
 <h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
 <ul>
@@ -232,7 +256,6 @@ comchan -p /dev/ttyUSB0 -r 9600 --plot
 <p>This feature aims to offer both <strong>convenience</strong> and <strong>control</strong> for developers and embedded enthusiasts alike.</p>
 <h2 id="coming-soon"><a class="header" href="#coming-soon">Coming Soon</a></h2>
 <ul>
-<li>Multi-series plotting support</li>
 <li>Zoom &amp; pan capabilities</li>
 <li>Export plots as image files</li>
 <li>Custom axis labeling</li>
