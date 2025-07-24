@@ -2,6 +2,7 @@ use clap::Parser;
 use inline_colorization::*;
 use serialport::{self, DataBits, FlowControl, Parity, StopBits};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::{self, BufWriter, Read, Write};
 use std::path::PathBuf;
@@ -112,116 +113,6 @@ struct Args {
     generate_config: bool,
 }
 
-fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
-    if let Some(path) = specified_path {
-        if path.exists() {
-            return Some(path);
-        }
-        return None;
-    }
-
-    // Check for config file in current directory first
-    let current_dir_config = PathBuf::from("comchan.toml");
-    if current_dir_config.exists() {
-        return Some(current_dir_config);
-    }
-
-    // Check for config file in ~/.config/comchan/
-    if let Some(home_dir) = dirs::home_dir() {
-        let config_dir_path = home_dir.join(".config").join("comchan").join("comchan.toml");
-        if config_dir_path.exists() {
-            return Some(config_dir_path);
-        }
-
-        // Fallback to old location for backward compatibility
-        let home_config = home_dir.join(".comchan.toml");
-        if home_config.exists() {
-            return Some(home_config);
-        }
-    }
-
-    None
-}
-
-fn load_config(config_path: Option<PathBuf>) -> Result<Config, Box<dyn std::error::Error>> {
-    if let Some(path) = find_config_file(config_path) {
-        let content = fs::read_to_string(&path)?;
-        let config: Config = toml::from_str(&content)
-            .map_err(|e| format!("Failed to parse config file {}: {}", path.display(), e))?;
-        println!("{color_blue}📋 Loaded config from: {}{color_reset}", path.display());
-        Ok(config)
-    } else {
-        Ok(Config::default())
-    }
-}
-
-fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = if let Some(specified_path) = path {
-        specified_path
-    } else {
-        // Default to ~/.config/comchan/comchan.toml
-        if let Some(home_dir) = dirs::home_dir() {
-            let config_dir = home_dir.join(".config").join("comchan");
-            
-            // Create the directory if it doesn't exist
-            fs::create_dir_all(&config_dir)?;
-            
-            config_dir.join("comchan.toml")
-        } else {
-            // Fallback to current directory if home directory can't be determined
-            PathBuf::from("comchan.toml")
-        }
-    };
-    
-    let default_config = Config::default();
-    let toml_content = toml::to_string_pretty(&default_config)?;
-    
-    // Add comments to the generated config
-    let commented_config = format!(
-        r#"# ComChan Configuration File
-# 
-# This file contains default settings for comchan serial monitor.
-# Command line arguments will override these settings.
-# 
-# To use auto-detection, set port = "auto"
-# Available parity options: "none", "odd", "even"
-# Available flow control options: "none", "software", "hardware"
-
-{}
-"#,
-        toml_content
-    );
-    
-    // Ensure the parent directory exists
-    if let Some(parent) = config_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    
-    fs::write(&config_path, commented_config)?;
-    println!("{color_green}✅ Generated default config file: {}{color_reset}", config_path.display());
-    println!("{color_blue}💡 Edit the file to customize your default settings{color_reset}");
-    
-    Ok(())
-}
-
-fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
-    MergedConfig {
-        port: args.port.or(config.port),
-        baud: args.baud.or(config.baud).unwrap_or(9600),
-        data_bits: args.data_bits.or(config.data_bits).unwrap_or(8),
-        stop_bits: args.stop_bits.or(config.stop_bits).unwrap_or(1),
-        parity: args.parity.or(config.parity).unwrap_or("none".to_string()),
-        flow_control: args.flow_control.or(config.flow_control).unwrap_or("none".to_string()),
-        timeout_ms: args.timeout_ms.or(config.timeout_ms).unwrap_or(500),
-        reset_delay_ms: args.reset_delay_ms.or(config.reset_delay_ms).unwrap_or(1000),
-        log_file: args.log_file.or(config.log_file),
-        list_ports: args.list_ports,
-        verbose: args.verbose.or(config.verbose).unwrap_or(false),
-        plot: args.plot || config.plot.unwrap_or(false),
-        plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
-    }
-}
-
 struct MergedConfig {
     port: Option<String>,
     baud: u32,
@@ -238,109 +129,164 @@ struct MergedConfig {
     plot_points: usize,
 }
 
-fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
-    println!("{color_cyan}📋 All Available Serial Ports:{color_reset}");
-    let ports = serialport::available_ports()?;
-
-    if ports.is_empty() {
-        println!("  {color_yellow}⚠️  No serial ports found{color_reset}");
-        return Ok(());
-    }
-
-    for port in ports {
-        println!(
-            "  🔌 {} - {}",
-            port.port_name,
-            match port.port_type {
-                serialport::SerialPortType::UsbPort(info) => {
-                    format!("USB Device (VID: {:04x}, PID: {:04x})", info.vid, info.pid)
-                }
-                serialport::SerialPortType::BluetoothPort => "Bluetooth".to_string(),
-                serialport::SerialPortType::PciPort => "PCI".to_string(),
-                serialport::SerialPortType::Unknown => "Unknown".to_string(),
-            }
-        );
-    }
-    
-    println!();
-    // Show detailed USB info
-    port_finder::show_usb_ports()?;
-    
-    Ok(())
+// Structure to hold multiple sensor data streams
+#[derive(Debug, Clone)]
+struct SensorData {
+    name: String,
+    data: Vec<(f64, f64)>,
+    color: Color,
+    min_value: f64,
+    max_value: f64,
 }
 
-fn parse_data_bits(bits: u8) -> Result<DataBits, String> {
-    match bits {
-        5 => Ok(DataBits::Five),
-        6 => Ok(DataBits::Six),
-        7 => Ok(DataBits::Seven),
-        8 => Ok(DataBits::Eight),
-        _ => Err(format!(
-            "Invalid data bits: {}. Must be 5, 6, 7, or 8",
-            bits
-        )),
-    }
-}
-
-fn parse_stop_bits(bits: u8) -> Result<StopBits, String> {
-    match bits {
-        1 => Ok(StopBits::One),
-        2 => Ok(StopBits::Two),
-        _ => Err(format!("Invalid stop bits: {}. Must be 1 or 2", bits)),
-    }
-}
-
-fn parse_parity(parity: &str) -> Result<Parity, String> {
-    match parity.to_lowercase().as_str() {
-        "none" | "n" => Ok(Parity::None),
-        "odd" | "o" => Ok(Parity::Odd),
-        "even" | "e" => Ok(Parity::Even),
-        _ => Err(format!(
-            "Invalid parity: {}. Must be 'none', 'odd', or 'even'",
-            parity
-        )),
-    }
-}
-
-fn parse_flow_control(flow: &str) -> Result<FlowControl, String> {
-    match flow.to_lowercase().as_str() {
-        "none" | "n" => Ok(FlowControl::None),
-        "software" | "s" => Ok(FlowControl::Software),
-        "hardware" | "h" => Ok(FlowControl::Hardware),
-        _ => Err(format!(
-            "Invalid flow control: {}. Must be 'none', 'software', or 'hardware'",
-            flow
-        )),
-    }
-}
-
-fn get_timestamp() -> String {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    let secs = now / 1000;
-    let millis = now % 1000;
-    format!("{}.{:03}", secs, millis)
-}
-
-fn parse_numeric_value(line: &str) -> Option<f64> {
-    // Try to parse the entire line as a number first
-    if let Ok(value) = line.trim().parse::<f64>() {
-        return Some(value);
-    }
-
-    // Look for numbers in the line (handles cases like "Temperature: 25.3")
-    let words: Vec<&str> = line.split_whitespace().collect();
-    for word in words {
-        // Remove common non-numeric characters
-        let cleaned = word.trim_matches(|c: char| !c.is_ascii_digit() && c != '.' && c != '-');
-        if let Ok(value) = cleaned.parse::<f64>() {
-            return Some(value);
+impl SensorData {
+    fn new(name: String, color: Color) -> Self {
+        SensorData {
+            name,
+            data: Vec::new(),
+            color,
+            min_value: f64::INFINITY,
+            max_value: f64::NEG_INFINITY,
         }
     }
 
-    None
+    fn add_point(&mut self, x: f64, y: f64, max_points: usize) {
+        self.data.push((x, y));
+        
+        // Update min/max
+        if y < self.min_value {
+            self.min_value = y;
+        }
+        if y > self.max_value {
+            self.max_value = y;
+        }
+
+        // Maintain rolling window
+        if self.data.len() > max_points {
+            self.data.remove(0);
+        }
+    }
+}
+
+// Enhanced parsing function that handles multiple sensor formats
+fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
+    let mut results = Vec::new();
+    let line = line.trim();
+
+    // Pattern 1: "SensorName : Value" or "SensorName: Value"
+    if line.contains(':') {
+        let parts: Vec<&str> = line.split(':').collect();
+        if parts.len() == 2 {
+            let sensor_name = parts[0].trim().to_string();
+            let value_str = parts[1].trim();
+            
+            if let Ok(value) = value_str.parse::<f64>() {
+                results.push((sensor_name, value));
+                return results;
+            }
+        }
+    }
+
+    // Pattern 2: "SensorName = Value" or "SensorName=Value"
+    if line.contains('=') {
+        let parts: Vec<&str> = line.split('=').collect();
+        if parts.len() == 2 {
+            let sensor_name = parts[0].trim().to_string();
+            let value_str = parts[1].trim();
+            
+            if let Ok(value) = value_str.parse::<f64>() {
+                results.push((sensor_name, value));
+                return results;
+            }
+        }
+    }
+
+    // Pattern 3: Comma-separated values "value1,value2,value3" 
+    // These will be named as "Channel 0", "Channel 1", etc.
+    if line.contains(',') {
+        let values: Vec<&str> = line.split(',').collect();
+        for (i, value_str) in values.iter().enumerate() {
+            if let Ok(value) = value_str.trim().parse::<f64>() {
+                results.push((format!("Channel {}", i), value));
+            }
+        }
+        if !results.is_empty() {
+            return results;
+        }
+    }
+
+    // Pattern 4: Space-separated values "value1 value2 value3"
+    let words: Vec<&str> = line.split_whitespace().collect();
+    let mut numeric_values = Vec::new();
+    
+    for word in &words {
+        if let Ok(value) = word.parse::<f64>() {
+            numeric_values.push(value);
+        }
+    }
+
+    // If we found multiple numeric values, treat them as channels
+    if numeric_values.len() > 1 {
+        for (i, value) in numeric_values.iter().enumerate() {
+            results.push((format!("Channel {}", i), *value));
+        }
+        return results;
+    }
+
+    // Pattern 5: Single numeric value (fallback to original behavior)
+    if let Ok(value) = line.parse::<f64>() {
+        results.push(("Value".to_string(), value));
+        return results;
+    }
+
+    // Pattern 6: Look for numbers in text (like "Temperature: 25.3 C")
+    for word in words {
+        let cleaned = word.trim_matches(|c: char| !c.is_ascii_digit() && c != '.' && c != '-');
+        if let Ok(value) = cleaned.parse::<f64>() {
+            // Try to find a descriptive name in the line
+            let sensor_name = if line.to_lowercase().contains("temp") {
+                "Temperature"
+            } else if line.to_lowercase().contains("humid") {
+                "Humidity"
+            } else if line.to_lowercase().contains("pressure") {
+                "Pressure"
+            } else if line.to_lowercase().contains("mag") {
+                "Magnetometer"
+            } else if line.to_lowercase().contains("gyro") {
+                "Gyroscope"
+            } else if line.to_lowercase().contains("accel") {
+                "Accelerometer"
+            } else {
+                "Sensor"
+            }.to_string();
+            
+            results.push((sensor_name, value));
+            break; // Only take the first number found in this pattern
+        }
+    }
+
+    results
+}
+
+// Color palette for different sensors
+const COLORS: &[Color] = &[
+    Color::Cyan,
+    Color::Magenta,
+    Color::Yellow,
+    Color::Green,
+    Color::Red,
+    Color::Blue,
+    Color::White,
+    Color::LightCyan,
+    Color::LightMagenta,
+    Color::LightYellow,
+    Color::LightGreen,
+    Color::LightRed,
+    Color::LightBlue,
+];
+
+fn get_color_for_index(index: usize) -> Color {
+    COLORS[index % COLORS.len()]
 }
 
 fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dyn std::error::Error>> {
@@ -379,12 +325,15 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
 
     thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
-    let mut data: Vec<(f64, f64)> = Vec::with_capacity(config.plot_points);
+    // HashMap to store different sensor streams
+    let mut sensors: HashMap<String, SensorData> = HashMap::new();
     let mut x = 0.0;
     let mut buffer = [0u8; 1024];
     let mut received = String::new();
-    let mut y_min = f64::INFINITY;
-    let mut y_max = f64::NEG_INFINITY;
+    let mut global_y_min = f64::INFINITY;
+    let mut global_y_max = f64::NEG_INFINITY;
+    let mut lines_discarded = 0;
+    const DISCARD_FIRST_LINES: usize = 3; // Discard first 3 lines to avoid garbled data
 
     loop {
         // Check for exit condition first
@@ -408,23 +357,44 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
                         let line = received.drain(..=line_end).collect::<String>();
                         let clean_line = line.trim();
 
-                        // Try to parse numeric value from the line
-                        if let Some(y) = parse_numeric_value(clean_line) {
-                            data.push((x, y));
+                        // Skip first few lines to avoid garbled data
+                        if lines_discarded < DISCARD_FIRST_LINES {
+                            lines_discarded += 1;
+                            continue;
+                        }
 
-                            // Update y bounds for dynamic scaling
-                            if y < y_min {
-                                y_min = y;
-                            }
-                            if y > y_max {
-                                y_max = y;
+                        // Parse sensor data from the line
+                        let sensor_readings = parse_sensor_data(clean_line);
+                        let has_data = !sensor_readings.is_empty();
+                        
+                        // Debug: Print what we're parsing (uncomment for debugging)
+                        // if has_data {
+                        //     println!("Parsed: {:?} from line: '{}'", sensor_readings, clean_line);
+                        // }
+                        
+                        for (sensor_name, value) in sensor_readings {
+                            // Create sensor entry if it doesn't exist
+                            if !sensors.contains_key(&sensor_name) {
+                                let color = get_color_for_index(sensors.len());
+                                sensors.insert(sensor_name.clone(), SensorData::new(sensor_name.clone(), color));
                             }
 
-                            // Maintain rolling window
-                            if data.len() > config.plot_points {
-                                data.remove(0);
+                            // Add data point to the appropriate sensor
+                            if let Some(sensor) = sensors.get_mut(&sensor_name) {
+                                sensor.add_point(x, value, config.plot_points);
+                                
+                                // Update global bounds
+                                if value < global_y_min {
+                                    global_y_min = value;
+                                }
+                                if value > global_y_max {
+                                    global_y_max = value;
+                                }
                             }
+                        }
 
+                        // Only increment x if we found some sensor data
+                        if has_data {
                             x += 1.0;
                         }
 
@@ -445,19 +415,39 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
         }
 
         // Calculate dynamic bounds for x-axis
-        let (x_min, x_max) = if data.is_empty() {
+        let (x_min, x_max) = if sensors.is_empty() {
             (0.0, 10.0)
         } else {
-            (data[0].0, data[data.len() - 1].0)
+            // Find the x-range across all sensors
+            let mut min_x = f64::INFINITY;
+            let mut max_x = f64::NEG_INFINITY;
+            
+            for sensor in sensors.values() {
+                if !sensor.data.is_empty() {
+                    let sensor_min = sensor.data[0].0;
+                    let sensor_max = sensor.data[sensor.data.len() - 1].0;
+                    if sensor_min < min_x {
+                        min_x = sensor_min;
+                    }
+                    if sensor_max > max_x {
+                        max_x = sensor_max;
+                    }
+                }
+            }
+            
+            if min_x.is_finite() && max_x.is_finite() {
+                (min_x, max_x)
+            } else {
+                (0.0, 10.0)
+            }
         };
 
         // Calculate y-axis bounds with some padding
-        let (chart_y_min, chart_y_max) = if y_min.is_finite() && y_max.is_finite() && y_min != y_max
-        {
-            let padding = (y_max - y_min) * 0.1;
-            (y_min - padding, y_max + padding)
-        } else if y_min.is_finite() && y_max.is_finite() {
-            (y_min - 1.0, y_max + 1.0)
+        let (chart_y_min, chart_y_max) = if global_y_min.is_finite() && global_y_max.is_finite() && global_y_min != global_y_max {
+            let padding = (global_y_max - global_y_min) * 0.1;
+            (global_y_min - padding, global_y_max + padding)
+        } else if global_y_min.is_finite() && global_y_max.is_finite() {
+            (global_y_min - 1.0, global_y_max + 1.0)
         } else {
             (-1.0, 1.0)
         };
@@ -471,49 +461,61 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
         let y_mid_label = format!("{:.2}", (chart_y_min + chart_y_max) / 2.0);
         let y_max_label = format!("{:.2}", chart_y_max);
 
+        // Create datasets for chart
+        let datasets: Vec<Dataset> = sensors.values().map(|sensor| {
+            Dataset::default()
+                .name(sensor.name.as_str())
+                .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(Style::default().fg(sensor.color))
+                .data(&sensor.data)
+        }).collect();
+
+        // Create legend info
+        let legend_info = if sensors.len() > 1 {
+            format!(" | {} sensors", sensors.len())
+        } else {
+            String::new()
+        };
+
         // Draw the chart
         terminal.draw(|f| {
             let size = f.area();
 
-            let chart = Chart::new(vec![
-                Dataset::default()
-                    .name("Serial Data")
-                    .marker(symbols::Marker::Braille)
-                    .graph_type(GraphType::Line)
-                    .style(Style::default().fg(Color::Cyan))
-                    .data(&data),
-            ])
-            .block(
-                Block::default()
-                    .title(format!(
-                        "Live Serial Plotter - {} @ {} baud (Press 'q' or ESC to exit)",
-                        port_name, config.baud
-                    ))
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::White)),
-            )
-            .x_axis(
-                Axis::default()
-                    .title("Sample")
-                    .style(Style::default().fg(Color::Gray))
-                    .bounds([x_min, x_max])
-                    .labels(vec![
-                        x_min_label.as_str(),
-                        x_mid_label.as_str(),
-                        x_max_label.as_str(),
-                    ]),
-            )
-            .y_axis(
-                Axis::default()
-                    .title("Value")
-                    .style(Style::default().fg(Color::Gray))
-                    .bounds([chart_y_min, chart_y_max])
-                    .labels(vec![
-                        y_min_label.as_str(),
-                        y_mid_label.as_str(),
-                        y_max_label.as_str(),
-                    ]),
-            );
+            let chart = Chart::new(datasets)
+                .block(
+                    Block::default()
+                        .title(format!(
+                            "Live Serial Plotter - {} @ {} baud{} (Press 'q' or ESC to exit)",
+                            port_name, config.baud, legend_info
+                        ))
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::White)),
+                )
+                .x_axis(
+                    Axis::default()
+                        .title("Sample")
+                        .style(Style::default().fg(Color::Gray))
+                        .bounds([x_min, x_max])
+                        .labels(vec![
+                            x_min_label.as_str(),
+                            x_mid_label.as_str(),
+                            x_max_label.as_str(),
+                        ]),
+                )
+                .y_axis(
+                    Axis::default()
+                        .title("Value")
+                        .style(Style::default().fg(Color::Gray))
+                        .bounds([chart_y_min, chart_y_max])
+                        .labels(vec![
+                            y_min_label.as_str(),
+                            y_mid_label.as_str(),
+                            y_max_label.as_str(),
+                        ]),
+                )
+                // FIXED: Removed hidden_legend_constraints to show legends properly
+                .legend_position(Some(LegendPosition::TopRight));
 
             f.render_widget(chart, size);
         })?;
@@ -522,20 +524,203 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
     // Cleanup
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    
+    // Print summary
+    if !sensors.is_empty() {
+        println!("\n{color_green}📊 Plotting Summary:{color_reset}");
+        for (name, sensor) in &sensors {
+            println!("  📈 {}: {} data points (min: {:.2}, max: {:.2})", 
+                name, sensor.data.len(), sensor.min_value, sensor.max_value);
+        }
+    }
+    
     Ok(())
+}
+
+// Include all the helper functions from your original code
+fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
+    if let Some(path) = specified_path {
+        if path.exists() {
+            return Some(path);
+        }
+        return None;
+    }
+
+    let current_dir_config = PathBuf::from("comchan.toml");
+    if current_dir_config.exists() {
+        return Some(current_dir_config);
+    }
+
+    if let Some(home_dir) = dirs::home_dir() {
+        let config_dir_path = home_dir.join(".config").join("comchan").join("comchan.toml");
+        if config_dir_path.exists() {
+            return Some(config_dir_path);
+        }
+
+        let home_config = home_dir.join(".comchan.toml");
+        if home_config.exists() {
+            return Some(home_config);
+        }
+    }
+
+    None
+}
+
+fn load_config(config_path: Option<PathBuf>) -> Result<Config, Box<dyn std::error::Error>> {
+    if let Some(path) = find_config_file(config_path) {
+        let content = fs::read_to_string(&path)?;
+        let config: Config = toml::from_str(&content)
+            .map_err(|e| format!("Failed to parse config file {}: {}", path.display(), e))?;
+        println!("{color_blue}📋 Loaded config from: {}{color_reset}", path.display());
+        Ok(config)
+    } else {
+        Ok(Config::default())
+    }
+}
+
+fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
+    let config_path = if let Some(specified_path) = path {
+        specified_path
+    } else {
+        if let Some(home_dir) = dirs::home_dir() {
+            let config_dir = home_dir.join(".config").join("comchan");
+            fs::create_dir_all(&config_dir)?;
+            config_dir.join("comchan.toml")
+        } else {
+            PathBuf::from("comchan.toml")
+        }
+    };
+    
+    let default_config = Config::default();
+    let toml_content = toml::to_string_pretty(&default_config)?;
+    
+    let commented_config = format!(
+        r#"# ComChan Configuration File
+# 
+# This file contains default settings for comchan serial monitor.
+# Command line arguments will override these settings.
+# 
+# To use auto-detection, set port = "auto"
+# Available parity options: "none", "odd", "even"
+# Available flow control options: "none", "software", "hardware"
+
+{}
+"#,
+        toml_content
+    );
+    
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    
+    fs::write(&config_path, commented_config)?;
+    println!("{color_green}✅ Generated default config file: {}{color_reset}", config_path.display());
+    println!("{color_blue}💡 Edit the file to customize your default settings{color_reset}");
+    
+    Ok(())
+}
+
+fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
+    MergedConfig {
+        port: args.port.or(config.port),
+        baud: args.baud.or(config.baud).unwrap_or(9600),
+        data_bits: args.data_bits.or(config.data_bits).unwrap_or(8),
+        stop_bits: args.stop_bits.or(config.stop_bits).unwrap_or(1),
+        parity: args.parity.or(config.parity).unwrap_or("none".to_string()),
+        flow_control: args.flow_control.or(config.flow_control).unwrap_or("none".to_string()),
+        timeout_ms: args.timeout_ms.or(config.timeout_ms).unwrap_or(500),
+        reset_delay_ms: args.reset_delay_ms.or(config.reset_delay_ms).unwrap_or(1000),
+        log_file: args.log_file.or(config.log_file),
+        list_ports: args.list_ports,
+        verbose: args.verbose.or(config.verbose).unwrap_or(false),
+        plot: args.plot || config.plot.unwrap_or(false),
+        plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
+    }
+}
+
+fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
+    println!("{color_cyan}📋 All Available Serial Ports:{color_reset}");
+    let ports = serialport::available_ports()?;
+
+    if ports.is_empty() {
+        println!("  {color_yellow}⚠️  No serial ports found{color_reset}");
+        return Ok(());
+    }
+
+    for port in ports {
+        println!(
+            "  🔌 {} - {}",
+            port.port_name,
+            match port.port_type {
+                serialport::SerialPortType::UsbPort(info) => {
+                    format!("USB Device (VID: {:04x}, PID: {:04x})", info.vid, info.pid)
+                }
+                serialport::SerialPortType::BluetoothPort => "Bluetooth".to_string(),
+                serialport::SerialPortType::PciPort => "PCI".to_string(),
+                serialport::SerialPortType::Unknown => "Unknown".to_string(),
+            }
+        );
+    }
+    
+    println!();
+    port_finder::show_usb_ports()?;
+    
+    Ok(())
+}
+
+fn parse_data_bits(bits: u8) -> Result<DataBits, String> {
+    match bits {
+        5 => Ok(DataBits::Five),
+        6 => Ok(DataBits::Six),
+        7 => Ok(DataBits::Seven),
+        8 => Ok(DataBits::Eight),
+        _ => Err(format!("Invalid data bits: {}. Must be 5, 6, 7, or 8", bits)),
+    }
+}
+
+fn parse_stop_bits(bits: u8) -> Result<StopBits, String> {
+    match bits {
+        1 => Ok(StopBits::One),
+        2 => Ok(StopBits::Two),
+        _ => Err(format!("Invalid stop bits: {}. Must be 1 or 2", bits)),
+    }
+}
+
+fn parse_parity(parity: &str) -> Result<Parity, String> {
+    match parity.to_lowercase().as_str() {
+        "none" | "n" => Ok(Parity::None),
+        "odd" | "o" => Ok(Parity::Odd),
+        "even" | "e" => Ok(Parity::Even),
+        _ => Err(format!("Invalid parity: {}. Must be 'none', 'odd', or 'even'", parity)),
+    }
+}
+
+fn parse_flow_control(flow: &str) -> Result<FlowControl, String> {
+    match flow.to_lowercase().as_str() {
+        "none" | "n" => Ok(FlowControl::None),
+        "software" | "s" => Ok(FlowControl::Software),
+        "hardware" | "h" => Ok(FlowControl::Hardware),
+        _ => Err(format!("Invalid flow control: {}. Must be 'none', 'software', or 'hardware'", flow)),
+    }
+}
+
+fn get_timestamp() -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+    let secs = now / 1000;
+    let millis = now % 1000;
+    format!("{}.{:03}", secs, millis)
 }
 
 fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dyn std::error::Error>> {
     // Parse serial port configuration
-    let data_bits =
-        parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
-    let stop_bits =
-        parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?;
+    let data_bits = parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
+    let stop_bits = parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?;
     let parity = parse_parity(&config.parity).map_err(|e| format!("Configuration error: {}", e))?;
-    let flow_control = parse_flow_control(&config.flow_control)
-        .map_err(|e| format!("Configuration error: {}", e))?;
+    let flow_control = parse_flow_control(&config.flow_control).map_err(|e| format!("Configuration error: {}", e))?;
 
-    // Open serial port with full configuration
     let mut port = serialport::new(&port_name, config.baud)
         .timeout(Duration::from_millis(config.timeout_ms))
         .data_bits(data_bits)
@@ -545,7 +730,6 @@ fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dy
         .open()
         .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
 
-    // Optional log file setup
     let log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
             .create(true)
@@ -557,29 +741,20 @@ fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dy
         None
     };
 
-    // Reset delay
     thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
-    // Print connection info
-    println!(
-        "{color_green}📡 ComChan connected to {} at {} baud{color_reset}",
-        port_name, config.baud
-    );
+    println!("{color_green}📡 ComChan connected to {} at {} baud{color_reset}", port_name, config.baud);
     if config.verbose {
-        println!(
-            "{color_blue}⚙️  Configuration: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}",
-            config.data_bits, config.stop_bits, config.parity, config.flow_control
-        );
+        println!("{color_blue}⚙️  Configuration: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}",
+            config.data_bits, config.stop_bits, config.parity, config.flow_control);
         if let Some(log_path) = &config.log_file {
             println!("{color_blue}📝 Logging to: {}{color_reset}", log_path);
         }
     }
     println!("{color_green}🔄 Listening... (Ctrl+C to exit){color_reset}\n");
 
-    // Setup channels for non-blocking input
     let (input_tx, input_rx) = mpsc::channel::<String>();
 
-    // Spawn input handling thread
     thread::spawn(move || {
         let stdin = io::stdin();
         loop {
@@ -587,7 +762,7 @@ fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dy
             match stdin.read_line(&mut input) {
                 Ok(_) => {
                     if input_tx.send(input).is_err() {
-                        break; // Main thread has ended
+                        break;
                     }
                 }
                 Err(_) => break,
@@ -595,7 +770,6 @@ fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dy
         }
     });
 
-    // Setup Ctrl+C handler
     let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
     let r = running.clone();
     ctrlc::set_handler(move || {
@@ -642,12 +816,7 @@ fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dy
             Err(e) => {
                 eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
                 if let Some(ref mut writer) = log_writer {
-                    writeln!(
-                        writer,
-                        "ERROR [{}]: Serial read error: {}",
-                        get_timestamp(),
-                        e
-                    )?;
+                    writeln!(writer, "ERROR [{}]: Serial read error: {}", get_timestamp(), e)?;
                     writer.flush()?;
                 }
             }
