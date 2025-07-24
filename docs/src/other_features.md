@@ -79,6 +79,7 @@ void loop() {
 ```
 
 The above code generates 3 sets of random numbers for the plotter to plot.
+
 ---
 
 ## Use Cases
