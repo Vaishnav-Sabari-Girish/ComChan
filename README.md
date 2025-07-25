@@ -10,6 +10,7 @@
   - [Installation](#installation)
     - [From crates.io](#from-cratesio)
     - [From AUR](#from-aur)
+    - [Using Homebrew](#using-homebrew)
     - [From source](#from-source)
 - [Documentation Link](#documentation-link)
   - [Common Commands](#common-commands)
