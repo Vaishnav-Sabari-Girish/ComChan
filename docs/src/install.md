@@ -39,6 +39,14 @@ yay -S comchan
 paru -S comchan
 ```
 
+## Install using Homebrew 
+
+ComChan can now be installed via Homebrew
+
+```bash 
+brew install Vaishnav-Sabari-Girish/taps/comchan
+```
+
 
 ## Install from source
 
