@@ -1,7 +1,7 @@
 use clap::Parser;
 use inline_colorization::*;
-use serialport::{self, DataBits, FlowControl, Parity, StopBits};
 use serde::{Deserialize, Serialize};
+use serialport::{self, DataBits, FlowControl, Parity, StopBits};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::{self, BufWriter, Read, Write};
@@ -59,7 +59,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.2.0",
+    version = "0.2.1",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -67,7 +67,7 @@ struct Args {
     #[arg(short = 'p', long = "port", help = "Serial port to connect to")]
     port: Option<String>,
 
-    #[arg(short = 'r', long = "baud")]
+    #[arg(short = 'r', long = "baud", help = "Baud Rate of the Serial Monitor")]
     baud: Option<u32>,
 
     #[arg(short = 'd', long = "data-bits")]
@@ -88,25 +88,29 @@ struct Args {
     #[arg(long = "reset-delay")]
     reset_delay_ms: Option<u64>,
 
-    #[arg(short = 'l', long = "log")]
+    #[arg(short = 'l', long = "log", help = "Log Serial data into a file")]
     log_file: Option<String>,
 
-    #[arg(long = "list-ports", action = clap::ArgAction::SetTrue)]
+    #[arg(long = "list-ports", action = clap::ArgAction::SetTrue, help = "List all available ports")]
     list_ports: bool,
 
     #[arg(long = "auto", action = clap::ArgAction::SetTrue, help = "Auto-detect USB serial port")]
     auto: Option<bool>,
 
-    #[arg(short = 'v', long = "verbose", action = clap::ArgAction::SetTrue)]
+    #[arg(short = 'v', long = "verbose", action = clap::ArgAction::SetTrue, help = "Verbose mode of Serial monitor")]
     verbose: Option<bool>,
 
-    #[arg(long = "plot", action = clap::ArgAction::SetTrue)]
-    plot: bool,    
+    #[arg(long = "plot", action = clap::ArgAction::SetTrue, help = "Go to Serial Plotter instead of Serial monitor")]
+    plot: bool,
 
     #[arg(long = "plot-points")]
     plot_points: Option<usize>,
 
-    #[arg(long = "config", short = 'c', help = "Path to config file (default: ~/.config/comchan/comchan.toml)")]
+    #[arg(
+        long = "config",
+        short = 'c',
+        help = "Path to config file (default: ~/.config/comchan/comchan.toml)"
+    )]
     config_file: Option<PathBuf>,
 
     #[arg(long = "generate-config", action = clap::ArgAction::SetTrue, help = "Generate a default config file")]
@@ -152,7 +156,7 @@ impl SensorData {
 
     fn add_point(&mut self, x: f64, y: f64, max_points: usize) {
         self.data.push((x, y));
-        
+
         // Update min/max
         if y < self.min_value {
             self.min_value = y;
@@ -179,7 +183,7 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
         if parts.len() == 2 {
             let sensor_name = parts[0].trim().to_string();
             let value_str = parts[1].trim();
-            
+
             if let Ok(value) = value_str.parse::<f64>() {
                 results.push((sensor_name, value));
                 return results;
@@ -193,7 +197,7 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
         if parts.len() == 2 {
             let sensor_name = parts[0].trim().to_string();
             let value_str = parts[1].trim();
-            
+
             if let Ok(value) = value_str.parse::<f64>() {
                 results.push((sensor_name, value));
                 return results;
@@ -201,7 +205,7 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
         }
     }
 
-    // Pattern 3: Comma-separated values "value1,value2,value3" 
+    // Pattern 3: Comma-separated values "value1,value2,value3"
     // These will be named as "Channel 0", "Channel 1", etc.
     if line.contains(',') {
         let values: Vec<&str> = line.split(',').collect();
@@ -218,7 +222,7 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
     // Pattern 4: Space-separated values "value1 value2 value3"
     let words: Vec<&str> = line.split_whitespace().collect();
     let mut numeric_values = Vec::new();
-    
+
     for word in &words {
         if let Ok(value) = word.parse::<f64>() {
             numeric_values.push(value);
@@ -258,8 +262,9 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
                 "Accelerometer"
             } else {
                 "Sensor"
-            }.to_string();
-            
+            }
+            .to_string();
+
             results.push((sensor_name, value));
             break; // Only take the first number found in this pattern
         }
@@ -289,7 +294,10 @@ fn get_color_for_index(index: usize) -> Color {
     COLORS[index % COLORS.len()]
 }
 
-fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dyn std::error::Error>> {
+fn run_plotter_mode(
+    config: MergedConfig,
+    port_name: String,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Setup terminal for plotting
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -366,23 +374,26 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
                         // Parse sensor data from the line
                         let sensor_readings = parse_sensor_data(clean_line);
                         let has_data = !sensor_readings.is_empty();
-                        
+
                         // Debug: Print what we're parsing (uncomment for debugging)
                         // if has_data {
                         //     println!("Parsed: {:?} from line: '{}'", sensor_readings, clean_line);
                         // }
-                        
+
                         for (sensor_name, value) in sensor_readings {
                             // Create sensor entry if it doesn't exist
                             if !sensors.contains_key(&sensor_name) {
                                 let color = get_color_for_index(sensors.len());
-                                sensors.insert(sensor_name.clone(), SensorData::new(sensor_name.clone(), color));
+                                sensors.insert(
+                                    sensor_name.clone(),
+                                    SensorData::new(sensor_name.clone(), color),
+                                );
                             }
 
                             // Add data point to the appropriate sensor
                             if let Some(sensor) = sensors.get_mut(&sensor_name) {
                                 sensor.add_point(x, value, config.plot_points);
-                                
+
                                 // Update global bounds
                                 if value < global_y_min {
                                     global_y_min = value;
@@ -421,7 +432,7 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
             // Find the x-range across all sensors
             let mut min_x = f64::INFINITY;
             let mut max_x = f64::NEG_INFINITY;
-            
+
             for sensor in sensors.values() {
                 if !sensor.data.is_empty() {
                     let sensor_min = sensor.data[0].0;
@@ -434,7 +445,7 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
                     }
                 }
             }
-            
+
             if min_x.is_finite() && max_x.is_finite() {
                 (min_x, max_x)
             } else {
@@ -443,14 +454,16 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
         };
 
         // Calculate y-axis bounds with some padding
-        let (chart_y_min, chart_y_max) = if global_y_min.is_finite() && global_y_max.is_finite() && global_y_min != global_y_max {
-            let padding = (global_y_max - global_y_min) * 0.1;
-            (global_y_min - padding, global_y_max + padding)
-        } else if global_y_min.is_finite() && global_y_max.is_finite() {
-            (global_y_min - 1.0, global_y_max + 1.0)
-        } else {
-            (-1.0, 1.0)
-        };
+        let (chart_y_min, chart_y_max) =
+            if global_y_min.is_finite() && global_y_max.is_finite() && global_y_min != global_y_max
+            {
+                let padding = (global_y_max - global_y_min) * 0.1;
+                (global_y_min - padding, global_y_max + padding)
+            } else if global_y_min.is_finite() && global_y_max.is_finite() {
+                (global_y_min - 1.0, global_y_max + 1.0)
+            } else {
+                (-1.0, 1.0)
+            };
 
         // Create labels outside the closure
         let x_min_label = format!("{:.0}", x_min);
@@ -462,14 +475,17 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
         let y_max_label = format!("{:.2}", chart_y_max);
 
         // Create datasets for chart
-        let datasets: Vec<Dataset> = sensors.values().map(|sensor| {
-            Dataset::default()
-                .name(sensor.name.as_str())
-                .marker(symbols::Marker::Braille)
-                .graph_type(GraphType::Line)
-                .style(Style::default().fg(sensor.color))
-                .data(&sensor.data)
-        }).collect();
+        let datasets: Vec<Dataset> = sensors
+            .values()
+            .map(|sensor| {
+                Dataset::default()
+                    .name(sensor.name.as_str())
+                    .marker(symbols::Marker::Braille)
+                    .graph_type(GraphType::Line)
+                    .style(Style::default().fg(sensor.color))
+                    .data(&sensor.data)
+            })
+            .collect();
 
         // Create legend info
         let legend_info = if sensors.len() > 1 {
@@ -524,16 +540,21 @@ fn run_plotter_mode(config: MergedConfig, port_name: String) -> Result<(), Box<d
     // Cleanup
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    
+
     // Print summary
     if !sensors.is_empty() {
         println!("\n{color_green}📊 Plotting Summary:{color_reset}");
         for (name, sensor) in &sensors {
-            println!("  📈 {}: {} data points (min: {:.2}, max: {:.2})", 
-                name, sensor.data.len(), sensor.min_value, sensor.max_value);
+            println!(
+                "  📈 {}: {} data points (min: {:.2}, max: {:.2})",
+                name,
+                sensor.data.len(),
+                sensor.min_value,
+                sensor.max_value
+            );
         }
     }
-    
+
     Ok(())
 }
 
@@ -552,7 +573,10 @@ fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
     }
 
     if let Some(home_dir) = dirs::home_dir() {
-        let config_dir_path = home_dir.join(".config").join("comchan").join("comchan.toml");
+        let config_dir_path = home_dir
+            .join(".config")
+            .join("comchan")
+            .join("comchan.toml");
         if config_dir_path.exists() {
             return Some(config_dir_path);
         }
@@ -571,7 +595,10 @@ fn load_config(config_path: Option<PathBuf>) -> Result<Config, Box<dyn std::erro
         let content = fs::read_to_string(&path)?;
         let config: Config = toml::from_str(&content)
             .map_err(|e| format!("Failed to parse config file {}: {}", path.display(), e))?;
-        println!("{color_blue}📋 Loaded config from: {}{color_reset}", path.display());
+        println!(
+            "{color_blue}📋 Loaded config from: {}{color_reset}",
+            path.display()
+        );
         Ok(config)
     } else {
         Ok(Config::default())
@@ -590,10 +617,10 @@ fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::err
             PathBuf::from("comchan.toml")
         }
     };
-    
+
     let default_config = Config::default();
     let toml_content = toml::to_string_pretty(&default_config)?;
-    
+
     let commented_config = format!(
         r#"# ComChan Configuration File
 # 
@@ -608,15 +635,18 @@ fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::err
 "#,
         toml_content
     );
-    
+
     if let Some(parent) = config_path.parent() {
         fs::create_dir_all(parent)?;
     }
-    
+
     fs::write(&config_path, commented_config)?;
-    println!("{color_green}✅ Generated default config file: {}{color_reset}", config_path.display());
+    println!(
+        "{color_green}✅ Generated default config file: {}{color_reset}",
+        config_path.display()
+    );
     println!("{color_blue}💡 Edit the file to customize your default settings{color_reset}");
-    
+
     Ok(())
 }
 
@@ -627,9 +657,15 @@ fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         data_bits: args.data_bits.or(config.data_bits).unwrap_or(8),
         stop_bits: args.stop_bits.or(config.stop_bits).unwrap_or(1),
         parity: args.parity.or(config.parity).unwrap_or("none".to_string()),
-        flow_control: args.flow_control.or(config.flow_control).unwrap_or("none".to_string()),
+        flow_control: args
+            .flow_control
+            .or(config.flow_control)
+            .unwrap_or("none".to_string()),
         timeout_ms: args.timeout_ms.or(config.timeout_ms).unwrap_or(500),
-        reset_delay_ms: args.reset_delay_ms.or(config.reset_delay_ms).unwrap_or(1000),
+        reset_delay_ms: args
+            .reset_delay_ms
+            .or(config.reset_delay_ms)
+            .unwrap_or(1000),
         log_file: args.log_file.or(config.log_file),
         list_ports: args.list_ports,
         verbose: args.verbose.or(config.verbose).unwrap_or(false),
@@ -661,10 +697,10 @@ fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
             }
         );
     }
-    
+
     println!();
     port_finder::show_usb_ports()?;
-    
+
     Ok(())
 }
 
@@ -674,7 +710,10 @@ fn parse_data_bits(bits: u8) -> Result<DataBits, String> {
         6 => Ok(DataBits::Six),
         7 => Ok(DataBits::Seven),
         8 => Ok(DataBits::Eight),
-        _ => Err(format!("Invalid data bits: {}. Must be 5, 6, 7, or 8", bits)),
+        _ => Err(format!(
+            "Invalid data bits: {}. Must be 5, 6, 7, or 8",
+            bits
+        )),
     }
 }
 
@@ -691,7 +730,10 @@ fn parse_parity(parity: &str) -> Result<Parity, String> {
         "none" | "n" => Ok(Parity::None),
         "odd" | "o" => Ok(Parity::Odd),
         "even" | "e" => Ok(Parity::Even),
-        _ => Err(format!("Invalid parity: {}. Must be 'none', 'odd', or 'even'", parity)),
+        _ => Err(format!(
+            "Invalid parity: {}. Must be 'none', 'odd', or 'even'",
+            parity
+        )),
     }
 }
 
@@ -700,7 +742,10 @@ fn parse_flow_control(flow: &str) -> Result<FlowControl, String> {
         "none" | "n" => Ok(FlowControl::None),
         "software" | "s" => Ok(FlowControl::Software),
         "hardware" | "h" => Ok(FlowControl::Hardware),
-        _ => Err(format!("Invalid flow control: {}. Must be 'none', 'software', or 'hardware'", flow)),
+        _ => Err(format!(
+            "Invalid flow control: {}. Must be 'none', 'software', or 'hardware'",
+            flow
+        )),
     }
 }
 
@@ -714,12 +759,18 @@ fn get_timestamp() -> String {
     format!("{}.{:03}", secs, millis)
 }
 
-fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dyn std::error::Error>> {
+fn run_normal_mode(
+    config: MergedConfig,
+    port_name: String,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Parse serial port configuration
-    let data_bits = parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
-    let stop_bits = parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?;
+    let data_bits =
+        parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
+    let stop_bits =
+        parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?;
     let parity = parse_parity(&config.parity).map_err(|e| format!("Configuration error: {}", e))?;
-    let flow_control = parse_flow_control(&config.flow_control).map_err(|e| format!("Configuration error: {}", e))?;
+    let flow_control = parse_flow_control(&config.flow_control)
+        .map_err(|e| format!("Configuration error: {}", e))?;
 
     let mut port = serialport::new(&port_name, config.baud)
         .timeout(Duration::from_millis(config.timeout_ms))
@@ -743,10 +794,15 @@ fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dy
 
     thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
-    println!("{color_green}📡 ComChan connected to {} at {} baud{color_reset}", port_name, config.baud);
+    println!(
+        "{color_green}📡 ComChan connected to {} at {} baud{color_reset}",
+        port_name, config.baud
+    );
     if config.verbose {
-        println!("{color_blue}⚙️  Configuration: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}",
-            config.data_bits, config.stop_bits, config.parity, config.flow_control);
+        println!(
+            "{color_blue}⚙️  Configuration: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}",
+            config.data_bits, config.stop_bits, config.parity, config.flow_control
+        );
         if let Some(log_path) = &config.log_file {
             println!("{color_blue}📝 Logging to: {}{color_reset}", log_path);
         }
@@ -816,7 +872,12 @@ fn run_normal_mode(config: MergedConfig, port_name: String) -> Result<(), Box<dy
             Err(e) => {
                 eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
                 if let Some(ref mut writer) = log_writer {
-                    writeln!(writer, "ERROR [{}]: Serial read error: {}", get_timestamp(), e)?;
+                    writeln!(
+                        writer,
+                        "ERROR [{}]: Serial read error: {}",
+                        get_timestamp(),
+                        e
+                    )?;
                     writer.flush()?;
                 }
             }
@@ -879,7 +940,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load configuration file
     let config = load_config(args.config_file.clone())?;
-    
+
     // Merge config file settings with command line arguments
     let merged_config = merge_config_and_args(config, args);
 
@@ -893,12 +954,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if port.to_lowercase() == "auto" {
             match port_finder::find_usb_port()? {
                 Some(detected_port) => {
-                   println!("{color_green}🔍 Auto-detected USB port: {}{color_reset}", detected_port);
+                    println!(
+                        "{color_green}🔍 Auto-detected USB port: {}{color_reset}",
+                        detected_port
+                    );
                     detected_port
                 }
                 None => {
-                    eprintln!("{color_red}❌ No USB serial ports found for auto-detection{color_reset}");
-                    eprintln!("{color_yellow}💡 Try --list-ports to see available ports{color_reset}");
+                    eprintln!(
+                        "{color_red}❌ No USB serial ports found for auto-detection{color_reset}"
+                    );
+                    eprintln!(
+                        "{color_yellow}💡 Try --list-ports to see available ports{color_reset}"
+                    );
                     std::process::exit(1);
                 }
             }
@@ -906,8 +974,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             port.clone()
         }
     } else {
-        eprintln!("{color_red}❌ No port specified. Use --port <PORT>, --auto, or set port in config{color_reset}");
-        eprintln!("{color_yellow}💡 Try --list-ports to see available ports or --generate-config to create a config file{color_reset}");
+        eprintln!(
+            "{color_red}❌ No port specified. Use --port <PORT>, --auto, or set port in config{color_reset}"
+        );
+        eprintln!(
+            "{color_yellow}💡 Try --list-ports to see available ports or --generate-config to create a config file{color_reset}"
+        );
         std::process::exit(1);
     };
 

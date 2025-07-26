@@ -38,14 +38,13 @@
 
 # ComChan
 
-ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication. 
+ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication.
 
-  **Latest Version**: 0.2.0
+**Latest Version**: 0.2.0
 
 ## Installation
 
 ### From crates.io
-
 
 > [!NOTE]
 > `cargo install` NOW AVAILABLE
@@ -63,11 +62,11 @@ After installing, check if it has been installed with
 comchan --version
 ```
 
-### From AUR 
+### From AUR
 
-Thanks to [orhun](https://github.com/orhun), ComChan now has an AUR package 
+Thanks to [orhun](https://github.com/orhun), ComChan now has an AUR package
 
-```bash 
+```bash
 # Using yay 
 
 yay -S comchan
@@ -77,14 +76,13 @@ yay -S comchan
 paru -S comchan
 ```
 
-### Using Homebrew 
+### Using Homebrew
 
-ComChan can also be installed by using Homebrew taps 
+ComChan can also be installed by using Homebrew taps
 
-```bash 
+```bash
 brew install Vaishnav-Sabari-Girish/taps/comchan
 ```
-
 
 ### From source
 
@@ -108,7 +106,7 @@ cargo run
 
 Documentation Link : https://vaishnav.world/ComChan
 
-## Common Commands 
+## Common Commands
 
 ### Basic Serial Monitor
 
@@ -118,7 +116,6 @@ comchan -p <port> -r <baud_rate>
 # OR
 
 comchan --port <port> --baud <baud_rate>
-
 ```
 
 ### Verbose Mode
@@ -155,9 +152,7 @@ comchan -p <port> -r <baud_rate> --plot
 
 ### Automatically detect serial ports
 
-
 ```bash
-
 comchan --auto    ##Defaults baud rate to 9600
 
 #OR 
@@ -167,12 +162,11 @@ comchan --auto --baud <baud_rate>  # For non-default baud rates like 115200
 # OR 
 
 comchan --auto -r <baud_rate>
-
 ```
 
-### Use a Configuration file 
+### Use a Configuration file
 
-As of version 0.1.9, you can now create your own configuration file to use ComChan, which means that you won't have to type all the flags. 
+As of version 0.1.9, you can now create your own configuration file to use ComChan, which means that you won't have to type all the flags.
 
 ```bash
 # Generate default configuration file 
@@ -180,15 +174,14 @@ As of version 0.1.9, you can now create your own configuration file to use ComCh
 comchan --generate-config   # Generates the default config file at ~/.config/comchan/comchan.toml
 ```
 
-Here is an example configuration file 
+Here is an example configuration file
 
 ```toml
-
 # ComChan Configuration File
-# 
+#
 # This file contains default settings for comchan serial monitor.
 # Command line arguments will override these settings.
-# 
+#
 # To use auto-detection, set port = "auto"
 # Available parity options: "none", "odd", "even"
 # Available flow control options: "none", "software", "hardware"
@@ -204,15 +197,12 @@ reset_delay_ms = 1000
 verbose = false
 plot = false
 plot_points = 100
-
 ```
 
 > [!NOTE]
 > Note that the default baud rate is `9600`, you can change it later on in the config file
 
-
 The above default config file values can be overridden by using the flags (`--auto`, `--port or -p`, `--baud or -r`, `--plot`).
-
 
 ## Features
 
@@ -223,8 +213,7 @@ The above default config file values can be overridden by using the flags (`--au
 - [x] Use a `.toml` file for config instead of flags
 - [ ] Write serial data to a file for later use (can be .txt , .csv and more)
 - [x] Terminal based Serial Plotter (to be implemented with the `--plot` command)
-- [x] Plot multiple sensor values in the Serial Plotter with legends 
-
+- [x] Plot multiple sensor values in the Serial Plotter with legends
 
 ### Legends
 
@@ -237,8 +226,7 @@ The above default config file values can be overridden by using the flags (`--au
 
 ![GIF](./docs/src/videos/basic_serial_mon.gif)
 
-[code file hw](./code_tests/test_comchan_arduino_uno/test_comchan_arduino_uno.ino) 
-
+[code file hw](./code_tests/test_comchan_arduino_uno/test_comchan_arduino_uno.ino)
 
 ## User Input
 
@@ -250,9 +238,9 @@ The above default config file values can be overridden by using the flags (`--au
 
 ![Serial Plotter](./docs/src/videos/plotter.gif)
 
-[code file 2](./code_tests/random_sensor_vals/random_sensor_vals.ino) 
+[code file 2](./code_tests/random_sensor_vals/random_sensor_vals.ino)
 
-## Auto Serial Port Detector 
+## Auto Serial Port Detector
 
 ![auto](./docs/src/videos/auto.gif)
 
@@ -270,22 +258,18 @@ The above default config file values can be overridden by using the flags (`--au
 
 ![multiple_plot](./docs/src/videos/multiple_sensor_plot.gif)
 
-[code file multiple vals](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino) 
+[code file multiple vals](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino)
 
 # Feedback Form
 
-The Feedback form was created using Bashforms (Forms in the terminal itself). 
+The Feedback form was created using Bashforms (Forms in the terminal itself).
 
-To give you feedback, please type this on your terminal 
+To give you feedback, please type this on your terminal
 
 ```bash
 ssh -t bashform.me f comchan
 ```
 
-
-                        
 # Stargazers over time
 
 [![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=dark)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
-
-                    
