@@ -1,0 +1,111 @@
+
+/* Globals */
+
+:root {
+  --sidebar-width: 300px;
+  --page-padding: 15px;
+  --content-max-width: 750px;
+  --menu-bar-height: 50px;
+
+  /* === Nord Theme === */
+  /* --> Polar Night */
+  --nord0: #2E3440;
+  --nord1: #3B4252;
+  --nord2: #434C5E;
+  --nord3: #4C566A;
+  /* --> Snow Storm */
+  --nord4: #D8DEE9;
+  --nord5: #E5E9F0;
+  --nord6: #ECEFF4;
+  /* --> Frost */
+  --nord7: #8FBCBB;
+  --nord8: #88C0DD;
+  --nord9: #81A1C1;
+  --nord10: #5E81AC;
+  /* --> Aurora */
+  --nord11: #BF616A;
+  --nord12: #D08770;
+  --nord13: #EBCB8B;
+  --nord14: #A3BE8C;
+  --nord15: #B48EAD;
+
+  /* Both variants should be consistent between them. */
+  --bg: var(--base-bg);
+  --fg: var(--base-fg);
+
+  --sidebar-bg: var(--alt-bg);
+  --sidebar-fg: var(--alt-fg);
+  --sidebar-non-existant: var(--disabled);
+  --sidebar-active: var(--clickable);
+  --sidebar-spacer: var(--disabled);
+
+  --scrollbar: var(--clickable);
+
+  --icons: var(--disabled);
+  --icons-hover: var(--base-fg);
+
+  --links: var(--clickable);
+
+  --inline-code-color: var(--alt-fg);
+
+  --theme-popup-bg: var(--alt-bg);
+  --theme-popup-border: var(--disabled);
+  --theme-hover: var(--disabled);
+
+  --quote-bg: var(--quote);
+  --quote-border: var(--quote);
+
+  --table-border-color: var(--base-fg);
+  --table-header-bg: var(--base-bg);
+  --table-alternate-bg: var(--quote);
+
+  --searchbar-border-color: var(--disabled);
+  --searchbar-bg: var(--alt-bg);
+  --searchbar-fg: var(--alt-fg);
+  --searchbar-shadow-color: var(--alt-bg);
+  --searchresults-header-fg: var(--results);
+  --searchresults-border-color: var(--base-fg);
+  --searchresults-li-bg: var(--selected);
+  --search-mark-bg: var(--selected);
+}
+
+/* Themes */
+
+.light {
+  --base-bg: var(--nord4);
+  --base-fg: var(--nord0);
+  --alt-bg: var(--nord6);
+  --alt-fg: var(--nord2);
+  --disabled: var(--nord8);
+  --quote: var(--nord5);
+  --clickable: var(--nord11);
+  --results: var(--nord14);
+  --selected: var(--nord13);
+}
+
+.dark {
+  --base-bg: var(--nord2);
+  --base-fg: var(--nord6);
+  --alt-bg: var(--nord0);
+  --alt-fg: var(--nord4);
+  --disabled: var(--nord10);
+  --quote: var(--nord1);
+  --clickable: var(--nord12);
+  --results: var(--nord14);
+  --selected: var(--nord13);
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Same as dark. */
+  .light.no-js {
+    --base-bg: var(--nord2);
+    --base-fg: var(--nord6);
+    --alt-bg: var(--nord0);
+    --alt-fg: var(--nord4);
+    --disabled: var(--nord10);
+    --quote: var(--nord1);
+    --clickable: var(--nord12);
+    --results: var(--nord14);
+    --selected: var(--nord13);
+  }
+}

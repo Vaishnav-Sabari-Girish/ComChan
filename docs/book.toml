@@ -6,3 +6,9 @@ title = "ComChan: The Blazingly Fast minmal Serial Monitor"
 
 [output.html]
 git-repository-url = "https://github.com/Vaishnav-Sabari-Girish/ComChan"
+additional-css = [
+  "theme/light.css",
+  "theme/dark.css",
+]
+default-theme = "dark"
+preferred-dark-theme = "dark"
