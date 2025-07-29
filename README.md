@@ -31,6 +31,7 @@
     - [Serial Monitor (`plot = false`)](#serial-monitor-plot--false)
     - [Serial Plotter (`plot = true`)](#serial-plotter-plot--true)
     - [Serial Plotter Multiple sensor values](#serial-plotter-multiple-sensor-values)
+  - [ComChan in Windows](#comchan-in-windows)
 - [Feedback Form](#feedback-form)
 - [Stargazers over time](#stargazers-over-time)
 
@@ -40,7 +41,7 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication.
 
-**Latest Version**: 0.2.0
+**Latest Version**: 0.2.3
 
 ## Installation
 
@@ -259,6 +260,20 @@ The above default config file values can be overridden by using the flags (`--au
 ![multiple_plot](./docs/src/videos/multiple_sensor_plot.gif)
 
 [code file multiple vals](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino)
+
+## ComChan in Windows
+
+As of Version 0.2.2, ComChan can be used in Windows with no drawbacks
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/23sSd4_bcxM/0.jpg)](https://www.youtube.com/watch?v=23sSd4_bcxM)
+
+To use ComChan in Windows, you can download the .exe file from the releases and use it as follows. 
+
+Let's say you have downloaded the .exe file to `Downloads/`, you have to first open `cmd` or Powershell and `cd` to `Downloads/` and then 
+
+```pwr 
+comchan.exe --help
+```
 
 # Feedback Form
 
