@@ -109,7 +109,7 @@ struct Args {
     #[arg(
         long = "config",
         short = 'c',
-        help = "Path to config file (default: ~/.config/comchan/comchan.toml)"
+        help = "Path to config file (default: platform-specific config directory)"
     )]
     config_file: Option<PathBuf>,
 
@@ -558,7 +558,47 @@ fn run_plotter_mode(
     Ok(())
 }
 
-// Include all the helper functions from your original code
+// Cross-platform config directory detection
+fn get_default_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let config_dir = if cfg!(target_os = "windows") {
+        // Windows: %APPDATA%\comchan\comchan.toml
+        if let Some(appdata) = std::env::var_os("APPDATA") {
+            PathBuf::from(appdata).join("comchan")
+        } else {
+            return Err("APPDATA environment variable not found".into());
+        }
+    } else if cfg!(target_os = "macos") {
+        // macOS: ~/Library/Application Support/comchan/comchan.toml
+        if let Some(home_dir) = dirs::home_dir() {
+            home_dir.join("Library").join("Application Support").join("comchan")
+        } else {
+            return Err("Could not find home directory".into());
+        }
+    } else {
+        // Linux and other Unix-like systems: ~/.config/comchan/comchan.toml
+        if let Some(home_dir) = dirs::home_dir() {
+            home_dir.join(".config").join("comchan")
+        } else {
+            return Err("Could not find home directory".into());
+        }
+    };
+
+    Ok(config_dir.join("comchan.toml"))
+}
+
+fn get_platform_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "Windows"
+    } else if cfg!(target_os = "macos") {
+        "macOS"
+    } else if cfg!(target_os = "linux") {
+        "Linux"
+    } else {
+        "Unix-like"
+    }
+}
+
+// Updated config file finder with cross-platform support
 fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
     if let Some(path) = specified_path {
         if path.exists() {
@@ -567,20 +607,21 @@ fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
         return None;
     }
 
+    // Check current directory first
     let current_dir_config = PathBuf::from("comchan.toml");
     if current_dir_config.exists() {
         return Some(current_dir_config);
     }
 
-    if let Some(home_dir) = dirs::home_dir() {
-        let config_dir_path = home_dir
-            .join(".config")
-            .join("comchan")
-            .join("comchan.toml");
-        if config_dir_path.exists() {
-            return Some(config_dir_path);
+    // Check platform-specific config directories
+    if let Ok(default_path) = get_default_config_path() {
+        if default_path.exists() {
+            return Some(default_path);
         }
+    }
 
+    // Fallback: check home directory (for backward compatibility)
+    if let Some(home_dir) = dirs::home_dir() {
         let home_config = home_dir.join(".comchan.toml");
         if home_config.exists() {
             return Some(home_config);
@@ -609,20 +650,30 @@ fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::err
     let config_path = if let Some(specified_path) = path {
         specified_path
     } else {
-        if let Some(home_dir) = dirs::home_dir() {
-            let config_dir = home_dir.join(".config").join("comchan");
-            fs::create_dir_all(&config_dir)?;
-            config_dir.join("comchan.toml")
-        } else {
-            PathBuf::from("comchan.toml")
-        }
+        get_default_config_path()?
     };
 
     let default_config = Config::default();
     let toml_content = toml::to_string_pretty(&default_config)?;
 
+    let platform_comment = format!(
+        "# Platform: {} config directory",
+        get_platform_name()
+    );
+
+    let location_comment = if cfg!(target_os = "windows") {
+        "# Default location: %APPDATA%\\comchan\\comchan.toml"
+    } else if cfg!(target_os = "macos") {
+        "# Default location: ~/Library/Application Support/comchan/comchan.toml"
+    } else {
+        "# Default location: ~/.config/comchan/comchan.toml"
+    };
+
     let commented_config = format!(
         r#"# ComChan Configuration File
+# 
+{}
+{}
 # 
 # This file contains default settings for comchan serial monitor.
 # Command line arguments will override these settings.
@@ -633,16 +684,20 @@ fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::err
 
 {}
 "#,
+        platform_comment,
+        location_comment,
         toml_content
     );
 
+    // Create parent directories if they don't exist
     if let Some(parent) = config_path.parent() {
         fs::create_dir_all(parent)?;
     }
 
     fs::write(&config_path, commented_config)?;
     println!(
-        "{color_green}✅ Generated default config file: {}{color_reset}",
+        "{color_green}✅ Generated default config file for {}: {}{color_reset}",
+        get_platform_name(),
         config_path.display()
     );
     println!("{color_blue}💡 Edit the file to customize your default settings{color_reset}");
