@@ -8,7 +8,19 @@ title = "ComChan: The Blazingly Fast minmal Serial Monitor"
 git-repository-url = "https://github.com/Vaishnav-Sabari-Girish/ComChan"
 additional-css = [
   "theme/light.css",
-  "theme/dark.css",
+  "theme/dark.css", "./mdbook-admonish.css",
 ]
 default-theme = "dark"
 preferred-dark-theme = "dark"
+
+[preprocessor.admonish]
+on_failure = "bail"
+command = "mdbook-admonish"
+assets_version = "3.1.0" # do not edit: managed by `mdbook-admonish install`
+
+[preprocessor.admonish.default]
+collapsible = true
+
+[preprocessor.admonish.renderer.test]
+render_mode = "strip"
+

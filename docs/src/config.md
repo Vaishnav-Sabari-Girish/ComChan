@@ -63,12 +63,11 @@ plot_points = 100
 
 ---
 
+```admonish note collapsible=false 
+The default baud rate is `9600`, but you can customize it in the config file as needed
 
-> **NOTE**
->
-> The default baud rate is `9600`, but you can customize it in the config file as needed
->
-> All values in the config file **can still be overridden** at runtime via command-line arguments like `--port`, `--baud`, `--plot`, etc.
+All values in the config file **can still be overridden** at runtime via command-line arguments like `--port`, `--baud`, `--plot`, etc.
+```
 
 
 # Outputs 
