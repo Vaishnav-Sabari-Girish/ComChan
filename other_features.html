@@ -214,11 +214,18 @@ void loop() {
 <li>You want a faster, zero-config setup.</li>
 </ul>
 <p>Under the hood, ComChan scans all available serial ports and identifies the most likely candidate based on device names and connection responses.</p>
-<blockquote>
-<p><strong>Note:</strong> If needed, you can still specify the port manually like so:</p>
-<pre><code class="language-bash">comchan --port /dev/ttyUSB0
-</code></pre>
-</blockquote>
+<div id="admonition-note" class="admonition admonish-note" role="note" aria-labelledby="admonition-note-title">
+<div class="admonition-title">
+<div id="admonition-note-title">
+<p>Note</p>
+</div>
+<a class="admonition-anchor-link" href="#admonition-note"></a>
+</div>
+<div>
+<p>If needed, you can still specify the port manually like so:</p>
+<p><code>comchan --port /dev/ttyUSB0</code></p>
+</div>
+</div>
 <h3 id="demo"><a class="header" href="#demo">Demo</a></h3>
 <p>Here’s a quick demonstration:</p>
 <p><img src="./videos/auto.gif" alt="Auto" /></p>
