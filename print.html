@@ -28,6 +28,7 @@
         <!-- Custom theme stylesheets -->
         <link rel="stylesheet" href="theme/light.css">
         <link rel="stylesheet" href="theme/dark.css">
+        <link rel="stylesheet" href="./mdbook-admonish.css">
 
     </head>
     <body>
@@ -437,11 +438,18 @@ plot_points = 100
 </tbody></table>
 </div>
 <hr />
-<blockquote>
-<p><strong>NOTE</strong></p>
+<div id="admonition-note" class="admonition admonish-note" role="note" aria-labelledby="admonition-note-title">
+<div class="admonition-title">
+<div id="admonition-note-title">
+<p>Note</p>
+</div>
+<a class="admonition-anchor-link" href="config.html#admonition-note"></a>
+</div>
+<div>
 <p>The default baud rate is <code>9600</code>, but you can customize it in the config file as needed</p>
 <p>All values in the config file <strong>can still be overridden</strong> at runtime via command-line arguments like <code>--port</code>, <code>--baud</code>, <code>--plot</code>, etc.</p>
-</blockquote>
+</div>
+</div>
 <h1 id="outputs"><a class="header" href="#outputs">Outputs</a></h1>
 <h2 id="serial-monitor-plot--false"><a class="header" href="#serial-monitor-plot--false">Serial monitor (<code>plot = false</code>)</a></h2>
 <p><img src="./videos/config_mon.gif" alt="plotfalse" /></p>
