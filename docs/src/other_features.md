@@ -107,11 +107,12 @@ This is especially useful if:
 
 Under the hood, ComChan scans all available serial ports and identifies the most likely candidate based on device names and connection responses. 
 
-> **Note:** If needed, you can still specify the port manually like so:
->
-> ```bash
-> comchan --port /dev/ttyUSB0
-> ```
+```admonish note collapsible=false
+If needed, you can still specify the port manually like so:
+
+`comchan --port /dev/ttyUSB0`
+
+```
 
 ### Demo
 Here’s a quick demonstration:
