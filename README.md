@@ -37,7 +37,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# ComChan
+# ComChan (Communication Channel)
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication.
 
