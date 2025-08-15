@@ -1,4 +1,4 @@
-![Banner](./docs/src/images/banner.png)
+![Banner](./docs/src/images/ComChan.png)
 
 ---
 
