@@ -22,6 +22,7 @@
     - [Use a Configuration file](#use-a-configuration-file)
   - [Features](#features)
     - [Legends](#legends)
+- [Contributing](#contributing)
 - [Examples](#examples)
   - ["Hello World" Program](#hello-world-program)
   - [User Input](#user-input)
@@ -103,9 +104,13 @@ cargo build --release
 cargo run
 ```
 
-# Documentation Link
+## Documentation
 
-Documentation Link : https://vaishnav.world/ComChan
+The full documentation for ComChan can be found [here](https://comchan.charm.land/comchan/intro.html).
+
+## Contributing
+
+We welcome contributions to ComChan! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
 
 ## Common Commands
 
