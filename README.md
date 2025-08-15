@@ -6,13 +6,14 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 <!--**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*-->
 
-- [ComChan](#comchan)
+- [ComChan (Communication Channel)](#comchan-communication-channel)
   - [Installation](#installation)
     - [From crates.io](#from-cratesio)
     - [From AUR](#from-aur)
     - [Using Homebrew](#using-homebrew)
     - [From source](#from-source)
-- [Documentation Link](#documentation-link)
+  - [Documentation](#documentation)
+  - [Contributing](#contributing)
   - [Common Commands](#common-commands)
     - [Basic Serial Monitor](#basic-serial-monitor)
     - [Verbose Mode](#verbose-mode)
@@ -22,7 +23,6 @@
     - [Use a Configuration file](#use-a-configuration-file)
   - [Features](#features)
     - [Legends](#legends)
-- [Contributing](#contributing)
 - [Examples](#examples)
   - ["Hello World" Program](#hello-world-program)
   - [User Input](#user-input)
@@ -34,7 +34,8 @@
     - [Serial Plotter Multiple sensor values](#serial-plotter-multiple-sensor-values)
   - [ComChan in Windows](#comchan-in-windows)
 - [Feedback Form](#feedback-form)
-- [Stargazers over time](#stargazers-over-time)
+- [Stargazers over time (Graph)](#stargazers-over-time-graph)
+- [Stargazers over time (Avatars)](#stargazers-over-time-avatars)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -106,7 +107,7 @@ cargo run
 
 ## Documentation
 
-The full documentation for ComChan can be found [here](https://comchan.charm.land/comchan/intro.html).
+The full documentation for ComChan can be found [here](https://vaishnav.world/ComChan).
 
 ## Contributing
 
@@ -290,6 +291,10 @@ To give you feedback, please type this on your terminal
 ssh -t bashform.me f comchan
 ```
 
-# Stargazers over time
+# Stargazers over time (Graph)
 
 [![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=dark)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
+
+# Stargazers over time (Avatars)
+
+[![Stargazers repo roster for @Vaishnav-Sabari-Girish/ComChan](https://reporoster.com/stars/dark/Vaishnav-Sabari-Girish/ComChan)](https://github.com/Vaishnav-Sabari-Girish/ComChan/stargazers)
