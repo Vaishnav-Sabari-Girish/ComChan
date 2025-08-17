@@ -43,7 +43,7 @@
 
 ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication.
 
-**Latest Version**: 0.2.4
+[![Release](https://img.shields.io/badge/Release-V0.2.4-blue?style=for-the-badge&labelColor=gray)](https://github.com/Vaishnav-Sabari-Girish/ComChan/releases/tag/v0.2.4)
 
 ## Installation
 
