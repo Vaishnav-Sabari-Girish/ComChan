@@ -1,20 +1,20 @@
 ---
 title: 'ComChan : A Blazingly Fast Serial Monitor/Plotter written in Rust'
 tags:
-    - embedded systems
-    - rust
-    - serial communication
-    - tui
-    - cli
+  - embedded systems
+  - rust
+  - serial communication
+  - tui
+  - cli
 authors:
-    - name: Vaishnav Sabari Girish
-      orcid: 0009-0001-7109-5970
-      affiliation: 1
-affiliations :
-    - name : Student Researcher, Jain (Deemed-to-be) University, India
-    - index : 1
-date : 01 August 2025
-bibliography : paper.bib
+  - name: Vaishnav Sabari Girish
+    orcid: 0009-0001-7109-5970
+    affiliation: 1
+affiliations:
+  - name: Student Researcher, Jain (Deemed-to-be) University, India
+    index: 1
+date: 2025-08-01
+bibliography: paper.bib
 ---
 
 # Summary
