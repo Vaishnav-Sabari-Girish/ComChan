@@ -19,7 +19,7 @@ bibliography: paper.bib
 
 # Summary
 
-Debugging, data acquisition and system validation through serial interfaces is key in low-level hardware and microcontroller development. Whether monitoring sensor output, sending commands or observing device responses in real time, developers rely on serial terminals to see what’s going on. Despite their importance, many existing tools are limited in flexibility, interactivity or ease of use in a workflow. `ComChan` fills those gaps by providing a fast, responsive and portable command-line interface for performance and usability. Written in Rust, it’s minimalistic but has all you need for practical use: live input/output monitoring, custom output formatting and logging. As embedded development workflows get more complex and time sensitive, tools like `ComChan` are the foundation for efficient and reliable communication with hardware systems.
+Debugging, data acquisition and system validation through serial interfaces is key in low-level hardware and microcontroller development. Whether monitoring sensor output, sending commands or observing device responses in real time, developers rely on serial terminals to see what’s going on. Despite their importance, many existing tools are limited in flexibility, interactivity or ease of use in a workflow. `ComChan` fills those gaps by providing a fast, responsive and portable command-line interface for performance and usability. Written in Rust, it’s minimalistic but has all you need for practical use: live input/output monitoring, custom output formatting and logging. As embedded development workflows get more complex and time sensitive, tools like `ComChan` are the foundation for efficient and reliable communication with hardware systems [@ratatui] [@clap].
 
 # Statement of need
 
@@ -30,4 +30,3 @@ The tool provides a smooth and efficient interface to monitor and interact with 
 With the rise of embedded development platforms and serial communication in fields like robotics, IoT and electronics prototyping, `ComChan` fills a practical need for a modern, lightweight serial monitor that integrates well into developer toolchains. Its performance, ease of use and extensibility makes it a useful utility for both learning and real world embedded system development.
 
 # References
-
