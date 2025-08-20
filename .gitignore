@@ -1,3 +1,7 @@
 /target
 /docs/book/*
+<<<<<<< HEAD
 .crush
+=======
+/.crush
+>>>>>>> add_paper
