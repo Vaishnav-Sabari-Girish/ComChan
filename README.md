@@ -293,8 +293,18 @@ ssh -t bashform.me f comchan
 
 # Stargazers over time (Graph)
 
-[![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=dark)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
+[![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=adaptive)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
 
 # Stargazers over time (Avatars)
 
-[![Stargazers repo roster for @Vaishnav-Sabari-Girish/ComChan](https://reporoster.com/stars/dark/Vaishnav-Sabari-Girish/ComChan)](https://github.com/Vaishnav-Sabari-Girish/ComChan/stargazers)
+![stargazers badge](https://readme-contribs.as93.net/stargazers/Vaishnav-Sabari-Girish/ComChan)
+
+# Contributors 
+
+<a href="https://github.com/Vaishnav-Sabari-Girish/Hayasen/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Vaishnav-Sabari-Girish/Hayasen" />
+</a>
+
+# Forkers 
+
+![forkers badge](https://readme-contribs.as93.net/forkers/Vaishnav-Sabari-Girish/ComChan)
