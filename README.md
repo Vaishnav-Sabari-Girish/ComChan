@@ -301,8 +301,8 @@ ssh -t bashform.me f comchan
 
 # Contributors 
 
-<a href="https://github.com/Vaishnav-Sabari-Girish/Hayasen/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Vaishnav-Sabari-Girish/Hayasen" />
+<a href="https://github.com/Vaishnav-Sabari-Girish/ComChan/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Vaishnav-Sabari-Girish/ComChan" />
 </a>
 
 # Forkers 
