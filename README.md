@@ -32,10 +32,13 @@
     - [Serial Monitor (`plot = false`)](#serial-monitor-plot--false)
     - [Serial Plotter (`plot = true`)](#serial-plotter-plot--true)
     - [Serial Plotter Multiple sensor values](#serial-plotter-multiple-sensor-values)
+    - [Full Working GIF](#full-working-gif)
   - [ComChan in Windows](#comchan-in-windows)
 - [Feedback Form](#feedback-form)
 - [Stargazers over time (Graph)](#stargazers-over-time-graph)
 - [Stargazers over time (Avatars)](#stargazers-over-time-avatars)
+- [Contributors](#contributors)
+- [Forkers](#forkers)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -266,6 +269,11 @@ The above default config file values can be overridden by using the flags (`--au
 ![multiple_plot](./docs/src/videos/multiple_sensor_plot.gif)
 
 [code file multiple vals](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino)
+
+
+### Full Working GIF
+
+![full](./docs/src/videos/full.gif)
 
 ## ComChan in Windows
 
