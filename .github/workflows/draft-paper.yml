@@ -1,2 +1,0 @@
-- name: Open Journals PDF Generator
-  uses: openjournals/openjournals-draft-action@v1.0
