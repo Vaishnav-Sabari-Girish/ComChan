@@ -59,7 +59,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.2.4",
+    version = "0.2.5",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -543,10 +543,10 @@ fn run_plotter_mode(
 
     // Print summary
     if !sensors.is_empty() {
-        println!("\n{color_green}📊 Plotting Summary:{color_reset}");
+        println!("\n{color_green}󰄨 Plotting Summary:{color_reset}");
         for (name, sensor) in &sensors {
             println!(
-                "  📈 {}: {} data points (min: {:.2}, max: {:.2})",
+                "   {}: {} data points (min: {:.2}, max: {:.2})",
                 name,
                 sensor.data.len(),
                 sensor.min_value,
@@ -637,7 +637,7 @@ fn load_config(config_path: Option<PathBuf>) -> Result<Config, Box<dyn std::erro
         let config: Config = toml::from_str(&content)
             .map_err(|e| format!("Failed to parse config file {}: {}", path.display(), e))?;
         println!(
-            "{color_blue}📋 Loaded config from: {}{color_reset}",
+            "{color_blue}󰅍 Loaded config from: {}{color_reset}",
             path.display()
         );
         Ok(config)
@@ -696,11 +696,11 @@ fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::err
 
     fs::write(&config_path, commented_config)?;
     println!(
-        "{color_green}✅ Generated default config file for {}: {}{color_reset}",
+        "{color_green} Generated default config file for {}: {}{color_reset}",
         get_platform_name(),
         config_path.display()
     );
-    println!("{color_blue}💡 Edit the file to customize your default settings{color_reset}");
+    println!("{color_blue}󰌵 Edit the file to customize your default settings{color_reset}");
 
     Ok(())
 }
@@ -730,17 +730,17 @@ fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
 }
 
 fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
-    println!("{color_cyan}📋 All Available Serial Ports:{color_reset}");
+    println!("{color_cyan}󰅍 All Available Serial Ports:{color_reset}");
     let ports = serialport::available_ports()?;
 
     if ports.is_empty() {
-        println!("  {color_yellow}⚠️  No serial ports found{color_reset}");
+        println!("  {color_yellow}  No serial ports found{color_reset}");
         return Ok(());
     }
 
     for port in ports {
         println!(
-            "  🔌 {} - {}",
+            "   {} - {}",
             port.port_name,
             match port.port_type {
                 serialport::SerialPortType::UsbPort(info) => {
@@ -850,7 +850,7 @@ fn run_normal_mode(
     thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
     println!(
-        "{color_green}📡 ComChan connected to {} at {} baud{color_reset}",
+        "{color_green} ComChan connected to {} at {} baud{color_reset}",
         port_name, config.baud
     );
     if config.verbose {
@@ -859,10 +859,10 @@ fn run_normal_mode(
             config.data_bits, config.stop_bits, config.parity, config.flow_control
         );
         if let Some(log_path) = &config.log_file {
-            println!("{color_blue}📝 Logging to: {}{color_reset}", log_path);
+            println!("{color_blue} Logging to: {}{color_reset}", log_path);
         }
     }
-    println!("{color_green}🔄 Listening... (Ctrl+C to exit){color_reset}\n");
+    println!("{color_green} Listening... (Ctrl+C to exit){color_reset}\n");
 
     let (input_tx, input_rx) = mpsc::channel::<String>();
 
@@ -884,7 +884,7 @@ fn run_normal_mode(
     let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
     let r = running.clone();
     ctrlc::set_handler(move || {
-        println!("\n{color_yellow}🛑 Shutting down ComChan...{color_reset}");
+        println!("\n{color_yellow}󰏃 Shutting down ComChan...{color_reset}");
         r.store(false, std::sync::atomic::Ordering::SeqCst);
     })?;
 
@@ -907,9 +907,9 @@ fn run_normal_mode(
 
                         // Display received data
                         if config.verbose {
-                            print!("📥 [{}] {}", get_timestamp(), line);
+                            print!(" [{}] {}", get_timestamp(), line);
                         } else {
-                            print!("📥 {}", line);
+                            print!(" {}", line);
                         }
                         io::stdout().flush()?;
 
@@ -964,7 +964,7 @@ fn run_normal_mode(
 
                 // Log sent data
                 if config.verbose {
-                    println!("📤 [{}] Sent: {}", get_timestamp(), clean);
+                    println!(" [{}] Sent: {}", get_timestamp(), clean);
                 }
 
                 if let Some(ref mut writer) = log_writer {
@@ -981,7 +981,7 @@ fn run_normal_mode(
         thread::sleep(Duration::from_millis(10));
     }
 
-    println!("{color_green}✅ ComChan disconnected cleanly{color_reset}");
+    println!("{color_green} ComChan disconnected cleanly{color_reset}");
     Ok(())
 }
 
@@ -1010,7 +1010,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             match port_finder::find_usb_port()? {
                 Some(detected_port) => {
                     println!(
-                        "{color_green}🔍 Auto-detected USB port: {}{color_reset}",
+                        "{color_green} Auto-detected USB port: {}{color_reset}",
                         detected_port
                     );
                     detected_port
@@ -1020,7 +1020,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         "{color_red}❌ No USB serial ports found for auto-detection{color_reset}"
                     );
                     eprintln!(
-                        "{color_yellow}💡 Try --list-ports to see available ports{color_reset}"
+                        "{color_yellow}󰌵 Try --list-ports to see available ports{color_reset}"
                     );
                     std::process::exit(1);
                 }
@@ -1033,7 +1033,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "{color_red}❌ No port specified. Use --port <PORT>, --auto, or set port in config{color_reset}"
         );
         eprintln!(
-            "{color_yellow}💡 Try --list-ports to see available ports or --generate-config to create a config file{color_reset}"
+            "{color_yellow}󰌵 Try --list-ports to see available ports or --generate-config to create a config file{color_reset}"
         );
         std::process::exit(1);
     };
