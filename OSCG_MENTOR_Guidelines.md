@@ -25,7 +25,7 @@ Mentors act as **guides and gatekeepers**, not decision-makers.
 All mentor–contributor communication **must happen in GitHub Discussions**.
 
 Discussion link:
-[https://github.com/Vaishnav-Sabari-Girish/ComChan/discussions/9](https://github.com/Vaishnav-Sabari-Girish/ComChan/discussions/9)
+[https://github.com/Vaishnav-Sabari-Girish/ComChan/discussions/10](https://github.com/Vaishnav-Sabari-Girish/ComChan/discussions/10)
 
 Do not move support or decision-related conversations to private messages.
 
