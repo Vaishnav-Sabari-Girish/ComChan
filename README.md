@@ -35,6 +35,9 @@
     - [Full Working GIF](#full-working-gif)
   - [ComChan in Windows](#comchan-in-windows)
 - [Feedback Form](#feedback-form)
+- [OSCG Guidelines](#oscg-guidelines)
+  - [Contributor Guidelines](#contributor-guidelines)
+  - [Mentor Guidelines](#mentor-guidelines)
 - [Stargazers over time (Graph)](#stargazers-over-time-graph)
 - [Stargazers over time (Avatars)](#stargazers-over-time-avatars)
 - [Contributors](#contributors)
@@ -298,6 +301,17 @@ To give you feedback, please type this on your terminal
 ```bash
 ssh -t bashform.me f comchan
 ```
+
+# OSCG Guidelines 
+
+## Contributor Guidelines 
+
+[Contributor Guidelines](./OSCG_CONTRIBUTOR_Guidelines.md)
+
+## Mentor Guidelines
+
+[Mentor Guidelines](./OSCG_MENTOR_Guidelines.md)
+
 
 # Stargazers over time (Graph)
 
