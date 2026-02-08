@@ -1,4 +1,3 @@
-
 /* Globals */
 
 :root {
@@ -7,27 +6,12 @@
   --content-max-width: 750px;
   --menu-bar-height: 50px;
 
-  /* === Nord Theme === */
-  /* --> Polar Night */
-  --nord0: #2E3440;
-  --nord1: #3B4252;
-  --nord2: #434C5E;
-  --nord3: #4C566A;
-  /* --> Snow Storm */
-  --nord4: #D8DEE9;
-  --nord5: #E5E9F0;
-  --nord6: #ECEFF4;
-  /* --> Frost */
-  --nord7: #8FBCBB;
-  --nord8: #88C0DD;
-  --nord9: #81A1C1;
-  --nord10: #5E81AC;
-  /* --> Aurora */
-  --nord11: #BF616A;
-  --nord12: #D08770;
-  --nord13: #EBCB8B;
-  --nord14: #A3BE8C;
-  --nord15: #B48EAD;
+  /* === Luna Palette === */
+  --luna-lightest: #a7ebf2;
+  --luna-light: #54acbf;
+  --luna-medium: #26658c;
+  --luna-dark: #023859;
+  --luna-darkest: #011c40;
 
   /* Both variants should be consistent between them. */
   --bg: var(--base-bg);
@@ -72,40 +56,46 @@
 /* Themes */
 
 .light {
-  --base-bg: var(--nord4);
-  --base-fg: var(--nord0);
-  --alt-bg: var(--nord6);
-  --alt-fg: var(--nord2);
-  --disabled: var(--nord8);
-  --quote: var(--nord5);
-  --clickable: var(--nord11);
-  --results: var(--nord14);
-  --selected: var(--nord13);
+  --base-bg-rgb: 167, 235, 242;
+  --base-bg: var(--luna-lightest);
+  --base-fg: var(--luna-darkest);
+  --alt-bg-rgb: 84, 172, 191;
+  --alt-bg: var(--luna-light);
+  --alt-fg: var(--luna-dark);
+  --disabled: var(--luna-medium);
+  --quote: rgba(84, 172, 191, 0.2);
+  --clickable: var(--luna-dark);
+  --results: var(--luna-medium);
+  --selected: var(--luna-light);
 }
 
 .dark {
-  --base-bg: var(--nord2);
-  --base-fg: var(--nord6);
-  --alt-bg: var(--nord0);
-  --alt-fg: var(--nord4);
-  --disabled: var(--nord10);
-  --quote: var(--nord1);
-  --clickable: var(--nord12);
-  --results: var(--nord14);
-  --selected: var(--nord13);
+  --base-bg-rgb: 1, 28, 64;
+  --base-bg: var(--luna-darkest);
+  --base-fg: var(--luna-lightest);
+  --alt-bg-rgb: 2, 56, 89;
+  --alt-bg: var(--luna-dark);
+  --alt-fg: var(--luna-light);
+  --disabled: var(--luna-medium);
+  --quote: rgba(2, 56, 89, 0.4);
+  --clickable: var(--luna-light);
+  --results: var(--luna-medium);
+  --selected: var(--luna-dark);
 }
 
 @media (prefers-color-scheme: dark) {
   /* Same as dark. */
   .light.no-js {
-    --base-bg: var(--nord2);
-    --base-fg: var(--nord6);
-    --alt-bg: var(--nord0);
-    --alt-fg: var(--nord4);
-    --disabled: var(--nord10);
-    --quote: var(--nord1);
-    --clickable: var(--nord12);
-    --results: var(--nord14);
-    --selected: var(--nord13);
+    --base-bg-rgb: 1, 28, 64;
+    --base-bg: var(--luna-darkest);
+    --base-fg: var(--luna-lightest);
+    --alt-bg-rgb: 2, 56, 89;
+    --alt-bg: var(--luna-dark);
+    --alt-fg: var(--luna-light);
+    --disabled: var(--luna-medium);
+    --quote: rgba(2, 56, 89, 0.4);
+    --clickable: var(--luna-light);
+    --results: var(--luna-medium);
+    --selected: var(--luna-dark);
   }
 }
