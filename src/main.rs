@@ -599,6 +599,7 @@ fn get_platform_name() -> &'static str {
 }
 
 // Updated config file finder with cross-platform support
+// Updated config file finder with cross-platform support and conflict detection
 fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
     if let Some(path) = specified_path {
         if path.exists() {
@@ -607,28 +608,46 @@ fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
         return None;
     }
 
-    // Check current directory first
+    let mut found_configs = Vec::new();
+
+    // 1. Check current directory
     let current_dir_config = PathBuf::from("comchan.toml");
     if current_dir_config.exists() {
-        return Some(current_dir_config);
+        found_configs.push(current_dir_config);
     }
 
-    // Check platform-specific config directories
+    // 2. Check platform-specific config directories
     if let Ok(default_path) = get_default_config_path() {
         if default_path.exists() {
-            return Some(default_path);
+            found_configs.push(default_path);
         }
     }
 
-    // Fallback: check home directory (for backward compatibility)
+    // 3. Check home directory (for backward compatibility)
     if let Some(home_dir) = dirs::home_dir() {
         let home_config = home_dir.join(".comchan.toml");
         if home_config.exists() {
-            return Some(home_config);
+            found_configs.push(home_config);
         }
     }
 
-    None
+    if found_configs.is_empty() {
+        return None;
+    }
+
+    // The first one in the list has the highest precedence
+    let selected_config = found_configs[0].clone();
+
+    if found_configs.len() > 1 {
+        eprintln!("{color_yellow} Warning: Multiple config files found. Using: {}{color_reset}", selected_config.display());
+        eprintln!("  Ignored config files:");
+        for path in found_configs.iter().skip(1) {
+            eprintln!("  - {}", path.display());
+        }
+        eprintln!("  (Config precedence: Current Directory > Platform Config > Home Directory)");
+    }
+
+    Some(selected_config)
 }
 
 fn load_config(config_path: Option<PathBuf>) -> Result<Config, Box<dyn std::error::Error>> {
@@ -681,6 +700,13 @@ fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std::err
 # To use auto-detection, set port = "auto"
 # Available parity options: "none", "odd", "even"
 # Available flow control options: "none", "software", "hardware"
+# 
+# Configuration Resolution Precedence:
+# 1. Command-line arguments (highest priority)
+# 2. Specified config file via --config
+# 3. Current directory (comchan.toml)
+# 4. Platform-specific config directory
+# 5. Home directory (.comchan.toml)
 
 {}
 "#,
