@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::borrow::Cow;
 
 // Plotting imports
 use crossterm::{
@@ -173,7 +174,7 @@ impl SensorData {
 }
 
 // Enhanced parsing function that handles multiple sensor formats
-fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
+fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
     let mut results = Vec::new();
     let line = line.trim();
 
@@ -181,11 +182,11 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
     if line.contains(':') {
         let parts: Vec<&str> = line.split(':').collect();
         if parts.len() == 2 {
-            let sensor_name = parts[0].trim().to_string();
+            let sensor_name = parts[0].trim();
             let value_str = parts[1].trim();
 
             if let Ok(value) = value_str.parse::<f64>() {
-                results.push((sensor_name, value));
+                results.push((Cow::Borrowed(sensor_name), value));
                 return results;
             }
         }
@@ -195,11 +196,11 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
     if line.contains('=') {
         let parts: Vec<&str> = line.split('=').collect();
         if parts.len() == 2 {
-            let sensor_name = parts[0].trim().to_string();
+            let sensor_name = parts[0].trim();
             let value_str = parts[1].trim();
 
             if let Ok(value) = value_str.parse::<f64>() {
-                results.push((sensor_name, value));
+                results.push((Cow::Borrowed(sensor_name), value));
                 return results;
             }
         }
@@ -211,7 +212,7 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
         let values: Vec<&str> = line.split(',').collect();
         for (i, value_str) in values.iter().enumerate() {
             if let Ok(value) = value_str.trim().parse::<f64>() {
-                results.push((format!("Channel {}", i), value));
+                results.push((Cow::Owned(format!("Channel {}", i)), value));
             }
         }
         if !results.is_empty() {
@@ -232,14 +233,14 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
     // If we found multiple numeric values, treat them as channels
     if numeric_values.len() > 1 {
         for (i, value) in numeric_values.iter().enumerate() {
-            results.push((format!("Channel {}", i), *value));
+            results.push((Cow::Owned(format!("Channel {}", i)), *value));
         }
         return results;
     }
 
     // Pattern 5: Single numeric value (fallback to original behavior)
     if let Ok(value) = line.parse::<f64>() {
-        results.push(("Value".to_string(), value));
+        results.push((Cow::Borrowed("Value"), value));
         return results;
     }
 
@@ -262,10 +263,9 @@ fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
                 "Accelerometer"
             } else {
                 "Sensor"
-            }
-            .to_string();
+            };
 
-            results.push((sensor_name, value));
+            results.push((Cow::Borrowed(sensor_name), value));
             break; // Only take the first number found in this pattern
         }
     }
@@ -382,16 +382,16 @@ fn run_plotter_mode(
 
                         for (sensor_name, value) in sensor_readings {
                             // Create sensor entry if it doesn't exist
-                            if !sensors.contains_key(&sensor_name) {
+                            if !sensors.contains_key(sensor_name.as_ref()) {
                                 let color = get_color_for_index(sensors.len());
                                 sensors.insert(
-                                    sensor_name.clone(),
-                                    SensorData::new(sensor_name.clone(), color),
+                                    sensor_name.to_string(),
+                                    SensorData::new(sensor_name.to_string(), color),
                                 );
                             }
 
                             // Add data point to the appropriate sensor
-                            if let Some(sensor) = sensors.get_mut(&sensor_name) {
+                            if let Some(sensor) = sensors.get_mut(sensor_name.as_ref()) {
                                 sensor.add_point(x, value, config.plot_points);
 
                                 // Update global bounds
