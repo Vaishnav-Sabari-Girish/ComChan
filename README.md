@@ -1,10 +1,22 @@
 ![Banner](./docs/src/images/ComChan.png)
 
+<div align="center">
+
+# ComChan (Communication Channel)
+
+**A Blazingly Fast Serial Monitor for Embedded Systems and Serial Communication**
+
+[![Release](https://img.shields.io/badge/Release-V0.2.4-blue?style=for-the-badge&labelColor=gray)](https://github.com/Vaishnav-Sabari-Girish/ComChan/releases/tag/v0.2.4)
+
+[Features](#features) • [Installation](#installation) • [Documentation](https://vaishnav.world/ComChan) • [Examples](#examples) • [Contributing](CONTRIBUTING.md)
+
+</div>
+
 ---
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-<!--**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*-->
+**Table of Contents**
 
 - [ComChan (Communication Channel)](#comchan-communication-channel)
   - [Installation](#installation)
@@ -32,40 +44,36 @@
     - [Serial Monitor (`plot = false`)](#serial-monitor-plot--false)
     - [Serial Plotter (`plot = true`)](#serial-plotter-plot--true)
     - [Serial Plotter Multiple sensor values](#serial-plotter-multiple-sensor-values)
-    - [Full Working GIF](#full-working-gif)
   - [ComChan in Windows](#comchan-in-windows)
 - [Feedback Form](#feedback-form)
 - [OSCG Guidelines](#oscg-guidelines)
   - [Contributor Guidelines](#contributor-guidelines)
   - [Mentor Guidelines](#mentor-guidelines)
 - [Stargazers over time (Graph)](#stargazers-over-time-graph)
-- [Stargazers over time (Avatars)](#stargazers-over-time-avatars)
-- [Contributors](#contributors)
-- [Forkers](#forkers)
+
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# ComChan (Communication Channel)
-
-ComChan is a Blazingly Fast Serial monitor for Embedded Systems and Serial Communication.
-
-[![Release](https://img.shields.io/badge/Release-V0.2.4-blue?style=for-the-badge&labelColor=gray)](https://github.com/Vaishnav-Sabari-Girish/ComChan/releases/tag/v0.2.4)
+---
 
 ## Installation
+
+Choose your preferred installation method:
 
 ### From crates.io
 
 > [!NOTE]
-> `cargo install` NOW AVAILABLE
+> The easiest way to install ComChan is via `cargo install`
 
 ```bash
+# Install from source
 cargo install comchan
 
-#Install the binary directly
+# Install the binary directly (faster)
 cargo binstall comchan
 ```
 
-After installing, check if it has been installed with
+Verify the installation:
 
 ```bash
 comchan --version
@@ -73,21 +81,19 @@ comchan --version
 
 ### From AUR
 
-Thanks to [orhun](https://github.com/orhun), ComChan now has an AUR package
+For Arch Linux users, ComChan is available in the AUR (thanks to [orhun](https://github.com/orhun)!):
 
 ```bash
-# Using yay 
-
+# Using yay
 yay -S comchan
 
-# Using paru 
-
+# Using paru
 paru -S comchan
 ```
 
 ### Using Homebrew
 
-ComChan can also be installed by using Homebrew taps
+ComChan can be installed via Homebrew taps:
 
 ```bash
 brew install Vaishnav-Sabari-Girish/taps/comchan
@@ -95,99 +101,109 @@ brew install Vaishnav-Sabari-Girish/taps/comchan
 
 ### From source
 
+Build from source for the latest development version:
+
 ```bash
 # Clone from GitHub
 git clone git@github.com:Vaishnav-Sabari-Girish/ComChan.git
 
-# Clone from Codeberg
+# Or clone from Codeberg
 git clone ssh://git@codeberg.org/Vaishnav-Sabari-Girish/ComChan.git
-```
 
-```bash
+# Build and run
 cd ComChan
-
 cargo build --release
-
 cargo run
 ```
 
+---
+
 ## Documentation
 
-The full documentation for ComChan can be found [here](https://vaishnav.world/ComChan).
+📚 The full documentation for ComChan can be found at **[vaishnav.world/ComChan](https://vaishnav.world/ComChan)**
 
-## Contributing
-
-We welcome contributions to ComChan! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
+---
 
 ## Common Commands
 
 ### Basic Serial Monitor
 
+Monitor serial output from your device:
+
 ```bash
 comchan -p <port> -r <baud_rate>
-
 # OR
-
 comchan --port <port> --baud <baud_rate>
+```
+
+**Example:**
+```bash
+comchan -p /dev/ttyUSB0 -r 9600
 ```
 
 ### Verbose Mode
 
+Get detailed information about the serial connection:
+
 ```bash
 comchan -p <port> -r <baud_rate> -v
-
 # OR
-
 comchan --port <port> --baud <baud_rate> --verbose
 ```
 
 ### Log Mode
 
+Save serial output to a log file:
+
 ```bash
 comchan -p <port> -r <baud_rate> -l <log_file_name>
-
-# OR 
-
+# OR
 comchan --port <port> --baud <baud_rate> --log <log_file_name>
 ```
 
-For an example log file , get it [here](./test.log)
+📄 [View example log file](./test.log)
 
 ### Serial Plotter
 
+Visualize sensor data in real-time:
+
 ```bash
 comchan --port <port> --baud <baud_rate> --plot
-
-# OR 
-
+# OR
 comchan -p <port> -r <baud_rate> --plot
 ```
 
-### Automatically detect serial ports
+### Automatically Detect Serial Ports
+
+Let ComChan find your serial device automatically:
 
 ```bash
-comchan --auto    ##Defaults baud rate to 9600
+# With default baud rate (9600)
+comchan --auto
 
-#OR 
-
-comchan --auto --baud <baud_rate>  # For non-default baud rates like 115200
-
-# OR 
-
+# With custom baud rate
+comchan --auto --baud <baud_rate>
+# OR
 comchan --auto -r <baud_rate>
 ```
 
-### Use a Configuration file
-
-As of version 0.1.9, you can now create your own configuration file to use ComChan, which means that you won't have to type all the flags.
-
+**Example:**
 ```bash
-# Generate default configuration file 
-
-comchan --generate-config   # Generates the default config file at ~/.config/comchan/comchan.toml
+comchan --auto --baud 115200
 ```
 
-Here is an example configuration file
+### Use a Configuration File
+
+Starting from version 0.1.9, you can use a configuration file instead of command-line flags:
+
+```bash
+# Generate default configuration file
+comchan --generate-config
+```
+
+This creates a config file at `~/.config/comchan/comchan.toml`
+
+**Example Configuration:**
 
 ```toml
 # ComChan Configuration File
@@ -213,120 +229,167 @@ plot_points = 100
 ```
 
 > [!NOTE]
-> Note that the default baud rate is `9600`, you can change it later on in the config file
+> The default baud rate is `9600`. You can customize it in the config file or override it with command-line flags (`--auto`, `--port`/`-p`, `--baud`/`-r`, `--plot`).
 
-The above default config file values can be overridden by using the flags (`--auto`, `--port or -p`, `--baud or -r`, `--plot`).
+---
 
 ## Features
 
-- [x] Read incoming Serial data from Serial ports
-- [x] Write to Serial port i.e Send data to Serial device.
-- [x] Basic logging.
-- [x] Auto detect Serial Ports
-- [x] Use a `.toml` file for config instead of flags
-- [ ] Write serial data to a file for later use (can be .txt , .csv and more)
-- [x] Terminal based Serial Plotter (to be implemented with the `--plot` command)
-- [x] Plot multiple sensor values in the Serial Plotter with legends
+### Current Features ✅
+
+- **Read Serial Data** - Monitor incoming serial data from any serial port
+- **Write to Serial Port** - Send data to your serial device
+- **Basic Logging** - Save serial output to log files
+- **Auto-Detect Serial Ports** - Automatically find connected serial devices
+- **Configuration Files** - Use `.toml` files instead of command-line flags
+- **Terminal-Based Serial Plotter** - Visualize data in real-time with the `--plot` flag
+- **Multiple Sensor Plotting** - Plot multiple sensor values simultaneously with legends
+
+### Planned Features 🚧
+
+- **Export Serial Data** - Write serial data to files (`.txt`, `.csv`, and more)
 
 ### Legends
 
-- [x] Implemented Features
-- [ ] Yet to me implemented
+- ✅ Implemented Features
+- 🚧 Yet to be implemented
 
-# Examples
+---
 
-## "Hello World" Program
+## Examples
 
-![GIF](./docs/src/videos/basic_serial_mon.gif)
+### "Hello World" Program
 
-[code file hw](./code_tests/test_comchan_arduino_uno/test_comchan_arduino_uno.ino)
+Basic serial monitoring in action:
 
-## User Input
+![Hello World Demo](./docs/src/videos/basic_serial_mon.gif)
 
-![User IP](./docs/src/videos/basic_user_input.gif)
+📝 [View Arduino code](./code_tests/test_comchan_arduino_uno/test_comchan_arduino_uno.ino)
 
-[Code file](./code_tests/test_user_input/test_user_input.ino)
+---
 
-## Serial Plotter
+### User Input
 
-![Serial Plotter](./docs/src/videos/plotter.gif)
+Interactive serial communication:
 
-[code file 2](./code_tests/random_sensor_vals/random_sensor_vals.ino)
+![User Input Demo](./docs/src/videos/basic_user_input.gif)
 
-## Auto Serial Port Detector
+📝 [View Arduino code](./code_tests/test_user_input/test_user_input.ino)
 
-![auto](./docs/src/videos/auto.gif)
+---
 
-## Using the Configuration file
+### Serial Plotter
 
-### Serial Monitor (`plot = false`)
+Real-time data visualization:
 
-![plotfalse](./docs/src/videos/config_mon.gif)
+![Serial Plotter Demo](./docs/src/videos/plotter.gif)
 
-### Serial Plotter (`plot = true`)
+📝 [View Arduino code](./code_tests/random_sensor_vals/random_sensor_vals.ino)
 
-![plottrue](./docs/src/videos/config_plot.gif)
+---
 
-### Serial Plotter Multiple sensor values
+### Auto Serial Port Detector
 
-![multiple_plot](./docs/src/videos/multiple_sensor_plot.gif)
+Automatic port detection in action:
 
-[code file multiple vals](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino)
+![Auto-detect Demo](./docs/src/videos/auto.gif)
 
+---
 
-### Full Working GIF
+### Using the Configuration File
 
-![full](./docs/src/videos/full.gif)
+#### Serial Monitor (`plot = false`)
 
-## ComChan in Windows
+![Config Monitor Demo](./docs/src/videos/config_mon.gif)
 
-As of Version 0.2.2, ComChan can be used in Windows with no drawbacks
+#### Serial Plotter (`plot = true`)
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/23sSd4_bcxM/0.jpg)](https://www.youtube.com/watch?v=23sSd4_bcxM)
+![Config Plotter Demo](./docs/src/videos/config_plot.gif)
 
-To use ComChan in Windows, you can download the .exe file from the releases and use it as follows. 
+#### Serial Plotter Multiple Sensor Values
 
-Let's say you have downloaded the .exe file to `Downloads/`, you have to first open `cmd` or Powershell and `cd` to `Downloads/` and then 
+Plot multiple sensors simultaneously with automatic legends:
 
-```pwr 
-comchan.exe --help
-```
+![Multiple Sensor Plot](./docs/src/videos/multiple_sensor_plot.gif)
 
-# Feedback Form
+📝 [View Arduino code](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino)
 
-The Feedback form was created using Bashforms (Forms in the terminal itself).
+---
 
-To give you feedback, please type this on your terminal
+### Full Working Demo
+
+Complete workflow demonstration:
+
+![Full Demo](./docs/src/videos/full.gif)
+
+---
+
+### ComChan in Windows
+
+As of Version 0.2.2, ComChan works perfectly on Windows with no limitations!
+
+[![ComChan Windows Demo](https://img.youtube.com/vi/23sSd4_bcxM/0.jpg)](https://www.youtube.com/watch?v=23sSd4_bcxM)
+
+**Windows Installation:**
+
+1. Download the `.exe` file from the [releases page](https://github.com/Vaishnav-Sabari-Girish/ComChan/releases)
+2. Open Command Prompt or PowerShell
+3. Navigate to the download location:
+   ```powershell
+   cd Downloads
+   ```
+4. Run ComChan:
+   ```powershell
+   comchan.exe --help
+   ```
+
+---
+
+## Contributing
+
+We welcome contributions to ComChan! 🎉
+
+Please see our **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines on how to contribute.
+
+---
+
+## Feedback Form
+
+We value your feedback! ComChan uses Bashforms for terminal-based feedback submission.
+
+To submit feedback, run this in your terminal:
 
 ```bash
 ssh -t bashform.me f comchan
 ```
 
-# OSCG Guidelines 
+---
 
-## Contributor Guidelines 
+## OSCG Guidelines
 
-[Contributor Guidelines](./OSCG_CONTRIBUTOR_Guidelines.md)
+### Contributor Guidelines
 
-## Mentor Guidelines
+📖 [View Contributor Guidelines](./OSCG_CONTRIBUTOR_Guidelines.md)
 
-[Mentor Guidelines](./OSCG_MENTOR_Guidelines.md)
+### Mentor Guidelines
 
+📖 [View Mentor Guidelines](./OSCG_MENTOR_Guidelines.md)
 
-# Stargazers over time (Graph)
+---
+
+## Community
+
+### Stargazers over time (Graph)
 
 [![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=adaptive)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
 
-# Stargazers over time (Avatars)
 
-![stargazers badge](https://readme-contribs.as93.net/stargazers/Vaishnav-Sabari-Girish/ComChan)
+---
 
-# Contributors 
+<div align="center">
 
-<a href="https://github.com/Vaishnav-Sabari-Girish/ComChan/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Vaishnav-Sabari-Girish/ComChan" />
-</a>
+**Made with ❤️ by the ComChan Community**
 
-# Forkers 
+[⬆ Back to Top](#comchan-communication-channel)
 
-![forkers badge](https://readme-contribs.as93.net/forkers/Vaishnav-Sabari-Girish/ComChan)
+</div>
