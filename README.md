@@ -244,6 +244,7 @@ plot_points = 100
 - **Configuration Files** - Use `.toml` files instead of command-line flags
 - **Terminal-Based Serial Plotter** - Visualize data in real-time with the `--plot` flag
 - **Multiple Sensor Plotting** - Plot multiple sensor values simultaneously with legends
+- **Export to SVG** - Save high-quality snapshots of your real-time plots by pressing 's'
 
 ### Planned Features 🚧
 

@@ -10,6 +10,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::borrow::Cow;
+use chrono::Local;
 
 // Plotting imports
 use crossterm::{
@@ -294,6 +295,95 @@ fn get_color_for_index(index: usize) -> Color {
     COLORS[index % COLORS.len()]
 }
 
+// Export plot directly to SVG using plotters
+fn save_plot_snapshot(sensors: &HashMap<String, SensorData>) -> Result<String, Box<dyn std::error::Error>> {
+    use plotters::prelude::*;
+
+    if sensors.is_empty() {
+        return Err("No data to plot".into());
+    }
+
+    let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+    let filename = format!("comchan_plot_{}.svg", timestamp);
+    
+    // Find limits
+    let mut min_x = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+
+    let mut has_data = false;
+
+    for sensor in sensors.values() {
+        if sensor.data.is_empty() { continue; }
+        has_data = true;
+        for &(x, y) in &sensor.data {
+            if x < min_x { min_x = x; }
+            if x > max_x { max_x = x; }
+            if y < min_y { min_y = y; }
+            if y > max_y { max_y = y; }
+        }
+    }
+
+    if !has_data {
+        return Err("No data points available".into());
+    }
+
+    // Handle single point or equality case to avoid panic
+    if (min_x - max_x).abs() < f64::EPSILON {
+        min_x -= 1.0;
+        max_x += 1.0;
+    }
+    if (min_y - max_y).abs() < f64::EPSILON {
+        min_y -= 1.0;
+        max_y += 1.0;
+    }
+
+    // Add padding (5%)
+    let y_padding = (max_y - min_y).abs() * 0.05;
+    let min_y_padded = min_y - y_padding;
+    let max_y_padded = max_y + y_padding;
+
+    {
+        let root = SVGBackend::new(&filename, (1024, 768)).into_drawing_area();
+        root.fill(&WHITE)?;
+
+        let mut chart = ChartBuilder::on(&root)
+            .caption(format!("Serial Plot - {}", timestamp), ("sans-serif", 30).into_font())
+            .margin(10)
+            .x_label_area_size(40)
+            .y_label_area_size(50)
+            .build_cartesian_2d(min_x..max_x, min_y_padded..max_y_padded)?;
+
+        chart.configure_mesh()
+            .light_line_style(&WHITE)
+            .draw()?;
+
+        for (i, sensor) in sensors.values().enumerate() {
+            if sensor.data.is_empty() { continue; }
+            let color = Palette99::pick(i);
+            
+            chart
+                .draw_series(LineSeries::new(
+                    sensor.data.iter().copied(),
+                    color.stroke_width(2),
+                ))?
+                .label(&sensor.name)
+                .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color.filled()));
+        }
+
+        chart
+            .configure_series_labels()
+            .background_style(&WHITE.mix(0.8))
+            .border_style(&BLACK)
+            .draw()?;
+
+        root.present()?;
+    }
+
+    Ok(filename)
+}
+
 fn run_plotter_mode(
     config: MergedConfig,
     port_name: String,
@@ -349,6 +439,9 @@ fn run_plotter_mode(
             if let event::Event::Key(key) = event::read()? {
                 if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
                     break;
+                }
+                if key.code == KeyCode::Char('s') {
+                    let _ = save_plot_snapshot(&sensors);
                 }
             }
         }
@@ -496,13 +589,13 @@ fn run_plotter_mode(
 
         // Draw the chart
         terminal.draw(|f| {
-            let size = f.area();
+            let size = f.size();
 
             let chart = Chart::new(datasets)
                 .block(
                     Block::default()
                         .title(format!(
-                            "Live Serial Plotter - {} @ {} baud{} (Press 'q' or ESC to exit)",
+                            "Live Serial Plotter - {} @ {} baud{} (Press 's' to Save, 'q' to exit)",
                             port_name, config.baud, legend_info
                         ))
                         .borders(Borders::ALL)
@@ -514,9 +607,9 @@ fn run_plotter_mode(
                         .style(Style::default().fg(Color::Gray))
                         .bounds([x_min, x_max])
                         .labels(vec![
-                            x_min_label.as_str(),
-                            x_mid_label.as_str(),
-                            x_max_label.as_str(),
+                            Span::from(x_min_label.as_str()),
+                            Span::from(x_mid_label.as_str()),
+                            Span::from(x_max_label.as_str()),
                         ]),
                 )
                 .y_axis(
@@ -525,9 +618,9 @@ fn run_plotter_mode(
                         .style(Style::default().fg(Color::Gray))
                         .bounds([chart_y_min, chart_y_max])
                         .labels(vec![
-                            y_min_label.as_str(),
-                            y_mid_label.as_str(),
-                            y_max_label.as_str(),
+                            Span::from(y_min_label.as_str()),
+                            Span::from(y_mid_label.as_str()),
+                            Span::from(y_max_label.as_str()),
                         ]),
                 )
                 // FIXED: Removed hidden_legend_constraints to show legends properly
