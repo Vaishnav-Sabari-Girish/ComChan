@@ -231,6 +231,21 @@ plot_points = 100
 > [!NOTE]
 > The default baud rate is `9600`. You can customize it in the config file or override it with command-line flags (`--auto`, `--port`/`-p`, `--baud`/`-r`, `--plot`).
 
+### Configuration Precedence
+
+ComChan looks for configuration files in the following order:
+
+1. **Command-line arguments** (Always override config files)
+2. **Specified config file** (via `--config` flag)
+3. **Current directory** (`comchan.toml`)
+4. **Platform-specific config directory**:
+    - Windows: `%APPDATA%\comchan\comchan.toml`
+    - macOS: `~/Library/Application Support/comchan/comchan.toml`
+    - Linux/Unix: `~/.config/comchan/comchan.toml`
+5. **Home directory** (`~/.comchan.toml`)
+
+If multiple configuration files exist, ComChan uses the one with the highest precedence and ignores the others. A warning will be displayed if multiple config files are found to avoid ambiguity.
+
 ---
 
 ## Features
