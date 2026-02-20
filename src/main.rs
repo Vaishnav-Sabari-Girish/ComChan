@@ -22,6 +22,9 @@ use ratatui::{Terminal, backend::CrosstermBackend, prelude::*, symbols, widgets:
 // Add the port finder module
 mod port_finder;
 
+// Add the AI explanation module
+mod ai_explain;
+
 #[derive(Debug, Deserialize, Serialize)]
 struct Config {
     port: Option<String>,
@@ -36,6 +39,7 @@ struct Config {
     verbose: Option<bool>,
     plot: Option<bool>,
     plot_points: Option<usize>,
+    ai_explain: Option<bool>,
 }
 
 impl Default for Config {
@@ -53,6 +57,7 @@ impl Default for Config {
             verbose: Some(false),
             plot: Some(false),
             plot_points: Some(100),
+            ai_explain: Some(false),
         }
     }
 }
@@ -108,6 +113,19 @@ struct Args {
     plot_points: Option<usize>,
 
     #[arg(
+        long = "ai-explain",
+        action = clap::ArgAction::SetTrue,
+        help = "Send spike data to AI API for plain-English explanation"
+    )]
+    ai_explain: bool,
+
+    #[arg(
+        long = "ai-api-key",
+        help = "OpenAI API key (or set OPENAI_API_KEY env var)"
+    )]
+    ai_api_key: Option<String>,
+
+    #[arg(
         long = "config",
         short = 'c',
         help = "Path to config file (default: platform-specific config directory)"
@@ -132,6 +150,8 @@ struct MergedConfig {
     verbose: bool,
     plot: bool,
     plot_points: usize,
+    ai_explain: bool,
+    ai_api_key: Option<String>,
 }
 
 // Structure to hold multiple sensor data streams
@@ -295,9 +315,9 @@ fn get_color_for_index(index: usize) -> Color {
 }
 
 fn run_plotter_mode(
-    config: MergedConfig,
+    config: &MergedConfig,
     port_name: String,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Option<ai_explain::SpikeDetector>, Box<dyn std::error::Error>> {
     // Setup terminal for plotting
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -342,6 +362,9 @@ fn run_plotter_mode(
     let mut global_y_max = f64::NEG_INFINITY;
     let mut lines_discarded = 0;
     const DISCARD_FIRST_LINES: usize = 3; // Discard first 3 lines to avoid garbled data
+
+    // Spike detector for --ai-explain feature
+    let mut spike_detector = ai_explain::SpikeDetector::new(config.plot_points);
 
     loop {
         // Check for exit condition first
@@ -401,6 +424,11 @@ fn run_plotter_mode(
                                 if value > global_y_max {
                                     global_y_max = value;
                                 }
+                            }
+
+                            // Feed data to spike detector for --ai-explain
+                            if config.ai_explain {
+                                spike_detector.add_point(sensor_name.as_ref(), x, value);
                             }
                         }
 
@@ -555,7 +583,7 @@ fn run_plotter_mode(
         }
     }
 
-    Ok(())
+    Ok(if config.ai_explain { Some(spike_detector) } else { None })
 }
 
 // Cross-platform config directory detection
@@ -726,6 +754,8 @@ fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         verbose: args.verbose.or(config.verbose).unwrap_or(false),
         plot: args.plot || config.plot.unwrap_or(false),
         plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
+        ai_explain: args.ai_explain || config.ai_explain.unwrap_or(false),
+        ai_api_key: args.ai_api_key.or_else(|| std::env::var("OPENAI_API_KEY").ok()),
     }
 }
 
@@ -1040,7 +1070,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Choose mode based on plot flag
     if merged_config.plot {
-        run_plotter_mode(merged_config, port_name)
+        let spike_detector = run_plotter_mode(&merged_config, port_name)?;
+
+        // If --ai-explain is enabled and spikes were detected, get AI explanation
+        if merged_config.ai_explain {
+            if let Some(ref detector) = spike_detector {
+                if detector.has_spikes() {
+                    let api_key = merged_config.ai_api_key.as_deref().unwrap_or_else(|| {
+                        eprintln!(
+                            "{color_red}\u{274c} --ai-explain requires an API key. Use --ai-api-key <KEY> or set OPENAI_API_KEY env var{color_reset}"
+                        );
+                        std::process::exit(1);
+                    });
+
+                    println!("\n{color_cyan}\u{1f916} AI Spike Analysis...{color_reset}");
+                    match ai_explain::explain_spikes(detector, api_key) {
+                        Ok(explanation) => {
+                            println!("\n{color_green}\u{1f4a1} AI Explanation:{color_reset}");
+                            println!("{}", explanation);
+                        }
+                        Err(e) => {
+                            eprintln!(
+                                "{color_red}\u{274c} AI explanation failed: {}{color_reset}",
+                                e
+                            );
+                        }
+                    }
+                } else {
+                    println!(
+                        "\n{color_green}\u{2705} No spikes detected in sensor data. Skipping AI analysis.{color_reset}"
+                    );
+                }
+            }
+        }
+
+        Ok(())
     } else {
         run_normal_mode(merged_config, port_name)
     }
