@@ -22,6 +22,8 @@ use ratatui::{Terminal, backend::CrosstermBackend, prelude::*, symbols, widgets:
 
 // Add the port finder module
 mod port_finder;
+// Add example shared state module to demonstrate atomic updates
+mod shared_state;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Config {
