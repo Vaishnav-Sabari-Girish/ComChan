@@ -2,6 +2,7 @@ use clap::Parser;
 use inline_colorization::*;
 use serde::{Deserialize, Serialize};
 use serialport::{self, DataBits, FlowControl, Parity, StopBits};
+use rand::Rng;
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::{self, BufWriter, Read, Write};
@@ -21,6 +22,8 @@ use ratatui::{Terminal, backend::CrosstermBackend, prelude::*, symbols, widgets:
 
 // Add the port finder module
 mod port_finder;
+// Add example shared state module to demonstrate atomic updates
+mod shared_state;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Config {
@@ -35,6 +38,7 @@ struct Config {
     log_file: Option<String>,
     verbose: Option<bool>,
     plot: Option<bool>,
+    simulate: Option<bool>,
     plot_points: Option<usize>,
 }
 
@@ -52,6 +56,7 @@ impl Default for Config {
             log_file: None,
             verbose: Some(false),
             plot: Some(false),
+            simulate: Some(false),
             plot_points: Some(100),
         }
     }
@@ -104,6 +109,9 @@ struct Args {
     #[arg(long = "plot", action = clap::ArgAction::SetTrue, help = "Go to Serial Plotter instead of Serial monitor")]
     plot: bool,
 
+    #[arg(long = "simulate", action = clap::ArgAction::SetTrue, help = "Enable Simulation Mode (no hardware needed)")]
+    simulate: bool,
+
     #[arg(long = "plot-points")]
     plot_points: Option<usize>,
 
@@ -131,6 +139,7 @@ struct MergedConfig {
     list_ports: bool,
     verbose: bool,
     plot: bool,
+    simulate: bool,
     plot_points: usize,
 }
 
@@ -311,14 +320,44 @@ fn run_plotter_mode(
     let parity = parse_parity(&config.parity)?;
     let flow_control = parse_flow_control(&config.flow_control)?;
 
-    // Open serial port
-    let mut port = serialport::new(&port_name, config.baud)
-        .timeout(Duration::from_millis(config.timeout_ms))
-        .data_bits(data_bits)
-        .stop_bits(stop_bits)
-        .parity(parity)
-        .flow_control(flow_control)
-        .open()?;
+    // If simulation mode is enabled, we do not open a real serial port.
+    let mut port: Option<Box<dyn serialport::SerialPort>> = if config.simulate {
+        None
+    } else {
+        Some(
+            serialport::new(&port_name, config.baud)
+                .timeout(Duration::from_millis(config.timeout_ms))
+                .data_bits(data_bits)
+                .stop_bits(stop_bits)
+                .parity(parity)
+                .flow_control(flow_control)
+                .open()?,
+        )
+    };
+
+    // If simulation mode, spawn a thread that sends simulated lines over a channel
+    let sim_rx = if config.simulate {
+        let (tx, rx) = mpsc::channel::<String>();
+        thread::spawn(move || {
+            let mut rng = rand::thread_rng();
+            loop {
+                // generate either comma-separated two-channel data or a single value
+                let choice: u8 = rng.gen_range(0..2);
+                let line = if choice == 0 {
+                    format!("{:.2},{:.2}\n", rng.gen_range(0.0..100.0), rng.gen_range(0.0..100.0))
+                } else {
+                    format!("{:.2}\n", rng.gen_range(-50.0..50.0))
+                };
+                if tx.send(line).is_err() {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(200));
+            }
+        });
+        Some(rx)
+    } else {
+        None
+    };
 
     // Optional log file setup
     let mut log_writer = if let Some(log_path) = &config.log_file {
@@ -725,6 +764,7 @@ fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         list_ports: args.list_ports,
         verbose: args.verbose.or(config.verbose).unwrap_or(false),
         plot: args.plot || config.plot.unwrap_or(false),
+        simulate: args.simulate || config.simulate.unwrap_or(false),
         plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
     }
 }
@@ -827,14 +867,45 @@ fn run_normal_mode(
     let flow_control = parse_flow_control(&config.flow_control)
         .map_err(|e| format!("Configuration error: {}", e))?;
 
-    let mut port = serialport::new(&port_name, config.baud)
-        .timeout(Duration::from_millis(config.timeout_ms))
-        .data_bits(data_bits)
-        .stop_bits(stop_bits)
-        .parity(parity)
-        .flow_control(flow_control)
-        .open()
-        .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
+    // If simulation mode is enabled, we do not open a real serial port.
+    let mut port: Option<Box<dyn serialport::SerialPort>> = if config.simulate {
+        None
+    } else {
+        Some(
+            serialport::new(&port_name, config.baud)
+                .timeout(Duration::from_millis(config.timeout_ms))
+                .data_bits(data_bits)
+                .stop_bits(stop_bits)
+                .parity(parity)
+                .flow_control(flow_control)
+                .open()
+                .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?,
+        )
+    };
+
+    // If simulation mode, spawn a thread that sends simulated lines over a channel
+    let sim_rx = if config.simulate {
+        let (tx, rx) = mpsc::channel::<String>();
+        thread::spawn(move || {
+            let mut rng = rand::thread_rng();
+            loop {
+                // generate either comma-separated two-channel data or a single value
+                let choice: u8 = rng.gen_range(0..2);
+                let line = if choice == 0 {
+                    format!("{:.2},{:.2}\n", rng.gen_range(0.0..100.0), rng.gen_range(0.0..100.0))
+                } else {
+                    format!("{:.2}\n", rng.gen_range(-50.0..50.0))
+                };
+                if tx.send(line).is_err() {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(200));
+            }
+        });
+        Some(rx)
+    } else {
+        None
+    };
 
     let log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
@@ -894,47 +965,51 @@ fn run_normal_mode(
 
     // Main communication loop
     while running.load(std::sync::atomic::Ordering::SeqCst) {
-        // Read from serial port
-        match port.read(&mut buffer) {
-            Ok(n) => {
-                if n > 0 {
-                    let output = String::from_utf8_lossy(&buffer[..n]);
-                    received.push_str(&output);
+        // If simulation mode, read any queued simulated lines first
+        if let Some(rx) = &sim_rx {
+            while let Ok(line_chunk) = rx.try_recv() {
+                received.push_str(&line_chunk);
+            }
+        }
 
-                    // Process complete lines
-                    while let Some(line_end) = received.find('\n') {
-                        let line = received.drain(..=line_end).collect::<String>();
-
-                        // Display received data
-                        if config.verbose {
-                            print!(" [{}] {}", get_timestamp(), line);
-                        } else {
-                            print!(" {}", line);
-                        }
-                        io::stdout().flush()?;
-
-                        // Log to file if enabled
-                        if let Some(ref mut writer) = log_writer {
-                            writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end())?;
-                            writer.flush()?;
-                        }
+        // Read from real serial port when not simulating
+        if let Some(ref mut real_port) = port {
+            match real_port.read(&mut buffer) {
+                Ok(n) => {
+                    if n > 0 {
+                        let output = String::from_utf8_lossy(&buffer[..n]);
+                        received.push_str(&output);
+                    }
+                }
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                    // Timeout is normal, continue
+                }
+                Err(e) => {
+                    eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
+                    if let Some(ref mut writer) = log_writer {
+                        writeln!(writer, "ERROR [{}]: Serial read error: {}", get_timestamp(), e)?;
+                        writer.flush()?;
                     }
                 }
             }
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
-                // Timeout is normal, continue
+        }
+
+        // Process any complete lines
+        while let Some(line_end) = received.find('\n') {
+            let line = received.drain(..=line_end).collect::<String>();
+
+            // Display received data
+            if config.verbose {
+                print!(" [{}] {}", get_timestamp(), line);
+            } else {
+                print!(" {}", line);
             }
-            Err(e) => {
-                eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
-                if let Some(ref mut writer) = log_writer {
-                    writeln!(
-                        writer,
-                        "ERROR [{}]: Serial read error: {}",
-                        get_timestamp(),
-                        e
-                    )?;
-                    writer.flush()?;
-                }
+            io::stdout().flush()?;
+
+            // Log to file if enabled
+            if let Some(ref mut writer) = log_writer {
+                writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end())?;
+                writer.flush()?;
             }
         }
 
@@ -942,24 +1017,27 @@ fn run_normal_mode(
         if let Ok(input) = input_rx.try_recv() {
             let clean = input.trim_end();
             if !clean.is_empty() {
-                // Send to serial port
-                let message = format!("{}\n", clean);
-                if let Err(e) = port.write_all(message.as_bytes()) {
-                    eprintln!("{color_red}❌ Write error: {e}{color_reset}");
-                    if let Some(ref mut writer) = log_writer {
-                        writeln!(writer, "ERROR [{}]: Write error: {}", get_timestamp(), e)?;
-                        writer.flush()?;
+                // If not simulating, send to the real serial port
+                if let Some(ref mut real_port) = port {
+                    let message = format!("{}\n", clean);
+                    if let Err(e) = real_port.write_all(message.as_bytes()) {
+                        eprintln!("{color_red}❌ Write error: {e}{color_reset}");
+                        if let Some(ref mut writer) = log_writer {
+                            writeln!(writer, "ERROR [{}]: Write error: {}", get_timestamp(), e)?;
+                            writer.flush()?;
+                        }
+                    } else if let Err(e) = real_port.flush() {
+                        eprintln!("{color_red}❌ Flush error: {e}{color_reset}");
+                        if let Some(ref mut writer) = log_writer {
+                            writeln!(writer, "ERROR [{}]: Flush error: {}", get_timestamp(), e)?;
+                            writer.flush()?;
+                        }
                     }
-                    continue;
-                }
-
-                if let Err(e) = port.flush() {
-                    eprintln!("{color_red}❌ Flush error: {e}{color_reset}");
-                    if let Some(ref mut writer) = log_writer {
-                        writeln!(writer, "ERROR [{}]: Flush error: {}", get_timestamp(), e)?;
-                        writer.flush()?;
+                } else {
+                    // Simulation mode: optionally echo the sent message
+                    if config.verbose {
+                        println!("{color_blue}Simulated send: {}{color_reset}", clean);
                     }
-                    continue;
                 }
 
                 // Log sent data
