@@ -3,9 +3,8 @@ use crate::serial::{
     get_timestamp, parse_data_bits, parse_flow_control, parse_parity, parse_stop_bits,
 };
 use inline_colorization::*;
-use serialport;
 use std::fs::OpenOptions;
-use std::io::{self, BufWriter, Read, Write};
+use std::io::{self, BufRead, BufWriter, Read, Write};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;

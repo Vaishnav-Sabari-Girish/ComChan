@@ -19,7 +19,6 @@ use ratatui::{
     text::{Line, Span},
     widgets::*,
 };
-use serialport;
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::{self, BufWriter, Read, Write};
@@ -99,8 +98,9 @@ impl PlotterState {
         }
 
         for (name, value) in readings {
+            let x = self.x;
             let sensor = self.get_or_create_sensor(name.as_ref());
-            sensor.add_point(self.x, value, max_points);
+            sensor.add_point(x, value, max_points);
 
             if value < self.global_y_min {
                 self.global_y_min = value;

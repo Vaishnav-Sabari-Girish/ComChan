@@ -4,3 +4,6 @@ reflow = true
 code-blocks = false
 tables = false
 headings = false
+
+[MD033]
+enabled = false
