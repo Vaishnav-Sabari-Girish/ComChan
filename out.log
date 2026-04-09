@@ -1,0 +1,66 @@
+    Checking comchan v0.3.0 (/home/vaishnav/Desktop/My_Projects/ComChan)
+    Checking comchan v0.3.0 (/home/vaishnav/Desktop/My_Projects/ComChan)
+error[E0599]: no method named `read_line` found for struct `StdinLock<'a>` in the current scope
+    --> src/monitor.rs:67:32
+     |
+  67 |             match stdin.lock().read_line(&mut input) {
+     |                   -----        ^^^^^^^^^ method not found in `StdinLock<'static>`
+     |                   |
+     |                   method `read_line` is available on `&Stdin`
+     |
+    ::: /home/vaishnav/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/io/mod.rs:2627:8
+     |
+2627 |     fn read_line(&mut self, buf: &mut String) -> Result<usize> {
+     |        --------- the method is available for `StdinLock<'static>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `BufRead` which provides `read_line` is implemented but not in scope; perhaps you want to import it
+     |
+   1 + use std::io::BufRead;
+     |
+
+error[E0599]: no method named `read_line` found for struct `StdinLock<'a>` in the current scope
+    --> src/monitor.rs:67:32
+     |
+  67 |             match stdin.lock().read_line(&mut input) {
+     |                   -----        ^^^^^^^^^ method not found in `StdinLock<'static>`
+     |                   |
+     |                   method `read_line` is available on `&Stdin`
+     |
+    ::: /home/vaishnav/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/io/mod.rs:2627:8
+     |
+2627 |     fn read_line(&mut self, buf: &mut String) -> Result<usize> {
+     |        --------- the method is available for `StdinLock<'static>` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `BufRead` which provides `read_line` is implemented but not in scope; perhaps you want to import it
+     |
+   1 + use std::io::BufRead;
+     |
+
+error[E0503]: cannot use `self.x` because it was mutably borrowed
+   --> src/plotter.rs:101:30
+    |
+100 |             let sensor = self.get_or_create_sensor(name.as_ref());
+    |                          ---- `*self` is borrowed here
+101 |             sensor.add_point(self.x, value, max_points);
+    |                    --------- ^^^^^^ use of borrowed `*self`
+    |                    |
+    |                    borrow later used by call
+
+error[E0503]: cannot use `self.x` because it was mutably borrowed
+   --> src/plotter.rs:101:30
+    |
+100 |             let sensor = self.get_or_create_sensor(name.as_ref());
+    |                          ---- `*self` is borrowed here
+101 |             sensor.add_point(self.x, value, max_points);
+    |                    --------- ^^^^^^ use of borrowed `*self`
+    |                    |
+    |                    borrow later used by call
+
+Some errors have detailed explanations: E0503, E0599.
+For more information about an error, try `rustc --explain E0503`.
+Some errors have detailed explanations: E0503, E0599.
+For more information about an error, try `rustc --explain E0503`.
+error: could not compile `comchan` (bin "comchan") due to 2 previous errors
+error: could not compile `comchan` (bin "comchan") due to 2 previous errors

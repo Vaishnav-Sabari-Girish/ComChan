@@ -1,0 +1,18 @@
+name: Lint 
+
+on: 
+    push: 
+    pull_request: 
+
+jobs:
+    check: 
+        runs-on: ubuntu-latest
+        
+        steps:
+            - uses: actions/checkout@v6
+            
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  components: rustfmt, clippy
+            - name: Linting using clippy
+              run: cargo clippy --workspace --all-targets --all-features -- -D warnings

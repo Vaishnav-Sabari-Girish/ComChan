@@ -1,4 +1,4 @@
-![Banner](./docs/src/images/ComChan.png)
+![Banner](./images/ComChan.png)
 
 <div align="center">
 
@@ -6,7 +6,6 @@
 
 **A Blazingly Fast Serial Monitor for Embedded Systems and Serial Communication**
 
-[![Release](https://img.shields.io/badge/Release-V0.2.4-blue?style=for-the-badge&labelColor=gray)](https://github.com/Vaishnav-Sabari-Girish/ComChan/releases/tag/v0.2.4)
 
 [Features](#features) • [Installation](#installation) • [Documentation](https://vaishnav.world/ComChan) • [Examples](#examples) • [Contributing](CONTRIBUTING.md)
 
@@ -262,7 +261,7 @@ plot_points = 100
 
 Basic serial monitoring in action:
 
-![Hello World Demo](./docs/src/videos/basic_serial_mon.gif)
+![Hello World Demo](./videos/basic_serial_mon.gif)
 
 📝 [View Arduino code](./code_tests/test_comchan_arduino_uno/test_comchan_arduino_uno.ino)
 
@@ -272,7 +271,7 @@ Basic serial monitoring in action:
 
 Interactive serial communication:
 
-![User Input Demo](./docs/src/videos/basic_user_input.gif)
+![User Input Demo](./videos/basic_user_input.gif)
 
 📝 [View Arduino code](./code_tests/test_user_input/test_user_input.ino)
 
@@ -282,7 +281,7 @@ Interactive serial communication:
 
 Real-time data visualization:
 
-![Serial Plotter Demo](./docs/src/videos/plotter.gif)
+![Serial Plotter Demo](./videos/plotter.gif)
 
 📝 [View Arduino code](./code_tests/random_sensor_vals/random_sensor_vals.ino)
 
@@ -292,7 +291,7 @@ Real-time data visualization:
 
 Automatic port detection in action:
 
-![Auto-detect Demo](./docs/src/videos/auto.gif)
+![Auto-detect Demo](./videos/auto.gif)
 
 ---
 
@@ -300,17 +299,17 @@ Automatic port detection in action:
 
 #### Serial Monitor (`plot = false`)
 
-![Config Monitor Demo](./docs/src/videos/config_mon.gif)
+![Config Monitor Demo](./videos/config_mon.gif)
 
 #### Serial Plotter (`plot = true`)
 
-![Config Plotter Demo](./docs/src/videos/config_plot.gif)
+![Config Plotter Demo](./videos/config_plot.gif)
 
 #### Serial Plotter Multiple Sensor Values
 
 Plot multiple sensors simultaneously with automatic legends:
 
-![Multiple Sensor Plot](./docs/src/videos/multiple_sensor_plot.gif)
+![Multiple Sensor Plot](./videos/multiple_sensor_plot.gif)
 
 📝 [View Arduino code](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino)
 
@@ -320,7 +319,7 @@ Plot multiple sensors simultaneously with automatic legends:
 
 Complete workflow demonstration:
 
-![Full Demo](./docs/src/videos/full.gif)
+![Full Demo](./videos/full.gif)
 
 ---
 
@@ -351,31 +350,6 @@ We welcome contributions to ComChan! 🎉
 
 Please see our **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines on how to contribute.
 
----
-
-## Feedback Form
-
-We value your feedback! ComChan uses Bashforms for terminal-based feedback submission.
-
-To submit feedback, run this in your terminal:
-
-```bash
-ssh -t bashform.me f comchan
-```
-
----
-
-## OSCG Guidelines
-
-### Contributor Guidelines
-
-📖 [View Contributor Guidelines](./OSCG_CONTRIBUTOR_Guidelines.md)
-
-### Mentor Guidelines
-
-📖 [View Mentor Guidelines](./OSCG_MENTOR_Guidelines.md)
-
----
 
 ## Community
 
