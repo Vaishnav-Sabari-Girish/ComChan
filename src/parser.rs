@@ -83,22 +83,22 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
     // Pattern 1: "Name : Value"
     if line.contains(':') {
         let parts: Vec<&str> = line.splitn(2, ':').collect();
-        if parts.len() == 2 {
-            if let Ok(value) = parts[1].trim().parse::<f64>() {
-                results.push((Cow::Borrowed(parts[0].trim()), value));
-                return results;
-            }
+        if parts.len() == 2
+            && let Ok(value) = parts[1].trim().parse::<f64>()
+        {
+            results.push((Cow::Borrowed(parts[0].trim()), value));
+            return results;
         }
     }
 
     // Pattern 2: "Name = Value"
     if line.contains('=') {
         let parts: Vec<&str> = line.splitn(2, '=').collect();
-        if parts.len() == 2 {
-            if let Ok(value) = parts[1].trim().parse::<f64>() {
-                results.push((Cow::Borrowed(parts[0].trim()), value));
-                return results;
-            }
+        if parts.len() == 2
+            && let Ok(value) = parts[1].trim().parse::<f64>()
+        {
+            results.push((Cow::Borrowed(parts[0].trim()), value));
+            return results;
         }
     }
 

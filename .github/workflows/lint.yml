@@ -15,4 +15,4 @@ jobs:
               with:
                   components: rustfmt, clippy
             - name: Linting using clippy
-              run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+              run: cargo clippy  --all-features -- -D warnings

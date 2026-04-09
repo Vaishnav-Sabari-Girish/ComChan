@@ -1,6 +1,5 @@
 use clap::Parser;
 use inline_colorization::*;
-use serialport;
 
 mod config;
 mod monitor;

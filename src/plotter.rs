@@ -212,29 +212,29 @@ pub fn run_plotter_mode(
 
     loop {
         // ── Input handling ────────────────────────────────────────────────────
-        if event::poll(Duration::from_millis(5))? {
-            if let event::Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => break,
-                    KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
+        if event::poll(Duration::from_millis(5))?
+            && let event::Event::Key(key) = event::read()?
+        {
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
 
-                    // Space: pause / resume
-                    KeyCode::Char(' ') => {
-                        state.paused = !state.paused;
-                    }
-
-                    // 'c': clear all data
-                    KeyCode::Char('c') => {
-                        state.sensors.clear();
-                        state.sensor_order.clear();
-                        state.x = 0.0;
-                        state.global_y_min = f64::INFINITY;
-                        state.global_y_max = f64::NEG_INFINITY;
-                        state.total_samples = 0;
-                    }
-
-                    _ => {}
+                // Space: pause / resume
+                KeyCode::Char(' ') => {
+                    state.paused = !state.paused;
                 }
+
+                // 'c': clear all data
+                KeyCode::Char('c') => {
+                    state.sensors.clear();
+                    state.sensor_order.clear();
+                    state.x = 0.0;
+                    state.global_y_min = f64::INFINITY;
+                    state.global_y_max = f64::NEG_INFINITY;
+                    state.total_samples = 0;
+                }
+
+                _ => {}
             }
         }
 

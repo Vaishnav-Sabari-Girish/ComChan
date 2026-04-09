@@ -162,10 +162,10 @@ fn find_config_file(specified_path: Option<PathBuf>) -> Option<PathBuf> {
         return Some(current);
     }
 
-    if let Ok(default_path) = get_default_config_path() {
-        if default_path.exists() {
-            return Some(default_path);
-        }
+    if let Ok(default_path) = get_default_config_path()
+        && default_path.exists()
+    {
+        return Some(default_path);
     }
 
     if let Some(home_dir) = dirs::home_dir() {
