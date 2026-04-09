@@ -1,0 +1,47 @@
+name: Generate Changelog
+
+on:
+  push:
+      branches: [ "main" ]
+      tags: 
+          - "v*"
+  workflow_dispatch: 
+
+# We need to give the bot permission to push commits to your repo
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    name: Update CHANGELOG.md
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@main
+        id: git-cliff
+        with:
+          config: cliff.toml
+        env:
+          OUTPUT: CHANGELOG.md # This forces git-cliff to write to the file
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit and push changes
+        run: |
+          # Set up the GitHub Actions bot git identity
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Add the updated file
+          git add CHANGELOG.md
+          
+          # Commit the changes (the || exit 0 prevents the workflow from failing if there are no changes)
+          git commit -m "chore(changelog): update CHANGELOG.md for ${{ github.ref_name }} [skip ci]" || exit 0
+          
+          # Push the commit back to the branch
+          git push origin HEAD:main || true
