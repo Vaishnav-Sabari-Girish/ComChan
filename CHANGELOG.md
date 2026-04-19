@@ -1,6 +1,18 @@
 
 ### :rocket: New features
 
+- **(zephyr)** Zephyr Shell support - ([68d881c](https://github.com/Vaishnav-Sabari-Girish/ComChan/commit/68d881c877d6039db2e40c0abb516eb41e9a3726)) by @Vaishnav-Sabari-Girish
+
+
+### :twisted_rightwards_arrows: Pull Requests
+
+- Merge pull request #37 from Vaishnav-Sabari-Girish/fix/zephyr-shell
+
+feat(zephyr): Zephyr Shell support - ([38f34ee](https://github.com/Vaishnav-Sabari-Girish/ComChan/commit/38f34ee84c5f0f0b4490fb116eb5e2fe5087adc8)) in [#37](https://github.com/Vaishnav-Sabari-Girish/ComChan/pull/37) by @Vaishnav-Sabari-Girish
+
+
+### :rocket: New features
+
 - Feat():
 
 Signed-off-by: Vaishnav Sabari Girish <vaishnav.sabari.girish@gmail.com> - ([d677179](https://github.com/Vaishnav-Sabari-Girish/ComChan/commit/d67717966a3c5feece7cb6865ab912bc60730c45)) by @Vaishnav-Sabari-Girish
@@ -53,6 +65,8 @@ Updated README.md to enhance formatting and clarity. - ([b66eeb8](https://github
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci] - ([adde698](https://github.com/Vaishnav-Sabari-Girish/ComChan/commit/adde698c5907655f20c5924b7eb287004dc603a6)) by @github-actions[bot]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci] - ([7a8745b](https://github.com/Vaishnav-Sabari-Girish/ComChan/commit/7a8745b17593811403ccfb02b0c1bcf19c2fae7b)) by @github-actions[bot]
 
