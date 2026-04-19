@@ -10,20 +10,17 @@ repo = "ComChan"
 # A Tera template to be rendered for each release in the changelog.
 # See https://keats.github.io/tera/docs/#introduction
 body = """
+{% if version %}
+## {{ version }} - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}
+## Unreleased
+{% endif %}
+
 {% for group, commits in commits | group_by(attribute="group") %}
-    ### {{ group | striptags | trim | upper_first }}
-    {% for commit in commits %}
-        {% if commit.scope -%}
-            - **({{commit.scope}})** {{ commit.message | upper_first | trim }}\
-        {% else -%}
-            - {{ commit.message | upper_first | trim }}\
-        {% endif -%}
-        {% if commit.id %} - ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})){%- endif -%}
-        {% if commit.remote.pr_number %} in \
-            [#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }}) \
-        {%- endif -%}
-        {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}
-    {% endfor %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**({{ commit.scope }})** {% endif %}{{ commit.message | upper_first | trim }}
+{% endfor %}
 {% endfor %}
 """
 # Remove leading and trailing whitespaces from the changelog's body.
