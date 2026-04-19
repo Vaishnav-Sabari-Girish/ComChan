@@ -5,7 +5,19 @@
 
 ### :wrench: Miscellaneous
 
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
+
 - **(cliff.toml)** Update cliff.toml for CHANGELOG
+
+
+### :twisted_rightwards_arrows: Pull Requests
+
+- Merge branch 'main' of github.com:Vaishnav-Sabari-Girish/ComChan
+
+
+### :hammer: Build
+
+- **(bump)** Bumped up version [skip ci]
 
 
 ## v0.3.2 - 2026-04-19
