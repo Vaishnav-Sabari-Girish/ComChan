@@ -9,6 +9,42 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+
+    let mut chars = s.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            match chars.peek() {
+                Some('[') => {
+                    chars.next();
+
+                    for ch in chars.by_ref() {
+                        if ch.is_ascii_alphabetic() {
+                            break;
+                        }
+                    }
+                }
+                _ => {
+                    chars.next();
+                }
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+fn colorize_output(s: &str) -> String {
+    if s.contains("uart:~$") {
+        s.replace("uart:~$", "\x1b[32muart:~$\x1b[0m")
+    } else {
+        s.to_string()
+    }
+}
+
 pub fn run_normal_mode(
     config: MergedConfig,
     port_name: String,
@@ -30,6 +66,13 @@ pub fn run_normal_mode(
         .open()
         .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
 
+    // Disable DTR
+    let _ = port.write_data_terminal_ready(false);
+
+    thread::sleep(Duration::from_millis(config.reset_delay_ms));
+    let _ = port.write_all(b"\r");
+    let _ = port.flush();
+
     let log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
             .create(true)
@@ -40,8 +83,6 @@ pub fn run_normal_mode(
     } else {
         None
     };
-
-    thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
     println!(
         "{color_green} ComChan connected to {} at {} baud{color_reset}",
@@ -85,6 +126,9 @@ pub fn run_normal_mode(
     let mut buffer = [0u8; 1024];
     let mut received = String::new();
     let mut log_writer = log_writer;
+    let mut prompt_printed = false;
+    let mut last_rx = std::time::Instant::now();
+    let mut last_sent: Option<String> = None;
 
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         // ── Read from serial ─────────────────────────────────────────────────
@@ -96,17 +140,33 @@ pub fn run_normal_mode(
                 while let Some(line_end) = received.find('\n') {
                     let line = received.drain(..=line_end).collect::<String>();
 
-                    if config.verbose {
-                        print!(" [{}] {}", get_timestamp(), line);
-                    } else {
-                        print!(" {}", line);
+                    let clean = strip_ansi(&line);
+
+                    if let Some(ref sent) = last_sent
+                        && clean.trim() == sent.as_str()
+                    {
+                        last_sent = None;
+                        continue;
                     }
+
+                    if config.verbose {
+                        print!("[{}] {}", get_timestamp(), clean);
+                    } else {
+                        print!("{}", clean);
+                    }
+
                     io::stdout().flush()?;
 
                     if let Some(ref mut writer) = log_writer {
-                        writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end())?;
+                        writeln!(writer, "RX [{}]: {}", get_timestamp(), clean.trim_end())?;
+
                         writer.flush()?;
                     }
+                }
+
+                if !received.is_empty() {
+                    prompt_printed = false;
+                    last_rx = std::time::Instant::now();
                 }
             }
             Ok(_) => {}
@@ -120,11 +180,27 @@ pub fn run_normal_mode(
             }
         }
 
+        if !received.is_empty()
+            && !prompt_printed
+            && last_rx.elapsed() >= std::time::Duration::from_millis(80)
+        {
+            let partial = strip_ansi(&received);
+
+            if config.verbose {
+                print!("[{}] {}", get_timestamp(), colorize_output(&partial));
+            } else {
+                print!("{}", colorize_output(&partial))
+            }
+
+            io::stdout().flush()?;
+            prompt_printed = true;
+        }
+
         // ── Write user input ─────────────────────────────────────────────────
         if let Ok(input) = input_rx.try_recv() {
             let clean = input.trim_end();
             if !clean.is_empty() {
-                let message = format!("{}\n", clean);
+                let message = format!("{}\r", clean);
                 if let Err(e) = port.write_all(message.as_bytes()) {
                     eprintln!("{color_red}❌ Write error: {e}{color_reset}");
                     if let Some(ref mut writer) = log_writer {
@@ -134,6 +210,11 @@ pub fn run_normal_mode(
                     continue;
                 }
                 port.flush()?;
+
+                last_sent = Some(clean.to_string());
+                prompt_printed = false;
+                received.clear();
+                last_rx = std::time::Instant::now();
 
                 if config.verbose {
                     println!(" [{}] Sent: {}", get_timestamp(), clean);
