@@ -3,7 +3,14 @@
 
 
 
+### :rocket: New features
+
+- **(timestamps)** Timestamps changed from EPOCH to local time
+
+
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
@@ -12,10 +19,16 @@
 
 ### :twisted_rightwards_arrows: Pull Requests
 
+- Merge pull request #40 from Vaishnav-Sabari-Girish/fix/timestamps
+
+Fix/timestamps
+
 - Merge branch 'main' of github.com:Vaishnav-Sabari-Girish/ComChan
 
 
 ### :hammer: Build
+
+- **(bump)** Version bump from 0.3.2 to 0.3.3
 
 - **(bump)** Bumped up version [skip ci]
 
