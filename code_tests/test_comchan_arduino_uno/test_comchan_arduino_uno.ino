@@ -2,7 +2,7 @@
 
 void setup() {
   pinMode(ledPin, OUTPUT);
-  Serial.begin(9600); // Make sure baud rate matches
+  Serial.begin(115200); // Make sure baud rate matches
   Serial.println("Arduino Ready");
 }
 

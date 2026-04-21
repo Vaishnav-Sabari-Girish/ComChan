@@ -12,6 +12,7 @@ keywords = ["cli", "embedded-systems", "serial-communication"]
 categories = ["command-line-utilities", "embedded"]
 
 [dependencies]
+chrono = "0.4.44"
 clap = { version = "4.5.40", features = ["derive"] }
 crossterm = "0.29.0"
 ctrlc = "3.4.7"
