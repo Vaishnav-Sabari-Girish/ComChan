@@ -4,10 +4,15 @@ use crate::serial::{
 };
 use inline_colorization::*;
 use std::fs::OpenOptions;
-use std::io::{self, BufRead, BufWriter, Read, Write};
+use std::io::{self, BufWriter, Read, Write};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    terminal,
+};
 
 fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -35,14 +40,6 @@ fn strip_ansi(s: &str) -> String {
         }
     }
     out
-}
-
-fn colorize_output(s: &str) -> String {
-    if s.contains("uart:~$") {
-        s.replace("uart:~$", "\x1b[32muart:~$\x1b[0m")
-    } else {
-        s.to_string()
-    }
 }
 
 pub fn run_normal_mode(
@@ -73,6 +70,11 @@ pub fn run_normal_mode(
     let _ = port.write_all(b"\r");
     let _ = port.flush();
 
+    thread::sleep(Duration::from_millis(100));
+    let _ = port.write_all(b"shell echo off\r");
+    let _ = port.flush();
+    thread::sleep(Duration::from_millis(100));
+
     let log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
             .create(true)
@@ -97,23 +99,57 @@ pub fn run_normal_mode(
             println!("{color_blue} Logging to: {}{color_reset}", log_path);
         }
     }
-    println!("{color_green} Listening… (Ctrl+C to exit){color_reset}\n");
+    println!("{color_green} Listening… (Ctrl+C to exit, Ctrl+L to clear screen){color_reset}\n");
 
     // Spawn a thread to read stdin without blocking the serial loop
     let (input_tx, input_rx) = mpsc::channel::<String>();
+
+    // Control bytes channel
+    let (ctrl_tx, ctrl_rx) = mpsc::channel::<u8>();
     thread::spawn(move || {
-        let stdin = io::stdin();
+        terminal::enable_raw_mode().ok();
+        let mut line_buf = String::new();
+
         loop {
-            let mut input = String::new();
-            match stdin.lock().read_line(&mut input) {
-                Ok(_) => {
-                    if input_tx.send(input).is_err() {
-                        break;
-                    }
+            if event::poll(Duration::from_millis(10)).unwrap_or(false) {
+                match event::read() {
+                    Ok(Event::Key(KeyEvent {
+                        code, modifiers, ..
+                    })) => match (code, modifiers) {
+                        // Ctrl+L → clear screen, nudge device to redraw prompt
+                        (KeyCode::Char('l'), KeyModifiers::CONTROL) => {
+                            print!("\x1bc\x1b[5 q");
+                            io::stdout().flush().ok();
+                            ctrl_tx.send(b'\r').ok();
+                        }
+                        // Ctrl+C → break (let the main ctrlc handler take over)
+                        (KeyCode::Char('c'), KeyModifiers::CONTROL) => break,
+                        // Enter → send buffered line
+                        (KeyCode::Enter, _) => {
+                            let _ = input_tx.send(line_buf.clone());
+                            line_buf.clear();
+                        }
+                        // Backspace
+                        (KeyCode::Backspace, _) => {
+                            line_buf.pop();
+                            print!("\x08 \x08");
+                            io::stdout().flush().ok();
+                        }
+                        // Regular character
+                        (KeyCode::Char(c), _) => {
+                            line_buf.push(c);
+                            print!("{}", c);
+                            io::stdout().flush().ok();
+                        }
+                        _ => {}
+                    },
+                    Err(_) => break,
+                    _ => {}
                 }
-                Err(_) => break,
             }
         }
+
+        terminal::disable_raw_mode().ok();
     });
 
     let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
@@ -124,49 +160,81 @@ pub fn run_normal_mode(
     })?;
 
     let mut buffer = [0u8; 1024];
-    let mut received = String::new();
     let mut log_writer = log_writer;
-    let mut prompt_printed = false;
-    let mut last_rx = std::time::Instant::now();
     let mut last_sent: Option<String> = None;
+    // Accumulates bytes for echo-suppression and verbose timestamp logging only
+    let mut line_acc = String::new();
 
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         // ── Read from serial ─────────────────────────────────────────────────
         match port.read(&mut buffer) {
             Ok(n) if n > 0 => {
-                let output = String::from_utf8_lossy(&buffer[..n]);
-                received.push_str(&output);
+                let raw = &buffer[..n];
+                let text = String::from_utf8_lossy(raw);
 
-                while let Some(line_end) = received.find('\n') {
-                    let line = received.drain(..=line_end).collect::<String>();
-
-                    let clean = strip_ansi(&line);
-
-                    if let Some(ref sent) = last_sent
-                        && clean.trim() == sent.as_str()
-                    {
+                // ── Echo suppression ─────────────────────────────────────────
+                // Accumulate into line_acc and check if this chunk is the
+                // echo of the last sent command; if so, swallow it silently.
+                line_acc.push_str(&text);
+                let mut suppress = false;
+                if let Some(ref sent) = last_sent {
+                    let clean_acc = strip_ansi(&line_acc).trim().to_string();
+                    if clean_acc == *sent {
+                        suppress = true;
                         last_sent = None;
-                        continue;
-                    }
-
-                    if config.verbose {
-                        print!("[{}] {}", get_timestamp(), clean);
-                    } else {
-                        print!("{}", clean);
-                    }
-
-                    io::stdout().flush()?;
-
-                    if let Some(ref mut writer) = log_writer {
-                        writeln!(writer, "RX [{}]: {}", get_timestamp(), clean.trim_end())?;
-
-                        writer.flush()?;
+                        line_acc.clear();
                     }
                 }
+                if suppress {
+                    continue;
+                }
 
-                if !received.is_empty() {
-                    prompt_printed = false;
-                    last_rx = std::time::Instant::now();
+                // ── Verbose timestamp prefix ─────────────────────────────────
+                // In verbose mode, prepend a timestamp before each line of
+                // output. We still pass the original bytes through for colour.
+                if config.verbose {
+                    // Walk the incoming text line by line, printing a timestamp
+                    // before each newline-terminated chunk.
+                    let mut remaining = text.as_ref();
+                    while let Some(pos) = remaining.find('\n') {
+                        let chunk = &remaining[..=pos];
+                        let clean = strip_ansi(chunk);
+                        // Only print timestamp for non-empty lines
+                        if !clean.trim().is_empty() {
+                            print!("[{}] {}", get_timestamp(), chunk);
+                        } else {
+                            print!("{}", chunk);
+                        }
+                        remaining = &remaining[pos + 1..];
+                    }
+                    // Print any trailing partial line (e.g. the prompt)
+                    if !remaining.is_empty() {
+                        print!("{}", remaining);
+                    }
+                } else {
+                    // Non-verbose: pass raw bytes straight through so Zephyr's
+                    // own ANSI colours and \r\n handling reach the terminal
+                    // untouched.
+                    io::stdout().write_all(raw)?;
+                }
+                io::stdout().flush()?;
+
+                // ── Logging ───────────────────────────────────────────────────
+                if let Some(ref mut writer) = log_writer {
+                    // Log each complete line
+                    let mut remaining = text.as_ref();
+                    while let Some(pos) = remaining.find('\n') {
+                        let chunk = &remaining[..=pos];
+                        let clean = strip_ansi(chunk);
+                        writeln!(writer, "RX [{}]: {}", get_timestamp(), clean.trim_end())?;
+                        remaining = &remaining[pos + 1..];
+                    }
+                    writer.flush()?;
+                }
+
+                // Clear line accumulator once we've seen a full line
+                if line_acc.contains('\n') {
+                    line_acc.clear();
                 }
             }
             Ok(_) => {}
@@ -178,22 +246,6 @@ pub fn run_normal_mode(
                     writer.flush()?;
                 }
             }
-        }
-
-        if !received.is_empty()
-            && !prompt_printed
-            && last_rx.elapsed() >= std::time::Duration::from_millis(80)
-        {
-            let partial = strip_ansi(&received);
-
-            if config.verbose {
-                print!("[{}] {}", get_timestamp(), colorize_output(&partial));
-            } else {
-                print!("{}", colorize_output(&partial))
-            }
-
-            io::stdout().flush()?;
-            prompt_printed = true;
         }
 
         // ── Write user input ─────────────────────────────────────────────────
@@ -212,12 +264,11 @@ pub fn run_normal_mode(
                 port.flush()?;
 
                 last_sent = Some(clean.to_string());
-                prompt_printed = false;
-                received.clear();
-                last_rx = std::time::Instant::now();
+                line_acc.clear();
 
                 if config.verbose {
-                    println!(" [{}] Sent: {}", get_timestamp(), clean);
+                    print!("\r\n[{}] Sent: {}\r\n", get_timestamp(), clean);
+                    io::stdout().flush()?;
                 }
                 if let Some(ref mut writer) = log_writer {
                     writeln!(writer, "TX [{}]: {}", get_timestamp(), clean)?;
@@ -228,9 +279,16 @@ pub fn run_normal_mode(
             }
         }
 
+        // ── Control bytes (e.g. Ctrl+L repaint) ─────────────────────────────
+        if let Ok(byte) = ctrl_rx.try_recv() {
+            let _ = port.write_all(&[byte]);
+            let _ = port.flush();
+        }
+
         thread::sleep(Duration::from_millis(10));
     }
 
-    println!("{color_green} ComChan disconnected cleanly{color_reset}");
+    println!("\r\n{color_green} ComChan disconnected cleanly{color_reset}");
+    terminal::disable_raw_mode().ok();
     Ok(())
 }
