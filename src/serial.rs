@@ -1,5 +1,5 @@
+use chrono::Local;
 use serialport::{DataBits, FlowControl, Parity, StopBits};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn parse_data_bits(bits: u8) -> Result<DataBits, String> {
     match bits {
@@ -47,11 +47,5 @@ pub fn parse_flow_control(flow: &str) -> Result<FlowControl, String> {
 }
 
 pub fn get_timestamp() -> String {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    let secs = now / 1000;
-    let millis = now % 1000;
-    format!("{}.{:03}", secs, millis)
+    Local::now().format("%H:%M:%S%.3f").to_string()
 }
