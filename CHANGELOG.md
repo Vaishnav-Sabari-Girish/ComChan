@@ -5,6 +5,8 @@
 
 ### :rocket: New features
 
+- **(control code)** Add control codes (CTRL+L) to clear screen
+
 - **(timestamps)** Timestamps changed from EPOCH to local time
 
 
@@ -14,10 +16,16 @@
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
+
 - **(cliff.toml)** Update cliff.toml for CHANGELOG
 
 
 ### :twisted_rightwards_arrows: Pull Requests
+
+- Merge pull request #41 from Vaishnav-Sabari-Girish/fix/control_code
+
+feat(control code): Add control codes (CTRL+L) to clear screen
 
 - Merge pull request #40 from Vaishnav-Sabari-Girish/fix/timestamps
 
