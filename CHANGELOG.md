@@ -3,6 +3,20 @@
 
 
 
+### :construction_worker: CI
+
+- **(trigger)** Trigger build [skip ci]
+
+
+### :page_facing_up: Documentation
+
+- **(add brain made)** Brain Made section added to README
+
+
+## v0.3.3 - 2026-04-21
+
+
+
 ### :rocket: New features
 
 - **(control code)** Add control codes (CTRL+L) to clear screen
@@ -11,6 +25,8 @@
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
