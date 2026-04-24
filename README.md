@@ -48,6 +48,7 @@ Communication**
   - [ComChan in Windows](#comchan-in-windows)
 - [Community](#community)
   - [Stargazers over time (Graph)](#stargazers-over-time-graph)
+- [🧠 (mostly) Brain made](#-mostly-brain-made)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -360,6 +361,24 @@ As of Version 0.2.2, ComChan works perfectly on Windows with no limitations!
 ### Stargazers over time (Graph)
 
 [![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=adaptive)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
+
+## 🧠 (mostly) Brain made
+
+**This project was NOT vibe-coded BUT AI is still involved in some parts of
+it.**
+
+- **Generating test code:** Because it's something I always skip so I would
+  rather have some AI generated tests than none at all.
+- **Micro-improvements:** I have used AI as an advisor to improve some bits of
+  code here and there. Big refactors or new features are done by my hand though.
+
+<a href="https://brainmade.org/">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://brainmade.org/white-logo.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://brainmade.org/black-logo.svg">
+  <img alt="brainmade" src="https://brainmade.org/white-logo.svg">
+</picture>
+</a>
 
 <div align="center">
 
