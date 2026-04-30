@@ -48,7 +48,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.3.4",
+    version = "0.3.4-alpha",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
