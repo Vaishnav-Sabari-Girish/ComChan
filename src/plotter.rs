@@ -260,6 +260,7 @@ pub fn run_plotter_mode(
                         &state.export_data,
                         &filename,
                         &state.sensor_order,
+                        &config.plot_title,
                     ) {
                         Ok(_) => {
                             state.last_error = Some(format!("✅ Exported to {}", filename));

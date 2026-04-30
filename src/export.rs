@@ -6,6 +6,7 @@ pub fn export_to_svg(
     data: &HashMap<String, Vec<(f64, f64)>>,
     filename: &str,
     sensor_order: &[String],
+    plot_title: &String,
 ) -> Result<(), Box<dyn Error>> {
     if data.is_empty() {
         return Err("No data to export".into());
@@ -49,13 +50,17 @@ pub fn export_to_svg(
     };
 
     let mut chart = ChartBuilder::on(&root)
-        .caption("ComChan Sensor data", ("sans-serif", 40).into_font())
+        .caption(plot_title, ("sans-serif", 40).into_font().color(&BLACK))
         .margin(20)
         .x_label_area_size(40)
         .y_label_area_size(50)
         .build_cartesian_2d(min_x..max_x, min_y..max_y)?;
 
-    chart.configure_mesh().draw()?;
+    chart
+        .configure_mesh()
+        .label_style(("sans-serif", 18).into_font().color(&BLACK))
+        .axis_style(BLACK)
+        .draw()?;
 
     // Colors
     let colors = [&BLUE, &RED, &GREEN, &MAGENTA, &CYAN, &BLACK];
@@ -71,8 +76,10 @@ pub fn export_to_svg(
         }
     }
 
+    // Legend Text to BLACK
     chart
         .configure_series_labels()
+        .label_font(("sans-serif", 20).into_font().color(&BLACK))
         .background_style(WHITE.mix(0.8))
         .border_style(BLACK)
         .draw()?;
