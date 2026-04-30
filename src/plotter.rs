@@ -45,12 +45,15 @@ struct PlotterState {
     receive_buf: String,
     /// Errors reported to the status bar
     last_error: Option<String>,
+
+    export_data: HashMap<String, Vec<(f64, f64)>>,
+    pub export_limit: usize,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
 
 impl PlotterState {
-    fn new() -> Self {
+    fn new(export_limit: usize) -> Self {
         let now = Instant::now();
         PlotterState {
             sensors: HashMap::new(),
@@ -67,6 +70,8 @@ impl PlotterState {
             lines_discarded: 0,
             receive_buf: String::new(),
             last_error: None,
+            export_data: HashMap::new(),
+            export_limit,
         }
     }
 
@@ -101,6 +106,16 @@ impl PlotterState {
             let x = self.x;
             let sensor = self.get_or_create_sensor(name.as_ref());
             sensor.add_point(x, value, max_points);
+
+            // Feed the hashmap (Never trims data)
+            let series = self.export_data.entry(name.to_string()).or_default();
+
+            series.push((x, value));
+
+            if series.len() > self.export_limit {
+                let drop_count = self.export_limit / 10; // Drop oldest 10% of data
+                series.drain(0..drop_count);
+            }
 
             if value < self.global_y_min {
                 self.global_y_min = value;
@@ -207,7 +222,7 @@ pub fn run_plotter_mode(
 
     std::thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
-    let mut state = PlotterState::new();
+    let mut state = PlotterState::new(config.export_limit);
     let mut serial_buf = [0u8; 1024];
 
     loop {
@@ -228,10 +243,31 @@ pub fn run_plotter_mode(
                 KeyCode::Char('c') => {
                     state.sensors.clear();
                     state.sensor_order.clear();
+                    state.export_data.clear();
                     state.x = 0.0;
                     state.global_y_min = f64::INFINITY;
                     state.global_y_max = f64::NEG_INFINITY;
                     state.total_samples = 0;
+                }
+
+                // "CTRL+S" to export data
+                KeyCode::Char('s') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    let timestamp = get_timestamp().replace(":", "-");
+
+                    let filename = format!("comchan_plot_{}.svg", timestamp);
+
+                    match crate::export::export_to_svg(
+                        &state.export_data,
+                        &filename,
+                        &state.sensor_order,
+                    ) {
+                        Ok(_) => {
+                            state.last_error = Some(format!("✅ Exported to {}", filename));
+                        }
+                        Err(e) => {
+                            state.last_error = Some(format!("❌ Export failed: {}", e));
+                        }
+                    }
                 }
 
                 _ => {}
@@ -461,7 +497,7 @@ pub fn run_plotter_mode(
                 Span::raw("  "),
                 error_span,
                 Span::styled(
-                    "  [Space] pause  [c] clear  [q/Esc] quit",
+                    "  [Space] pause  [c] clear  [q/Esc] quit [Ctrl + s] Export",
                     Style::default().fg(Color::DarkGray),
                 ),
             ]);

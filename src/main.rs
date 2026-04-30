@@ -2,6 +2,7 @@ use clap::Parser;
 use inline_colorization::*;
 
 mod config;
+mod export;
 mod monitor;
 mod parser;
 mod plotter;
