@@ -3,6 +3,15 @@
 
 
 
+### :construction_worker: CI
+
+- **(trigger)** Trigger build
+
+
+## v0.3.4 - 2026-04-30
+
+
+
 ### :rocket: New features
 
 - **(export)** Export plot to SVG
@@ -30,6 +39,8 @@
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
