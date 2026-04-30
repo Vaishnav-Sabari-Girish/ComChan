@@ -244,10 +244,8 @@ pub fn run_plotter_mode(
                     state.total_samples = 0;
                 }
 
-                // 'e' or "CTRL+S" to export data
-                KeyCode::Char('e') | KeyCode::Char('s')
-                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
-                {
+                // "CTRL+S" to export data
+                KeyCode::Char('s') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     let timestamp = get_timestamp().replace(":", "-");
 
                     let filename = format!("comchan_plot_{}.svg", timestamp);
