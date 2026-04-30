@@ -45,6 +45,8 @@ struct PlotterState {
     receive_buf: String,
     /// Errors reported to the status bar
     last_error: Option<String>,
+
+    export_data: HashMap<String, Vec<(f64, f64)>>,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
@@ -67,6 +69,7 @@ impl PlotterState {
             lines_discarded: 0,
             receive_buf: String::new(),
             last_error: None,
+            export_data: HashMap::new(),
         }
     }
 
@@ -101,6 +104,12 @@ impl PlotterState {
             let x = self.x;
             let sensor = self.get_or_create_sensor(name.as_ref());
             sensor.add_point(x, value, max_points);
+
+            // Feed the hashmap (Never trims data)
+            self.export_data
+                .entry(name.to_string())
+                .or_default()
+                .push((x, value));
 
             if value < self.global_y_min {
                 self.global_y_min = value;
@@ -228,10 +237,33 @@ pub fn run_plotter_mode(
                 KeyCode::Char('c') => {
                     state.sensors.clear();
                     state.sensor_order.clear();
+                    state.export_data.clear();
                     state.x = 0.0;
                     state.global_y_min = f64::INFINITY;
                     state.global_y_max = f64::NEG_INFINITY;
                     state.total_samples = 0;
+                }
+
+                // 'e' or "CTRL+S" to export data
+                KeyCode::Char('e') | KeyCode::Char('s')
+                    if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                {
+                    let timestamp = get_timestamp().replace(":", "-");
+
+                    let filename = format!("comchan_plot_{}.svg", timestamp);
+
+                    match crate::export::export_to_svg(
+                        &state.export_data,
+                        &filename,
+                        &state.sensor_order,
+                    ) {
+                        Ok(_) => {
+                            state.last_error = Some(format!("✅ Exported to {}", filename));
+                        }
+                        Err(e) => {
+                            state.last_error = Some(format!("❌ Export failed: {}", e));
+                        }
+                    }
                 }
 
                 _ => {}
@@ -461,7 +493,7 @@ pub fn run_plotter_mode(
                 Span::raw("  "),
                 error_span,
                 Span::styled(
-                    "  [Space] pause  [c] clear  [q/Esc] quit",
+                    "  [Space] pause  [c] clear  [q/Esc] quit [Ctrl + s] Export",
                     Style::default().fg(Color::DarkGray),
                 ),
             ]);
