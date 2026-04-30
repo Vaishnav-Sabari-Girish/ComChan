@@ -6,7 +6,7 @@ pub fn export_to_svg(
     data: &HashMap<String, Vec<(f64, f64)>>,
     filename: &str,
     sensor_order: &[String],
-    plot_title: &String,
+    plot_title: &str,
 ) -> Result<(), Box<dyn Error>> {
     if data.is_empty() {
         return Err("No data to export".into());
