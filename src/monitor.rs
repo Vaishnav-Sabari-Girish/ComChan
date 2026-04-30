@@ -70,10 +70,13 @@ pub fn run_normal_mode(
     let _ = port.write_all(b"\r");
     let _ = port.flush();
 
-    thread::sleep(Duration::from_millis(100));
-    let _ = port.write_all(b"shell echo off\r");
-    let _ = port.flush();
-    thread::sleep(Duration::from_millis(100));
+    // Zephyr mode
+    if config.zephyr {
+        thread::sleep(Duration::from_millis(100));
+        let _ = port.write_all(b"shell echo off\r");
+        let _ = port.flush();
+        thread::sleep(Duration::from_millis(100));
+    }
 
     let log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()

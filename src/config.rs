@@ -18,6 +18,7 @@ pub struct Config {
     pub verbose: Option<bool>,
     pub plot: Option<bool>,
     pub plot_points: Option<usize>,
+    pub zephyr: Option<bool>,
 }
 
 impl Default for Config {
@@ -35,6 +36,7 @@ impl Default for Config {
             verbose: Some(false),
             plot: Some(false),
             plot_points: Some(100),
+            zephyr: Some(false),
         }
     }
 }
@@ -94,6 +96,9 @@ pub struct Args {
 
     #[arg(long = "generate-config", action = clap::ArgAction::SetTrue)]
     pub generate_config: bool,
+
+    #[arg(long = "zephyr", action = clap::ArgAction::SetTrue, help = "Enables Zephyr Shell mode")]
+    pub zephyr: bool,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -111,6 +116,7 @@ pub struct MergedConfig {
     pub verbose: bool,
     pub plot: bool,
     pub plot_points: usize,
+    pub zephyr: bool,
 }
 
 // ── Platform helpers ─────────────────────────────────────────────────────────
@@ -221,6 +227,7 @@ pub fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std:
 # Set port = "auto" to auto-detect the first USB serial port.
 # Parity:       "none" | "odd" | "even"
 # Flow control: "none" | "software" | "hardware"
+# zephyr = false
 
 {toml_content}
 "#
@@ -264,5 +271,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         verbose: args.verbose.or(config.verbose).unwrap_or(false),
         plot: args.plot || config.plot.unwrap_or(false),
         plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
+        zephyr: args.zephyr || config.zephyr.unwrap_or(false),
     }
 }
