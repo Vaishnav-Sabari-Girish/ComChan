@@ -3,9 +3,31 @@
 
 
 
+### :rocket: New features
+
+- **(plot-title)** Add custom plot-title option
+
+
 ### :construction_worker: CI
 
 - **(trigger)** Trigger build
+
+
+### :zap: Performance
+
+- **(&str)** Change &String to &str for idiomatic rust
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
+
+
+### :twisted_rightwards_arrows: Pull Requests
+
+- Merge pull request #46 from Vaishnav-Sabari-Girish/fix/output_plot_legends
+
+feat(plot-title): Add custom plot-title option
 
 
 ## v0.3.4 - 2026-04-30
