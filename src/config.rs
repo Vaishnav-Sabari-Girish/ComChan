@@ -20,6 +20,7 @@ pub struct Config {
     pub plot_points: Option<usize>,
     pub zephyr: Option<bool>,
     pub export_limit: Option<usize>,
+    pub plot_title: Option<String>,
 }
 
 impl Default for Config {
@@ -39,6 +40,7 @@ impl Default for Config {
             plot_points: Some(100),
             zephyr: Some(false),
             export_limit: Some(1_000_000), // Defaults to 1 million points per sensor
+            plot_title: None,
         }
     }
 }
@@ -107,6 +109,12 @@ pub struct Args {
         help = "Max points to keep in memory for export per sensor"
     )]
     pub export_limit: Option<usize>,
+
+    #[arg(
+        long = "plot-title",
+        help = "Set the plot title for the exported SVG file"
+    )]
+    pub plot_title: Option<String>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -126,6 +134,7 @@ pub struct MergedConfig {
     pub plot_points: usize,
     pub zephyr: bool,
     pub export_limit: usize,
+    pub plot_title: String,
 }
 
 // ── Platform helpers ─────────────────────────────────────────────────────────
@@ -284,5 +293,9 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
             .export_limit
             .or(config.export_limit)
             .unwrap_or(1_000_000),
+        plot_title: args
+            .plot_title
+            .or(config.plot_title)
+            .unwrap_or_else(|| "Sensor Data".to_string()),
     }
 }
