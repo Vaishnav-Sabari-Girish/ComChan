@@ -41,6 +41,13 @@ pub fn export_to_svg(
     let min_y = min_y - y_padding;
     let max_y = max_y + y_padding;
 
+    let x_range = max_x - min_x;
+    let (min_x, max_x) = if x_range == 0.0 {
+        (min_x - 1.0, max_x + 1.0)
+    } else {
+        (min_x, max_x)
+    };
+
     let mut chart = ChartBuilder::on(&root)
         .caption("ComChan Sensor data", ("sans-serif", 40).into_font())
         .margin(20)
