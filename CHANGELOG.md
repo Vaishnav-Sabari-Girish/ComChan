@@ -3,12 +3,23 @@
 
 
 
+### :rocket: New features
+
+- **(export)** Export plot to SVG
+
+
 ### :bug: Bug fixes
+
+- **(export limit)** Add export limit to prevent RAM overusage
+
+- **(crash)** Fix crash due to less number of data points
 
 - **(zephyr)** Add seperate mode for Zephyr shell
 
 
 ### :construction_worker: CI
+
+- **(font)** Add font installation
 
 - **(trigger)** Trigger build [skip ci]
 
@@ -22,8 +33,14 @@
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
+
 
 ### :twisted_rightwards_arrows: Pull Requests
+
+- Merge pull request #45 from Vaishnav-Sabari-Girish/feat/export_plot
+
+Plot can be exported to SVG using `CTRL + S`
 
 - Merge pull request #44 from Vaishnav-Sabari-Girish/fix/fix_shell_echo
 
