@@ -3,6 +3,11 @@
 
 
 
+### :bug: Bug fixes
+
+- **(zephyr)** Add seperate mode for Zephyr shell
+
+
 ### :construction_worker: CI
 
 - **(trigger)** Trigger build [skip ci]
@@ -11,6 +16,18 @@
 ### :page_facing_up: Documentation
 
 - **(add brain made)** Brain Made section added to README
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
+
+
+### :twisted_rightwards_arrows: Pull Requests
+
+- Merge pull request #44 from Vaishnav-Sabari-Girish/fix/fix_shell_echo
+
+fix(zephyr): Add seperate mode for Zephyr shell
 
 
 ## v0.3.3 - 2026-04-21
