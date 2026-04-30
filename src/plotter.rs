@@ -47,12 +47,13 @@ struct PlotterState {
     last_error: Option<String>,
 
     export_data: HashMap<String, Vec<(f64, f64)>>,
+    pub export_limit: usize,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
 
 impl PlotterState {
-    fn new() -> Self {
+    fn new(export_limit: usize) -> Self {
         let now = Instant::now();
         PlotterState {
             sensors: HashMap::new(),
@@ -70,6 +71,7 @@ impl PlotterState {
             receive_buf: String::new(),
             last_error: None,
             export_data: HashMap::new(),
+            export_limit,
         }
     }
 
@@ -106,10 +108,14 @@ impl PlotterState {
             sensor.add_point(x, value, max_points);
 
             // Feed the hashmap (Never trims data)
-            self.export_data
-                .entry(name.to_string())
-                .or_default()
-                .push((x, value));
+            let series = self.export_data.entry(name.to_string()).or_default();
+
+            series.push((x, value));
+
+            if series.len() > self.export_limit {
+                let drop_count = self.export_limit / 10; // Drop oldest 10% of data
+                series.drain(0..drop_count);
+            }
 
             if value < self.global_y_min {
                 self.global_y_min = value;
@@ -216,7 +222,7 @@ pub fn run_plotter_mode(
 
     std::thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
-    let mut state = PlotterState::new();
+    let mut state = PlotterState::new(config.export_limit);
     let mut serial_buf = [0u8; 1024];
 
     loop {

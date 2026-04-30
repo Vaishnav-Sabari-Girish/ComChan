@@ -19,6 +19,7 @@ pub struct Config {
     pub plot: Option<bool>,
     pub plot_points: Option<usize>,
     pub zephyr: Option<bool>,
+    pub export_limit: Option<usize>,
 }
 
 impl Default for Config {
@@ -37,6 +38,7 @@ impl Default for Config {
             plot: Some(false),
             plot_points: Some(100),
             zephyr: Some(false),
+            export_limit: Some(1_000_000), // Defaults to 1 million points per sensor
         }
     }
 }
@@ -99,6 +101,12 @@ pub struct Args {
 
     #[arg(long = "zephyr", action = clap::ArgAction::SetTrue, help = "Enables Zephyr Shell mode")]
     pub zephyr: bool,
+
+    #[arg(
+        long = "export-limit",
+        help = "Max points to keep in memory for export per sensor"
+    )]
+    pub export_limit: Option<usize>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -117,6 +125,7 @@ pub struct MergedConfig {
     pub plot: bool,
     pub plot_points: usize,
     pub zephyr: bool,
+    pub export_limit: usize,
 }
 
 // ── Platform helpers ─────────────────────────────────────────────────────────
@@ -227,7 +236,6 @@ pub fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std:
 # Set port = "auto" to auto-detect the first USB serial port.
 # Parity:       "none" | "odd" | "even"
 # Flow control: "none" | "software" | "hardware"
-# zephyr = false
 
 {toml_content}
 "#
@@ -272,5 +280,9 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         plot: args.plot || config.plot.unwrap_or(false),
         plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
         zephyr: args.zephyr || config.zephyr.unwrap_or(false),
+        export_limit: args
+            .export_limit
+            .or(config.export_limit)
+            .unwrap_or(1_000_000),
     }
 }
