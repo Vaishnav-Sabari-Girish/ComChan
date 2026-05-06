@@ -54,29 +54,35 @@ pub fn run_normal_mode(
     let flow_control = parse_flow_control(&config.flow_control)
         .map_err(|e| format!("Configuration error: {}", e))?;
 
-    let mut port = serialport::new(&port_name, config.baud)
-        .timeout(Duration::from_millis(config.timeout_ms))
-        .data_bits(data_bits)
-        .stop_bits(stop_bits)
-        .parity(parity)
-        .flow_control(flow_control)
-        .open()
-        .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
+    let mut port = if config.simulate {
+        None
+    } else {
+        Some(
+            serialport::new(&port_name, config.baud)
+                .timeout(Duration::from_millis(config.timeout_ms))
+                .data_bits(data_bits)
+                .stop_bits(stop_bits)
+                .parity(parity)
+                .flow_control(flow_control)
+                .open()
+                .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?,
+        )
+    };
 
-    // Disable DTR
-    let _ = port.write_data_terminal_ready(false);
+    if let Some(p) = port.as_mut() {
+        let _ = p.write_data_terminal_ready(false);
+        thread::sleep(Duration::from_millis(config.reset_delay_ms));
+        let _ = p.write_all(b"\r");
+        let _ = p.flush();
 
-    thread::sleep(Duration::from_millis(config.reset_delay_ms));
-    let _ = port.write_all(b"\r");
-    let _ = port.flush();
-
-    // Zephyr mode
-    if config.zephyr {
-        thread::sleep(Duration::from_millis(100));
-        let _ = port.write_all(b"shell echo off\r");
-        let _ = port.flush();
-        thread::sleep(Duration::from_millis(100));
+        if config.zephyr {
+            thread::sleep(Duration::from_millis(100));
+            let _ = p.write_all(b"shell echo off\r");
+            let _ = p.flush();
+            thread::sleep(Duration::from_millis(100));
+        }
     }
+    // Zephyr mode
 
     let log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
@@ -170,83 +176,100 @@ pub fn run_normal_mode(
 
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         // ── Read from serial ─────────────────────────────────────────────────
-        match port.read(&mut buffer) {
-            Ok(n) if n > 0 => {
-                let raw = &buffer[..n];
-                let text = String::from_utf8_lossy(raw);
+        if config.simulate {
+            let t = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64();
+            let sim_text = format!(
+                "Temperature: {:2}\r\nHumidity: {:.2}\r\nPressure: {:.2}\r\n",
+                (t * 1.0).sin() * 50.0,
+                (t * 0.8).cos() * 50.0,
+                (t * 0.5).sin() * 50.0
+            );
+            io::stdout().write_all(sim_text.as_bytes())?;
+            io::stdout().flush()?;
 
-                // ── Echo suppression ─────────────────────────────────────────
-                // Accumulate into line_acc and check if this chunk is the
-                // echo of the last sent command; if so, swallow it silently.
-                line_acc.push_str(&text);
-                let mut suppress = false;
-                if let Some(ref sent) = last_sent {
-                    let clean_acc = strip_ansi(&line_acc).trim().to_string();
-                    if clean_acc == *sent {
-                        suppress = true;
-                        last_sent = None;
+            thread::sleep(Duration::from_millis(500));
+        } else if let Some(p) = port.as_mut() {
+            match p.read(&mut buffer) {
+                Ok(n) if n > 0 => {
+                    let raw = &buffer[..n];
+                    let text = String::from_utf8_lossy(raw);
+
+                    // ── Echo suppression ─────────────────────────────────────────
+                    // Accumulate into line_acc and check if this chunk is the
+                    // echo of the last sent command; if so, swallow it silently.
+                    line_acc.push_str(&text);
+                    let mut suppress = false;
+                    if let Some(ref sent) = last_sent {
+                        let clean_acc = strip_ansi(&line_acc).trim().to_string();
+                        if clean_acc == *sent {
+                            suppress = true;
+                            last_sent = None;
+                            line_acc.clear();
+                        }
+                    }
+                    if suppress {
+                        continue;
+                    }
+
+                    // ── Verbose timestamp prefix ─────────────────────────────────
+                    // In verbose mode, prepend a timestamp before each line of
+                    // output. We still pass the original bytes through for colour.
+                    if config.verbose {
+                        // Walk the incoming text line by line, printing a timestamp
+                        // before each newline-terminated chunk.
+                        let mut remaining = text.as_ref();
+                        while let Some(pos) = remaining.find('\n') {
+                            let chunk = &remaining[..=pos];
+                            let clean = strip_ansi(chunk);
+                            // Only print timestamp for non-empty lines
+                            if !clean.trim().is_empty() {
+                                print!("[{}] {}", get_timestamp(), chunk);
+                            } else {
+                                print!("{}", chunk);
+                            }
+                            remaining = &remaining[pos + 1..];
+                        }
+                        // Print any trailing partial line (e.g. the prompt)
+                        if !remaining.is_empty() {
+                            print!("{}", remaining);
+                        }
+                    } else {
+                        // Non-verbose: pass raw bytes straight through so Zephyr's
+                        // own ANSI colours and \r\n handling reach the terminal
+                        // untouched.
+                        io::stdout().write_all(raw)?;
+                    }
+                    io::stdout().flush()?;
+
+                    // ── Logging ───────────────────────────────────────────────────
+                    if let Some(ref mut writer) = log_writer {
+                        // Log each complete line
+                        let mut remaining = text.as_ref();
+                        while let Some(pos) = remaining.find('\n') {
+                            let chunk = &remaining[..=pos];
+                            let clean = strip_ansi(chunk);
+                            writeln!(writer, "RX [{}]: {}", get_timestamp(), clean.trim_end())?;
+                            remaining = &remaining[pos + 1..];
+                        }
+                        writer.flush()?;
+                    }
+
+                    // Clear line accumulator once we've seen a full line
+                    if line_acc.contains('\n') {
                         line_acc.clear();
                     }
                 }
-                if suppress {
-                    continue;
-                }
-
-                // ── Verbose timestamp prefix ─────────────────────────────────
-                // In verbose mode, prepend a timestamp before each line of
-                // output. We still pass the original bytes through for colour.
-                if config.verbose {
-                    // Walk the incoming text line by line, printing a timestamp
-                    // before each newline-terminated chunk.
-                    let mut remaining = text.as_ref();
-                    while let Some(pos) = remaining.find('\n') {
-                        let chunk = &remaining[..=pos];
-                        let clean = strip_ansi(chunk);
-                        // Only print timestamp for non-empty lines
-                        if !clean.trim().is_empty() {
-                            print!("[{}] {}", get_timestamp(), chunk);
-                        } else {
-                            print!("{}", chunk);
-                        }
-                        remaining = &remaining[pos + 1..];
+                Ok(_) => {}
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
+                Err(e) => {
+                    eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
+                    if let Some(ref mut writer) = log_writer {
+                        writeln!(writer, "ERROR [{}]: {}", get_timestamp(), e)?;
+                        writer.flush()?;
                     }
-                    // Print any trailing partial line (e.g. the prompt)
-                    if !remaining.is_empty() {
-                        print!("{}", remaining);
-                    }
-                } else {
-                    // Non-verbose: pass raw bytes straight through so Zephyr's
-                    // own ANSI colours and \r\n handling reach the terminal
-                    // untouched.
-                    io::stdout().write_all(raw)?;
-                }
-                io::stdout().flush()?;
-
-                // ── Logging ───────────────────────────────────────────────────
-                if let Some(ref mut writer) = log_writer {
-                    // Log each complete line
-                    let mut remaining = text.as_ref();
-                    while let Some(pos) = remaining.find('\n') {
-                        let chunk = &remaining[..=pos];
-                        let clean = strip_ansi(chunk);
-                        writeln!(writer, "RX [{}]: {}", get_timestamp(), clean.trim_end())?;
-                        remaining = &remaining[pos + 1..];
-                    }
-                    writer.flush()?;
-                }
-
-                // Clear line accumulator once we've seen a full line
-                if line_acc.contains('\n') {
-                    line_acc.clear();
-                }
-            }
-            Ok(_) => {}
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
-            Err(e) => {
-                eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
-                if let Some(ref mut writer) = log_writer {
-                    writeln!(writer, "ERROR [{}]: {}", get_timestamp(), e)?;
-                    writer.flush()?;
                 }
             }
         }
@@ -256,15 +279,18 @@ pub fn run_normal_mode(
             let clean = input.trim_end();
             if !clean.is_empty() {
                 let message = format!("{}\r", clean);
-                if let Err(e) = port.write_all(message.as_bytes()) {
-                    eprintln!("{color_red}❌ Write error: {e}{color_reset}");
-                    if let Some(ref mut writer) = log_writer {
-                        writeln!(writer, "ERROR [{}]: Write error: {}", get_timestamp(), e)?;
-                        writer.flush()?;
+
+                if let Some(p) = port.as_mut() {
+                    if let Err(e) = p.write_all(message.as_bytes()) {
+                        eprintln!("{color_red}❌ Write error: {e}{color_reset}");
+                        if let Some(ref mut writer) = log_writer {
+                            writeln!(writer, "ERROR [{}]: Write error: {}", get_timestamp(), e)?;
+                            writer.flush()?;
+                        }
+                        continue;
                     }
-                    continue;
+                    p.flush()?;
                 }
-                port.flush()?;
 
                 last_sent = Some(clean.to_string());
                 line_acc.clear();
@@ -283,9 +309,11 @@ pub fn run_normal_mode(
         }
 
         // ── Control bytes (e.g. Ctrl+L repaint) ─────────────────────────────
-        if let Ok(byte) = ctrl_rx.try_recv() {
-            let _ = port.write_all(&[byte]);
-            let _ = port.flush();
+        if let Ok(byte) = ctrl_rx.try_recv()
+            && let Some(p) = port.as_mut()
+        {
+            let _ = p.write_all(&[byte]);
+            let _ = p.flush();
         }
 
         thread::sleep(Duration::from_millis(10));

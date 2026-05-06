@@ -21,6 +21,7 @@ pub struct Config {
     pub zephyr: Option<bool>,
     pub export_limit: Option<usize>,
     pub plot_title: Option<String>,
+    pub simulate: Option<bool>,
 }
 
 impl Default for Config {
@@ -41,6 +42,7 @@ impl Default for Config {
             zephyr: Some(false),
             export_limit: Some(1_000_000), // Defaults to 1 million points per sensor
             plot_title: None,
+            simulate: Some(false),
         }
     }
 }
@@ -48,7 +50,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.3.4-alpha",
+    version = "0.3.5",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -115,6 +117,9 @@ pub struct Args {
         help = "Set the plot title for the exported SVG file"
     )]
     pub plot_title: Option<String>,
+
+    #[arg(long = "simulate", action = clap::ArgAction::SetTrue, help = "Simulate Serial Data with no need for hardware (Use for testing ComChan)")]
+    pub simulate: bool,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -135,6 +140,7 @@ pub struct MergedConfig {
     pub zephyr: bool,
     pub export_limit: usize,
     pub plot_title: String,
+    pub simulate: bool,
 }
 
 // ── Platform helpers ─────────────────────────────────────────────────────────
@@ -297,5 +303,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
             .plot_title
             .or(config.plot_title)
             .unwrap_or_else(|| "Sensor Data".to_string()),
+        simulate: args.simulate || config.simulate.unwrap_or(false),
     }
 }

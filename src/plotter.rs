@@ -201,14 +201,19 @@ pub fn run_plotter_mode(
     let parity = parse_parity(&config.parity)?;
     let flow_control = parse_flow_control(&config.flow_control)?;
 
-    let mut port = serialport::new(&port_name, config.baud)
-        .timeout(Duration::from_millis(config.timeout_ms))
-        .data_bits(data_bits)
-        .stop_bits(stop_bits)
-        .parity(parity)
-        .flow_control(flow_control)
-        .open()?;
-
+    let mut port = if config.simulate {
+        None
+    } else {
+        Some(
+            serialport::new(&port_name, config.baud)
+                .timeout(Duration::from_millis(config.timeout_ms))
+                .data_bits(data_bits)
+                .stop_bits(stop_bits)
+                .parity(parity)
+                .flow_control(flow_control)
+                .open()?,
+        )
+    };
     let mut log_writer: Option<BufWriter<std::fs::File>> =
         if let Some(ref log_path) = config.log_file {
             let file = OpenOptions::new()
@@ -276,26 +281,40 @@ pub fn run_plotter_mode(
         }
 
         // ── Serial read ───────────────────────────────────────────────────────
-        match port.read(&mut serial_buf) {
-            Ok(n) if n > 0 => {
-                let chunk = String::from_utf8_lossy(&serial_buf[..n]);
-                state.receive_buf.push_str(&chunk);
+        if config.simulate {
+            let t = state.x * 0.1;
+            let temp = (t * 1.0).sin() * 50.0;
+            let hum = (t * 0.8).cos() * 50.0;
+            let pres = (t * 0.5).sin() * 50.0;
 
-                while let Some(pos) = state.receive_buf.find('\n') {
-                    let line = state.receive_buf.drain(..=pos).collect::<String>();
+            state.ingest_line(&format!("Temperature: {:.2}", temp), config.plot_points);
+            state.ingest_line(&format!("Humidity: {:.2}", hum), config.plot_points);
+            state.ingest_line(&format!("Pressure: {:.2}", pres), config.plot_points);
 
-                    if let Some(ref mut writer) = log_writer {
-                        let _ = writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
-                        let _ = writer.flush();
+            std::thread::sleep(Duration::from_millis(50));
+        } else if let Some(p) = port.as_mut() {
+            match p.read(&mut serial_buf) {
+                Ok(n) if n > 0 => {
+                    let chunk = String::from_utf8_lossy(&serial_buf[..n]);
+                    state.receive_buf.push_str(&chunk);
+
+                    while let Some(pos) = state.receive_buf.find('\n') {
+                        let line = state.receive_buf.drain(..=pos).collect::<String>();
+
+                        if let Some(ref mut writer) = log_writer {
+                            let _ =
+                                writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
+                            let _ = writer.flush();
+                        }
+
+                        state.ingest_line(&line, config.plot_points);
                     }
-
-                    state.ingest_line(&line, config.plot_points);
                 }
-            }
-            Ok(_) => {}
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
-            Err(e) => {
-                state.last_error = Some(format!("Read error: {}", e));
+                Ok(_) => {}
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
+                Err(e) => {
+                    state.last_error = Some(format!("Read error: {}", e));
+                }
             }
         }
 

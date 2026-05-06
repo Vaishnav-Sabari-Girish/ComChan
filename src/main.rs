@@ -53,30 +53,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return list_available_ports();
     }
 
-    let port_name = match &merged.port {
-        Some(p) if p.to_lowercase() == "auto" => match port_finder::find_usb_port()? {
-            Some(detected) => {
-                println!(
-                    "{color_green} Auto-detected USB port: {}{color_reset}",
+    let port_name = if merged.simulate {
+        println!("{color_magenta}Starting in SIMULATE mode....{color_reset}");
+        "SIMULATE_PORT".to_string()
+    } else {
+        match &merged.port {
+            Some(p) if p.to_lowercase() == "auto" => match port_finder::find_usb_port()? {
+                Some(detected) => {
+                    println!(
+                        "{color_green} Auto-detected USB port: {}{color_reset}",
+                        detected
+                    );
                     detected
-                );
-                detected
-            }
+                }
+                None => {
+                    eprintln!(
+                        "{color_red}No USB serial ports found for auto-detection{color_reset}"
+                    );
+                    eprintln!("{color_yellow}Try --list-ports to see available ports{color_reset}");
+                    std::process::exit(1);
+                }
+            },
+            Some(p) => p.clone(),
             None => {
                 eprintln!(
-                    "{color_red}❌ No USB serial ports found for auto-detection{color_reset}"
+                    "{color_red}❌ No port specified. Use --port <PORT>, --auto, or set port in config{color_reset}"
                 );
-                eprintln!("{color_yellow}󰌵 Try --list-ports to see available ports{color_reset}");
+                eprintln!("{color_yellow}󰌵 Try --list-ports or --generate-config{color_reset}");
                 std::process::exit(1);
             }
-        },
-        Some(p) => p.clone(),
-        None => {
-            eprintln!(
-                "{color_red}❌ No port specified. Use --port <PORT>, --auto, or set port in config{color_reset}"
-            );
-            eprintln!("{color_yellow}󰌵 Try --list-ports or --generate-config{color_reset}");
-            std::process::exit(1);
         }
     };
 
