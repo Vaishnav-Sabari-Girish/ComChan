@@ -5,6 +5,22 @@
 
 ### :rocket: New features
 
+- **(simulate)** Add simulate option to simulate without hardware
+
+
+### :twisted_rightwards_arrows: Pull Requests
+
+- Merge pull request #49 from Vaishnav-Sabari-Girish/feat/simulate_mode
+
+feat(simulate): Add simulate option to simulate without hardware
+
+
+## v0.3.5-beta - 2026-04-30
+
+
+
+### :rocket: New features
+
 - **(plot-title)** Add custom plot-title option
 
 
@@ -19,6 +35,8 @@
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
