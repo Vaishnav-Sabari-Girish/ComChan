@@ -1,9 +1,20 @@
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, Parser, ValueEnum};
 use clap_complete::Shell;
+use clap_complete_nushell::Nushell;
 use inline_colorization::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum GenShell {
+    Bash,
+    Zsh,
+    Fish,
+    Elvish,
+    PowerShell,
+    Nu,
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -57,7 +68,7 @@ impl Default for Config {
 )]
 pub struct Args {
     #[arg(long = "completions", value_enum, help = "Generate Shell completions")]
-    pub completions: Option<Shell>,
+    pub completions: Option<GenShell>,
 
     #[arg(short = 'p', long = "port", help = "Serial port to connect to")]
     pub port: Option<String>,
@@ -148,10 +159,21 @@ pub struct MergedConfig {
 }
 
 // Generate completions
-pub fn print_completions(shell: Shell) {
+pub fn print_completions(shell: GenShell) {
     let mut cmd = Args::command();
     let bin_name = cmd.get_name().to_string();
-    clap_complete::generate(shell, &mut cmd, bin_name, &mut std::io::stdout());
+    let mut stdout = std::io::stdout();
+
+    match shell {
+        GenShell::Bash => clap_complete::generate(Shell::Bash, &mut cmd, bin_name, &mut stdout),
+        GenShell::Elvish => clap_complete::generate(Shell::Elvish, &mut cmd, bin_name, &mut stdout),
+        GenShell::Zsh => clap_complete::generate(Shell::Zsh, &mut cmd, bin_name, &mut stdout),
+        GenShell::PowerShell => {
+            clap_complete::generate(Shell::PowerShell, &mut cmd, bin_name, &mut stdout)
+        }
+        GenShell::Fish => clap_complete::generate(Shell::Fish, &mut cmd, bin_name, &mut stdout),
+        GenShell::Nu => clap_complete::generate(Nushell, &mut cmd, bin_name, &mut stdout),
+    }
 }
 
 // ── Platform helpers ─────────────────────────────────────────────────────────
