@@ -265,11 +265,23 @@ pub fn run_normal_mode(
                 Ok(_) => {}
                 Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
                 Err(e) => {
-                    eprintln!("{color_red}❌ Serial read error: {e}{color_reset}");
+                    eprintln!(
+                        "\r\n{color_yellow}Device connection lost ({color_red}{}{color_yellow}). Exiting...{color_reset}",
+                        e
+                    );
+
                     if let Some(ref mut writer) = log_writer {
-                        writeln!(writer, "ERROR [{}]: {}", get_timestamp(), e)?;
-                        writer.flush()?;
+                        writeln!(
+                            writer,
+                            "ERROR [{}]: Connection lost: {}",
+                            get_timestamp(),
+                            e
+                        )
+                        .ok();
+                        let _ = writer.flush();
                     }
+
+                    break;
                 }
             }
         }
