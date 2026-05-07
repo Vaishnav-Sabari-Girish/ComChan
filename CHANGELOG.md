@@ -3,9 +3,19 @@
 
 
 
+### :rocket: New features
+
+- **(completions)** Add completions
+
+
 ### :page_facing_up: Documentation
 
 - **(cliff)** Update cliff.toml
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.5 - 2026-05-06
