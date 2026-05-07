@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::Shell;
 use inline_colorization::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -50,11 +51,14 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.3.5",
+    version = "0.3.6",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
 pub struct Args {
+    #[arg(long = "completions", value_enum, help = "Generate Shell completions")]
+    pub completions: Option<Shell>,
+
     #[arg(short = 'p', long = "port", help = "Serial port to connect to")]
     pub port: Option<String>,
 
@@ -141,6 +145,13 @@ pub struct MergedConfig {
     pub export_limit: usize,
     pub plot_title: String,
     pub simulate: bool,
+}
+
+// Generate completions
+pub fn print_completions(shell: Shell) {
+    let mut cmd = Args::command();
+    let bin_name = cmd.get_name().to_string();
+    clap_complete::generate(shell, &mut cmd, bin_name, &mut std::io::stdout());
 }
 
 // ── Platform helpers ─────────────────────────────────────────────────────────

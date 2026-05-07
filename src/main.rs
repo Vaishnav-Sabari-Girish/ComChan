@@ -9,7 +9,9 @@ mod plotter;
 mod port_finder;
 mod serial;
 
-use config::{Args, generate_default_config, load_config, merge_config_and_args};
+use config::{
+    Args, generate_default_config, load_config, merge_config_and_args, print_completions,
+};
 use monitor::run_normal_mode;
 use plotter::run_plotter_mode;
 
@@ -41,6 +43,11 @@ fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+
+    if let Some(shell) = args.completions {
+        print_completions(shell);
+        return Ok(());
+    }
 
     if args.generate_config {
         return generate_default_config(args.config_file);
