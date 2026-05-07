@@ -3,9 +3,23 @@
 
 
 
+### :rocket: New features
+
+- **(recovery)** Add recovery after re-connection
+
+
+## v0.3.6-rc3 - 2026-05-07
+
+
+
 ### :bug: Bug fixes
 
 - **(graceful-exit)** Add a graceful exit during disconnection
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.6-rc2 - 2026-05-07
