@@ -7,52 +7,7 @@
 **A Blazingly Fast Serial Monitor for Embedded Systems and Serial
 Communication**
 
-[Features](#features) • [Installation](#installation) •
-[Documentation](https://vaishnav.world/ComChan) • [Examples](#examples) •
-
 </div>
-
----
-
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**
-
-- [Installation](#installation)
-  - [From crates.io](#from-cratesio)
-  - [From AUR](#from-aur)
-  - [Using Homebrew](#using-homebrew)
-  - [From source](#from-source)
-- [Documentation](#documentation)
-- [Common Commands](#common-commands)
-  - [Basic Serial Monitor](#basic-serial-monitor)
-  - [Verbose Mode](#verbose-mode)
-  - [Log Mode](#log-mode)
-  - [Serial Plotter](#serial-plotter)
-  - [Automatically Detect Serial Ports](#automatically-detect-serial-ports)
-  - [Use a Configuration File](#use-a-configuration-file)
-- [Features](#features)
-  - [Current Features ✅](#current-features-)
-  - [Planned Features 🚧](#planned-features-)
-  - [Legends](#legends)
-- [Examples](#examples)
-  - ["Hello World" Program](#hello-world-program)
-  - [User Input](#user-input)
-  - [Serial Plotter](#serial-plotter-1)
-  - [Auto Serial Port Detector](#auto-serial-port-detector)
-  - [Using the Configuration File](#using-the-configuration-file)
-    - [Serial Monitor (`plot = false`)](#serial-monitor-plot--false)
-    - [Serial Plotter (`plot = true`)](#serial-plotter-plot--true)
-    - [Serial Plotter Multiple Sensor Values](#serial-plotter-multiple-sensor-values)
-  - [Full Working Demo](#full-working-demo)
-  - [ComChan in Windows](#comchan-in-windows)
-- [Community](#community)
-  - [Stargazers over time (Graph)](#stargazers-over-time-graph)
-- [🧠 (mostly) Brain made](#-mostly-brain-made)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
----
 
 ## Installation
 
@@ -66,9 +21,6 @@ Choose your preferred installation method:
 ```bash
 # Install from source
 cargo install comchan
-
-# Install the binary directly (faster)
-cargo binstall comchan
 ```
 
 Verify the installation:
@@ -90,37 +42,59 @@ yay -S comchan
 paru -S comchan
 ```
 
-### Using Homebrew
-
-ComChan can be installed via Homebrew taps:
-
-```bash
-brew install Vaishnav-Sabari-Girish/taps/comchan
-```
-
 ### From source
 
 Build from source for the latest development version:
 
+You can do either of the following
+
+```bash
+cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+```
+
+OR
+
 ```bash
 # Clone from GitHub
-git clone git@github.com:Vaishnav-Sabari-Girish/ComChan.git
-
-# Or clone from Codeberg
-git clone ssh://git@codeberg.org/Vaishnav-Sabari-Girish/ComChan.git
+git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 # Build and run
 cd ComChan
-cargo build --release
-cargo run
+cargo run --release -- --version
 ```
 
----
+## CLI Usage
 
-## Documentation
+```text
+Blazingly Fast Minimal Serial Monitor with Plotting
 
-📚 The full documentation for ComChan can be found at
-**[vaishnav.world/ComChan](https://vaishnav.world/ComChan)**
+Usage: comchan [OPTIONS]
+
+Options:
+      --completions <COMPLETIONS>     Generate Shell completions [possible values: bash, zsh, fish, elvish, power-shell, nu]
+  -p, --port <PORT>                   Serial port to connect to
+  -r, --baud <BAUD>                   Baud Rate of the Serial Monitor
+  -d, --data-bits <DATA_BITS>         
+  -s, --stop-bits <STOP_BITS>         
+      --parity <PARITY>               
+      --flow-control <FLOW_CONTROL>   
+  -t, --timeout <TIMEOUT_MS>          
+      --reset-delay <RESET_DELAY_MS>  
+  -l, --log <LOG_FILE>                Log Serial data into a file
+      --list-ports                    List all available ports
+      --auto                          Auto-detect USB serial port
+  -v, --verbose                       
+      --plot                          Launch the serial plotter
+      --plot-points <PLOT_POINTS>     
+  -c, --config <CONFIG_FILE>          Path to config file
+      --generate-config               
+      --zephyr                        Enables Zephyr Shell mode
+      --export-limit <EXPORT_LIMIT>   Max points to keep in memory for export per sensor
+      --plot-title <PLOT_TITLE>       Set the plot title for the exported SVG file
+      --simulate                      Simulate Serial Data with no need for hardware (Use for testing ComChan)
+  -h, --help                          Print help
+  -V, --version                       Print version
+```
 
 ---
 
@@ -144,12 +118,11 @@ comchan -p /dev/ttyUSB0 -r 9600
 
 ### Verbose Mode
 
-Get detailed information about the serial connection:
+Get detailed information about the serial connection (now uses local
+timestamps):
 
 ```bash
 comchan -p <port> -r <baud_rate> -v
-# OR
-comchan --port <port> --baud <baud_rate> --verbose
 ```
 
 ### Log Mode
@@ -158,20 +131,28 @@ Save serial output to a log file:
 
 ```bash
 comchan -p <port> -r <baud_rate> -l <log_file_name>
-# OR
-comchan --port <port> --baud <baud_rate> --log <log_file_name>
 ```
 
 📄 [View example log file](./test.log)
 
 ### Serial Plotter
 
-Visualize sensor data in real-time:
+Visualize sensor data in real-time, with optional SVG exports:
 
 ```bash
 comchan --port <port> --baud <baud_rate> --plot
-# OR
-comchan -p <port> -r <baud_rate> --plot
+```
+
+*Want to export the plot?*
+
+```bash
+comchan -r 115200 --plot    # In the Serial plotter window press CTRL+S
+```
+
+*Add a title and memory limit (Both are optional):*
+
+```bash
+comchan -r 115200 --plot --plot-title "Plot Title" --export-limit 5000
 ```
 
 ### Automatically Detect Serial Ports
@@ -184,39 +165,52 @@ comchan --auto
 
 # With custom baud rate
 comchan --auto --baud <baud_rate>
-# OR
-comchan --auto -r <baud_rate>
 ```
 
-**Example:**
+### Generate Shell Completions
+
+Generate autocomplete scripts for your favorite shell (`bash`, `zsh`, `fish`,
+`elvish`, `power-shell`, or `nu`):
 
 ```bash
-comchan --auto --baud 115200
+comchan --completions zsh > ~/.zshrc
+comchan --completions nu > ~/.config/nushell/comchan-completions.nu
+```
+
+### Simulate Mode
+
+Want to test ComChan or the Plotter without a physical microcontroller plugged
+in? Use simulate mode to generate mock sensor data!
+
+```bash
+comchan --simulate --plot
+```
+
+### Zephyr Shell Mode
+
+If you are working with Zephyr RTOS, enable the dedicated Zephyr shell mode for
+a better interactive experience:
+
+```bash
+comchan --auto --zephyr
 ```
 
 ### Use a Configuration File
 
-Starting from version 0.1.9, you can use a configuration file instead of
-command-line flags:
+You can use a configuration file instead of command-line flags:
 
 ```bash
 # Generate default configuration file
 comchan --generate-config
 ```
 
-This creates a config file at `~/.config/comchan/comchan.toml`
+This creates a config file at `~/.config/comchan/comchan.toml` (or
+`%APPDATA%\comchan\comchan.toml` on Windows).
 
 **Example Configuration:**
 
 ```toml
 # ComChan Configuration File
-#
-# This file contains default settings for comchan serial monitor.
-# Command line arguments will override these settings.
-#
-# To use auto-detection, set port = "auto"
-# Available parity options: "none", "odd", "even"
-# Available flow control options: "none", "software", "hardware"
 
 port = "auto"
 baud = 9600
@@ -229,12 +223,11 @@ reset_delay_ms = 1000
 verbose = false
 plot = false
 plot_points = 100
+zephyr = false
+export_limit = 1000000
+plot_title = "Sensor Data"
+simulate = false
 ```
-
-> [!NOTE]
-> The default baud rate is `9600`. You can customize it in the config file or
-> override it with command-line flags (`--auto`, `--port`/`-p`, `--baud`/`-r`,
-> `--plot`).
 
 ---
 
@@ -242,123 +235,30 @@ plot_points = 100
 
 ### Current Features ✅
 
-- **Read Serial Data** - Monitor incoming serial data from any serial port
-- **Write to Serial Port** - Send data to your serial device
-- **Basic Logging** - Save serial output to log files
+- **Read & Write Serial Data** - Monitor incoming data and send commands to your
+  device.
+- **Auto-Recovery & Graceful Exit** - Automatically detects broken pipes and
+  safely shuts down or reconnects when hardware is unplugged/replugged.
+- **Terminal-Based Serial Plotter** - Visualize multiple sensor values in
+  real-time with automatic legends using the `--plot` flag.
+- **Export Plot to SVG** - Save your visualized serial data as an SVG image,
+  complete with custom plot titles and memory-safe export limits.
+- **Hardware Simulation** - Test ComChan functionalities and plotting without
+  needing physical hardware connected (`--simulate`).
+- **Zephyr Shell Support** - Dedicated mode for cleanly interacting with Zephyr
+  RTOS shells.
+- **Shell Completions** - Native tab-autocomplete support for Bash, Zsh, Fish,
+  Elvish, PowerShell, and Nushell.
 - **Auto-Detect Serial Ports** - Automatically find connected serial devices
-- **Configuration Files** - Use `.toml` files instead of command-line flags
-- **Terminal-Based Serial Plotter** - Visualize data in real-time with the
-  `--plot` flag
-- **Multiple Sensor Plotting** - Plot multiple sensor values simultaneously with
-  legends
+  (`--auto`).
+- **Configuration Files** - Use `.toml` files instead of typing out long
+  command-line flags every time.
+- **Basic Logging & Local Timestamps** - Save serial output to log files with
+  accurate local time tracking.
+- **Control Codes** - Send `CTRL+L` to clear the screen and nudge the device to
+  redraw prompts natively.
 
-### Planned Features 🚧
-
-- **Export Serial Data** - Write serial data to files (`.txt`, `.csv`, and more)
-
-### Legends
-
-- ✅ Implemented Features
-- 🚧 Yet to be implemented
-
----
-
-## Examples
-
-### "Hello World" Program
-
-Basic serial monitoring in action:
-
-![Hello World Demo](./videos/basic_serial_mon.gif)
-
-📝
-[View Arduino code](./code_tests/test_comchan_arduino_uno/test_comchan_arduino_uno.ino)
-
----
-
-### User Input
-
-Interactive serial communication:
-
-![User Input Demo](./videos/basic_user_input.gif)
-
-📝 [View Arduino code](./code_tests/test_user_input/test_user_input.ino)
-
----
-
-### Serial Plotter
-
-Real-time data visualization:
-
-![Serial Plotter Demo](./videos/plotter.gif)
-
-📝 [View Arduino code](./code_tests/random_sensor_vals/random_sensor_vals.ino)
-
----
-
-### Auto Serial Port Detector
-
-Automatic port detection in action:
-
-![Auto-detect Demo](./videos/auto.gif)
-
----
-
-### Using the Configuration File
-
-#### Serial Monitor (`plot = false`)
-
-![Config Monitor Demo](./videos/config_mon.gif)
-
-#### Serial Plotter (`plot = true`)
-
-![Config Plotter Demo](./videos/config_plot.gif)
-
-#### Serial Plotter Multiple Sensor Values
-
-Plot multiple sensors simultaneously with automatic legends:
-
-![Multiple Sensor Plot](./videos/multiple_sensor_plot.gif)
-
-📝
-[View Arduino code](./code_tests/random_sensor_vals_multiple/random_sensor_vals_multiple.ino)
-
----
-
-### Full Working Demo
-
-Complete workflow demonstration:
-
-![Full Demo](./videos/full.gif)
-
----
-
-### ComChan in Windows
-
-As of Version 0.2.2, ComChan works perfectly on Windows with no limitations!
-
-[![ComChan Windows Demo](https://img.youtube.com/vi/23sSd4_bcxM/0.jpg)](https://www.youtube.com/watch?v=23sSd4_bcxM)
-
-**Windows Installation:**
-
-1. Download the `.exe` file from the
-   [releases page](https://github.com/Vaishnav-Sabari-Girish/ComChan/releases)
-2. Open Command Prompt or PowerShell
-3. Navigate to the download location:
-
-   ```powershell
-   cd Downloads
-   ```
-
-4. Run ComChan:
-
-   ```powershell
-   comchan.exe --help
-   ```
-
-## Community
-
-### Stargazers over time (Graph)
+## Stargazers over time (Graph)
 
 [![Stargazers over time](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan.svg?variant=adaptive)](https://starchart.cc/Vaishnav-Sabari-Girish/ComChan)
 
