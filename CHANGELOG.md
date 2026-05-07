@@ -5,6 +5,15 @@
 
 ### :rocket: New features
 
+- **(nushell)** Add completions for nushell
+
+
+## v0.3.6-rc1 - 2026-05-07
+
+
+
+### :rocket: New features
+
 - **(completions)** Add completions
 
 
@@ -14,6 +23,8 @@
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
