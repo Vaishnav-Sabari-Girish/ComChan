@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+echo "Clean build artifacts"
+cargo clean
+
 # Ensure the script runs from the repository root
 cd "$(git rev-parse --show-toplevel)"
 
