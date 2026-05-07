@@ -3,9 +3,23 @@
 
 
 
+### :bug: Bug fixes
+
+- **(graceful-exit)** Add a graceful exit during disconnection
+
+
+## v0.3.6-rc2 - 2026-05-07
+
+
+
 ### :rocket: New features
 
 - **(nushell)** Add completions for nushell
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.6-rc1 - 2026-05-07
