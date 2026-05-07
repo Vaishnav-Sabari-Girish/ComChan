@@ -3,9 +3,23 @@
 
 
 
+### :page_facing_up: Documentation
+
+- **(README)** Update README
+
+
+## v0.3.6-rc4 - 2026-05-07
+
+
+
 ### :rocket: New features
 
 - **(recovery)** Add recovery after re-connection
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.6-rc3 - 2026-05-07
