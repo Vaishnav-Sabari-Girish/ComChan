@@ -9,6 +9,10 @@ Communication**
 
 </div>
 
+[![Crates info](https://img.shields.io/crates/v/comchan.svg)](https://crates.io/crates/comchan)
+[![License: MIT](https://img.shields.io/github/license/Vaishnav-Sabari-Girish/ComChan?color=blue)](LICENSE)
+![Rust](https://img.shields.io/github/languages/top/Vaishnav-Sabari-Girish/ComChan?color=orange)
+
 ## Installation
 
 Choose your preferred installation method:
