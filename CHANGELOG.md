@@ -5,7 +5,21 @@
 
 ### :page_facing_up: Documentation
 
+- **(badges)** Add badges
+
+
+## v0.3.6 - 2026-05-07
+
+
+
+### :page_facing_up: Documentation
+
 - **(README)** Update README
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.6-rc4 - 2026-05-07
