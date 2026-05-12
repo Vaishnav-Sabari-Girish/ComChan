@@ -1,6 +1,9 @@
+use crate::serial::get_timestamp;
 use plotters::prelude::*;
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs::OpenOptions;
+use std::io::{BufWriter, Write};
 
 pub fn export_to_svg(
     data: &HashMap<String, Vec<(f64, f64)>>,
@@ -86,4 +89,64 @@ pub fn export_to_svg(
 
     root.present()?;
     Ok(())
+}
+
+pub struct CsvStreamer {
+    writer: BufWriter<std::fs::File>,
+    headers: Vec<String>,
+    header_written: bool,
+}
+
+impl CsvStreamer {
+    pub fn new(filename: &str) -> std::io::Result<Self> {
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(filename)?;
+
+        Ok(Self {
+            writer: BufWriter::new(file),
+            headers: Vec::new(),
+            header_written: false,
+        })
+    }
+
+    pub fn write_row(
+        &mut self,
+        parsed_data: &[(std::borrow::Cow<'_, str>, f64)],
+    ) -> std::io::Result<()> {
+        if parsed_data.is_empty() {
+            return Ok(());
+        }
+
+        if !self.header_written {
+            self.headers = parsed_data
+                .iter()
+                .map(|(name, _)| name.to_string())
+                .collect();
+
+            write!(self.writer, "Timestamp")?;
+
+            for header in &self.headers {
+                write!(self.writer, ",{}", header)?;
+            }
+            writeln!(self.writer)?;
+            self.header_written = true;
+        }
+
+        write!(self.writer, "{}", get_timestamp())?;
+
+        for header in &self.headers {
+            if let Some((_, value)) = parsed_data.iter().find(|(name, _)| name.as_ref() == header) {
+                write!(self.writer, ",{}", value)?;
+            } else {
+                write!(self.writer, ",")?;
+            }
+        }
+
+        writeln!(self.writer)?;
+        self.writer.flush()?;
+
+        Ok(())
+    }
 }
