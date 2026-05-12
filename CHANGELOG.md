@@ -10,10 +10,14 @@
 
 ### :page_facing_up: Documentation
 
+- **(README)** Update README.md
+
 - **(badges)** Add badges
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
