@@ -3,6 +3,15 @@
 
 
 
+### :page_facing_up: Documentation
+
+- **(README)** Update README.md
+
+
+## v0.3.7-rc1 - 2026-05-12
+
+
+
 ### :rocket: New features
 
 - **(csv)** Add CSV file streaming
@@ -16,6 +25,8 @@
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
