@@ -3,9 +3,19 @@
 
 
 
+### :rocket: New features
+
+- **(csv)** Add CSV file streaming
+
+
 ### :page_facing_up: Documentation
 
 - **(badges)** Add badges
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.6 - 2026-05-07
