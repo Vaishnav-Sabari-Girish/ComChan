@@ -34,6 +34,7 @@ pub struct Config {
     pub export_limit: Option<usize>,
     pub plot_title: Option<String>,
     pub simulate: Option<bool>,
+    pub csv_file: Option<String>,
 }
 
 impl Default for Config {
@@ -55,6 +56,7 @@ impl Default for Config {
             export_limit: Some(1_000_000), // Defaults to 1 million points per sensor
             plot_title: None,
             simulate: Some(false),
+            csv_file: None,
         }
     }
 }
@@ -135,6 +137,12 @@ pub struct Args {
 
     #[arg(long = "simulate", action = clap::ArgAction::SetTrue, help = "Simulate Serial Data with no need for hardware (Use for testing ComChan)")]
     pub simulate: bool,
+
+    #[arg(
+        long = "csv",
+        help = "Export numeric data to a CSV file while streaming serial data"
+    )]
+    pub csv_file: Option<String>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -156,6 +164,7 @@ pub struct MergedConfig {
     pub export_limit: usize,
     pub plot_title: String,
     pub simulate: bool,
+    pub csv_file: Option<String>,
 }
 
 // Generate completions
@@ -337,5 +346,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
             .or(config.plot_title)
             .unwrap_or_else(|| "Sensor Data".to_string()),
         simulate: args.simulate || config.simulate.unwrap_or(false),
+        csv_file: args.csv_file.or(config.csv_file),
     }
 }

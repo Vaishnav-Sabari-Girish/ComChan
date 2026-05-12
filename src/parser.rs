@@ -80,45 +80,66 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
     let mut results = Vec::new();
     let line = line.trim();
 
-    // Pattern 1: "Name : Value"
-    if line.contains(':') {
-        let parts: Vec<&str> = line.splitn(2, ':').collect();
-        if parts.len() == 2
-            && let Ok(value) = parts[1].trim().parse::<f64>()
-        {
-            results.push((Cow::Borrowed(parts[0].trim()), value));
-            return results;
-        }
-    }
-
-    // Pattern 2: "Name = Value"
-    if line.contains('=') {
-        let parts: Vec<&str> = line.splitn(2, '=').collect();
-        if parts.len() == 2
-            && let Ok(value) = parts[1].trim().parse::<f64>()
-        {
-            results.push((Cow::Borrowed(parts[0].trim()), value));
-            return results;
-        }
-    }
-
-    // Pattern 3: Comma-separated values
+    // ── Pattern 1: Comma-separated multiple items ──
+    // Handles: "Mag: 45, Gyro: 12" OR "Mag=45, Gyro=12" OR "45, 12"
     if line.contains(',') {
-        let values: Vec<&str> = line.split(',').collect();
-        let parsed: Vec<f64> = values
-            .iter()
-            .filter_map(|s| s.trim().parse::<f64>().ok())
-            .collect();
-        if parsed.len() == values.len() {
-            // All tokens were numeric
-            for (i, v) in parsed.iter().enumerate() {
-                results.push((Cow::Owned(format!("Channel {}", i)), *v));
+        let parts: Vec<&str> = line.split(',').collect();
+        let mut found_any = false;
+
+        for (i, part) in parts.iter().enumerate() {
+            let part = part.trim();
+
+            // Sub-pattern A: "Key : Value"
+            if let Some(pos) = part.find(':') {
+                let (name, val_str) = part.split_at(pos);
+                if let Ok(val) = val_str[1..].trim().parse::<f64>() {
+                    results.push((Cow::Owned(name.trim().to_string()), val));
+                    found_any = true;
+                    continue;
+                }
             }
+
+            // Sub-pattern B: "Key = Value"
+            if let Some(pos) = part.find('=') {
+                let (name, val_str) = part.split_at(pos);
+                if let Ok(val) = val_str[1..].trim().parse::<f64>() {
+                    results.push((Cow::Owned(name.trim().to_string()), val));
+                    found_any = true;
+                    continue;
+                }
+            }
+
+            // Sub-pattern C: Bare number in comma list
+            if let Ok(val) = part.parse::<f64>() {
+                results.push((Cow::Owned(format!("Channel {}", i)), val));
+                found_any = true;
+            }
+        }
+
+        if found_any {
             return results;
         }
     }
 
-    // Pattern 4: Space-separated multiple numbers
+    // ── Pattern 2: Single "Name : Value" (No commas) ──
+    if let Some(pos) = line.find(':') {
+        let (name, val_str) = line.split_at(pos);
+        if let Ok(val) = val_str[1..].trim().parse::<f64>() {
+            results.push((Cow::Borrowed(name.trim()), val));
+            return results;
+        }
+    }
+
+    // ── Pattern 3: Single "Name = Value" (No commas) ──
+    if let Some(pos) = line.find('=') {
+        let (name, val_str) = line.split_at(pos);
+        if let Ok(val) = val_str[1..].trim().parse::<f64>() {
+            results.push((Cow::Borrowed(name.trim()), val));
+            return results;
+        }
+    }
+
+    // ── Pattern 4: Space-separated multiple numbers ──
     let words: Vec<&str> = line.split_whitespace().collect();
     let numeric: Vec<f64> = words.iter().filter_map(|w| w.parse::<f64>().ok()).collect();
     if numeric.len() > 1 {
@@ -128,13 +149,13 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
         return results;
     }
 
-    // Pattern 5: Single bare number
+    // ── Pattern 5: Single bare number ──
     if let Ok(value) = line.parse::<f64>() {
         results.push((Cow::Borrowed("Value"), value));
         return results;
     }
 
-    // Pattern 6: Keyword heuristics
+    // ── Pattern 6: Keyword heuristics fallback ──
     for word in &words {
         let cleaned = word.trim_matches(|c: char| !c.is_ascii_digit() && c != '.' && c != '-');
         if let Ok(value) = cleaned.parse::<f64>() {
@@ -155,7 +176,7 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
                 "Sensor"
             };
             results.push((Cow::Borrowed(sensor_name), value));
-            break;
+            break; // Grab the first heuristic match and exit
         }
     }
 

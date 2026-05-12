@@ -53,14 +53,14 @@ Build from source for the latest development version:
 You can do either of the following
 
 ```bash
-cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+cargo install --git [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
 ```
 
 OR
 
 ```bash
 # Clone from GitHub
-git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
 
 # Build and run
 cd ComChan
@@ -96,6 +96,7 @@ Options:
       --export-limit <EXPORT_LIMIT>   Max points to keep in memory for export per sensor
       --plot-title <PLOT_TITLE>       Set the plot title for the exported SVG file
       --simulate                      Simulate Serial Data with no need for hardware (Use for testing ComChan)
+      --csv <CSV_FILE>                Export numeric data to a CSV file while streaming serial data
   -h, --help                          Print help
   -V, --version                       Print version
 ```
@@ -131,13 +132,27 @@ comchan -p <port> -r <baud_rate> -v
 
 ### Log Mode
 
-Save serial output to a log file:
+Save raw serial output to a log file:
 
 ```bash
 comchan -p <port> -r <baud_rate> -l <log_file_name>
 ```
 
-📄 [View example log file](./test.log)
+[View example log file](./test.log)
+
+### CSV Data Streaming
+
+Continuously stream parsed numeric sensor data into a clean, multi-column CSV
+file on-the-fly. This works perfectly alongside both standard and plotter modes.
+
+```bash
+comchan --auto --baud 115200 --csv sensor_data.csv
+```
+
+[View example CSV file](./sensor_data.csv)
+
+> [!NOTE]
+> Works with `--simulate` ([Simulate Mode](#simulate-mode)) too
 
 ### Serial Plotter
 
@@ -183,8 +198,8 @@ comchan --completions nu > ~/.config/nushell/comchan-completions.nu
 
 ### Simulate Mode
 
-Want to test ComChan or the Plotter without a physical microcontroller plugged
-in? Use simulate mode to generate mock sensor data!
+Want to test ComChan, the Plotter, or CSV Streaming without a physical
+microcontroller plugged in? Use simulate mode to generate mock sensor data!
 
 ```bash
 comchan --simulate --plot
@@ -231,6 +246,7 @@ zephyr = false
 export_limit = 1000000
 plot_title = "Sensor Data"
 simulate = false
+csv_file = "latest_run.csv"
 ```
 
 ---
@@ -245,6 +261,8 @@ simulate = false
   safely shuts down or reconnects when hardware is unplugged/replugged.
 - **Terminal-Based Serial Plotter** - Visualize multiple sensor values in
   real-time with automatic legends using the `--plot` flag.
+- **Continuous CSV Streaming** - Automatically parse and log numeric sensor data
+  into clean, multi-column `.csv` files on-the-fly.
 - **Export Plot to SVG** - Save your visualized serial data as an SVG image,
   complete with custom plot titles and memory-safe export limits.
 - **Hardware Simulation** - Test ComChan functionalities and plotting without

@@ -66,6 +66,14 @@ pub fn run_normal_mode(
         None
     };
 
+    let mut csv_streamer = if let Some(csv_path) = &config.csv_file {
+        crate::export::CsvStreamer::new(csv_path)
+            .map_err(|e| format!("Failed to open CSV file {}: {}", csv_path, e))
+            .ok()
+    } else {
+        None
+    };
+
     println!("{color_green} Listening… (Ctrl+C to exit, Ctrl+L to clear screen){color_reset}\n");
 
     // 2. Setup channels and input thread ONCE
@@ -122,6 +130,9 @@ pub fn run_normal_mode(
     let mut buffer = [0u8; 1024];
     let mut last_sent: Option<String> = None;
     let mut line_acc = String::new();
+    let mut rx_buf = String::new();
+    let mut lines_discarded = 0;
+    const DISCARD_COUNT: usize = 5;
 
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
@@ -189,13 +200,19 @@ pub fn run_normal_mode(
                     .unwrap()
                     .as_secs_f64();
                 let sim_text = format!(
-                    "Temperature: {:2}\r\nHumidity: {:.2}\r\nPressure: {:.2}\r\n",
+                    "Temperature: {:2}, Humidity: {:.2}, Pressure: {:.2}\r\n",
                     (t * 1.0).sin() * 50.0,
                     (t * 0.8).cos() * 50.0,
                     (t * 0.5).sin() * 50.0
                 );
                 io::stdout().write_all(sim_text.as_bytes()).ok();
                 io::stdout().flush().ok();
+
+                if let Some(ref mut streamer) = csv_streamer {
+                    let clean = strip_ansi(sim_text.trim());
+                    let readings = crate::parser::parse_sensor_data(&clean);
+                    let _ = streamer.write_row(&readings);
+                }
 
                 thread::sleep(Duration::from_millis(500));
             } else if let Some(p) = port.as_mut() {
@@ -240,17 +257,65 @@ pub fn run_normal_mode(
                         }
                         io::stdout().flush().ok();
 
-                        // ── Logging ───────────────────────────────────────────────────
-                        if let Some(ref mut writer) = log_writer {
+                        // ── Logging & CSV streaming ───────────────────────────────────────────────────
+                        /*if let Some(ref mut writer) = log_writer {
                             let mut remaining = text.as_ref();
                             while let Some(pos) = remaining.find('\n') {
                                 let chunk = &remaining[..=pos];
                                 let clean = strip_ansi(chunk);
                                 writeln!(writer, "RX [{}]: {}", get_timestamp(), clean.trim_end())
                                     .ok();
+
+                                // Stream to CSV
+                                if let Some(ref mut streamer) = csv_streamer {
+                                    let readings = crate::parser::parse_sensor_data(clean.trim());
+                                    let _ = streamer.write_row(&readings);
+                                }
+
                                 remaining = &remaining[pos + 1..];
                             }
                             let _ = writer.flush();
+                        } else {
+                            if csv_streamer.is_some() {
+                                let mut remaining = text.as_ref();
+                                while let Some(pos) = remaining.find('\n') {
+                                    let chunk = &remaining[..=pos];
+                                    let clean = strip_ansi(chunk);
+
+                                    if let Some(ref mut streamer) = csv_streamer {
+                                        let readings = crate::parser::parse_sensor_data(clean.trim());
+                                        let _ = streamer.write_row(&readings);
+                                    }
+
+                                    remaining = &remaining[pos + 1..];
+                                }
+                            }
+                        }*/
+                        rx_buf.push_str(&text);
+
+                        while let Some(pos) = rx_buf.find('\n') {
+                            let full_line = rx_buf.drain(..=pos).collect::<String>();
+                            let clean = strip_ansi(&full_line);
+                            let trimmed = clean.trim_end();
+
+                            if trimmed.is_empty() {
+                                continue;
+                            }
+
+                            if lines_discarded < DISCARD_COUNT {
+                                lines_discarded += 1;
+                                continue;
+                            }
+
+                            if let Some(ref mut writer) = log_writer {
+                                writeln!(writer, "RX [{}]: {}", get_timestamp(), trimmed).ok();
+                                let _ = writer.flush();
+                            }
+
+                            if let Some(ref mut streamer) = csv_streamer {
+                                let readings = crate::parser::parse_sensor_data(trimmed);
+                                let _ = streamer.write_row(&readings);
+                            }
                         }
 
                         if line_acc.contains('\n') {

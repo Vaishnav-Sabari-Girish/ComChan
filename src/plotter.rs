@@ -48,12 +48,13 @@ struct PlotterState {
 
     export_data: HashMap<String, Vec<(f64, f64)>>,
     pub export_limit: usize,
+    pub csv_streamer: Option<crate::export::CsvStreamer>,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
 
 impl PlotterState {
-    fn new(export_limit: usize) -> Self {
+    fn new(export_limit: usize, csv_streamer: Option<crate::export::CsvStreamer>) -> Self {
         let now = Instant::now();
         PlotterState {
             sensors: HashMap::new(),
@@ -72,6 +73,7 @@ impl PlotterState {
             last_error: None,
             export_data: HashMap::new(),
             export_limit,
+            csv_streamer,
         }
     }
 
@@ -100,6 +102,10 @@ impl PlotterState {
         let readings = parse_sensor_data(clean);
         if readings.is_empty() {
             return;
+        }
+
+        if let Some(streamer) = &mut self.csv_streamer {
+            let _ = streamer.write_row(&readings);
         }
 
         for (name, value) in readings {
@@ -227,7 +233,12 @@ pub fn run_plotter_mode(
 
     std::thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
-    let mut state = PlotterState::new(config.export_limit);
+    let csv_streamer = config
+        .csv_file
+        .as_ref()
+        .and_then(|path| crate::export::CsvStreamer::new(path).ok());
+
+    let mut state = PlotterState::new(config.export_limit, csv_streamer);
     let mut serial_buf = [0u8; 1024];
 
     loop {
