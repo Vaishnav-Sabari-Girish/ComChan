@@ -168,6 +168,10 @@ comchan --port <port> --baud <baud_rate> --plot
 comchan -r 115200 --plot    # In the Serial plotter window press CTRL+S
 ```
 
+The exported plot will look like this
+
+![export](./comchan_plot_13-44-08.632.svg)
+
 *Add a title and memory limit (Both are optional):*
 
 ```bash
