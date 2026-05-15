@@ -3,9 +3,24 @@
 
 
 
+### :rocket: New features
+
+- **(session_replay)** Add Session Replay feature
+
+
 ### :page_facing_up: Documentation
 
 - **(README)** Update README.md
+
+
+### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
+
+
+### :art: Styling
+
+- **(clippy)** Fixed clippy warning about EOF
 
 
 ## v0.3.7-rc1 - 2026-05-12
