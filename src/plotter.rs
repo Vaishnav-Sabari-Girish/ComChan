@@ -318,7 +318,7 @@ pub fn run_plotter_mode(
                     state.ingest_line(&payload, config.plot_points);
                 }
                 crate::replay::ReplayEvent::Waiting => {}
-                crate::replay::ReplayEvent::EOF => {
+                crate::replay::ReplayEvent::Eof => {
                     std::thread::sleep(Duration::from_millis(100));
                 }
             }

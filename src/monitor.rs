@@ -233,7 +233,7 @@ pub fn run_normal_mode(
                         io::stdout().flush().ok();
                     }
                     crate::replay::ReplayEvent::Waiting => {}
-                    crate::replay::ReplayEvent::EOF => {
+                    crate::replay::ReplayEvent::Eof => {
                         println!("\n{color_yellow}Replay Finished.{color_reset}");
                         running.store(false, std::sync::atomic::Ordering::SeqCst);
                         break;

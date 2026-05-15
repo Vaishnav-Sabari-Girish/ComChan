@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 pub enum ReplayEvent {
     Payload(String),
     Waiting,
-    EOF,
+    Eof,
 }
 
 pub struct SessionReplayer {
@@ -102,6 +102,6 @@ impl SessionReplayer {
             }
         }
 
-        ReplayEvent::EOF
+        ReplayEvent::Eof
     }
 }
