@@ -207,7 +207,7 @@ pub fn run_plotter_mode(
     let parity = parse_parity(&config.parity)?;
     let flow_control = parse_flow_control(&config.flow_control)?;
 
-    let mut port = if config.simulate {
+    let mut port = if config.simulate || config.replay_file.is_some() {
         None
     } else {
         Some(
@@ -237,6 +237,15 @@ pub fn run_plotter_mode(
         .csv_file
         .as_ref()
         .and_then(|path| crate::export::CsvStreamer::new(path).ok());
+
+    let mut session_replayer = if let Some(ref path) = config.replay_file {
+        Some(
+            crate::replay::SessionReplayer::new(path)
+                .map_err(|e| format!("Failed to open replay file '{}' : {}", path, e))?,
+        )
+    } else {
+        None
+    };
 
     let mut state = PlotterState::new(config.export_limit, csv_streamer);
     let mut serial_buf = [0u8; 1024];
@@ -303,6 +312,16 @@ pub fn run_plotter_mode(
             state.ingest_line(&format!("Pressure: {:.2}", pres), config.plot_points);
 
             std::thread::sleep(Duration::from_millis(50));
+        } else if let Some(ref mut replayer) = session_replayer {
+            match replayer.next_payload() {
+                crate::replay::ReplayEvent::Payload(payload) => {
+                    state.ingest_line(&payload, config.plot_points);
+                }
+                crate::replay::ReplayEvent::Waiting => {}
+                crate::replay::ReplayEvent::Eof => {
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+            }
         } else if let Some(p) = port.as_mut() {
             match p.read(&mut serial_buf) {
                 Ok(n) if n > 0 => {
@@ -379,7 +398,7 @@ pub fn run_plotter_mode(
             .filter(|s| s.has_data())
             .map(|sensor| {
                 Dataset::default()
-                    .name(format!("{} ({:.2})", sensor.name, sensor.current_value))
+                    //.name(format!("{} ({:.2})", sensor.name, sensor.current_value))
                     .marker(symbols::Marker::Braille)
                     .graph_type(GraphType::Line)
                     .style(Style::default().fg(sensor.color))
@@ -447,8 +466,7 @@ pub fn run_plotter_mode(
                             y_labels[1].as_str(),
                             y_labels[2].as_str(),
                         ]),
-                )
-                .legend_position(Some(LegendPosition::TopLeft));
+                );
 
             f.render_widget(chart, main_row[0]);
 

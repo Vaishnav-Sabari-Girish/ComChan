@@ -97,6 +97,7 @@ Options:
       --plot-title <PLOT_TITLE>       Set the plot title for the exported SVG file
       --simulate                      Simulate Serial Data with no need for hardware (Use for testing ComChan)
       --csv <CSV_FILE>                Export numeric data to a CSV file while streaming serial data
+      --replay <REPLAY_FILE>          Replay a previous session from its *.log or *.csv file
   -h, --help                          Print help
   -V, --version                       Print version
 ```
@@ -178,6 +179,26 @@ The exported plot will look like this
 comchan -r 115200 --plot --plot-title "Plot Title" --export-limit 5000
 ```
 
+### Session Replay
+
+Replay a previously recorded hardware session in real-time. ComChan will read
+the timestamps and perfectly recreate the timing of the original run. This works
+in both standard monitor and plotter modes!
+
+```bash
+# Replay in standard monitor mode
+comchan --replay test.log
+
+# Replay visually in plotter mode
+comchan --plot --replay sensor_data.csv
+```
+
+> [!IMPORTANT]
+> While you can replay both files, **`.log` files are preferred**. When
+> replaying a `.csv`, ComChan skips the header line, meaning your sensor labels
+> won't be explicitly printed, but they will be plotted (they will default to
+> generic labels like "Channel 0", "Channel 1" in plotter mode).
+
 ### Automatically Detect Serial Ports
 
 Let ComChan find your serial device automatically:
@@ -251,6 +272,7 @@ export_limit = 1000000
 plot_title = "Sensor Data"
 simulate = false
 csv_file = "latest_run.csv"
+replay_file = "test.log"
 ```
 
 ---
@@ -265,6 +287,8 @@ csv_file = "latest_run.csv"
   safely shuts down or reconnects when hardware is unplugged/replugged.
 - **Terminal-Based Serial Plotter** - Visualize multiple sensor values in
   real-time with automatic legends using the `--plot` flag.
+- **Real-Time Session Replay** - Play back previously recorded `.log` or `.csv`
+  files natively to analyze anomalies without needing physical hardware.
 - **Continuous CSV Streaming** - Automatically parse and log numeric sensor data
   into clean, multi-column `.csv` files on-the-fly.
 - **Export Plot to SVG** - Save your visualized serial data as an SVG image,
