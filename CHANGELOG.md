@@ -3,6 +3,15 @@
 
 
 
+### :package: Other
+
+- **(ISSUE_TEMPLATE)** Add issue templates
+
+
+## v0.4.0 - 2026-05-15
+
+
+
 ### :rocket: New features
 
 - **(session_replay)** Add Session Replay feature
@@ -14,6 +23,8 @@
 
 
 ### :wrench: Miscellaneous
+
+- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 - **(changelog)** Update CHANGELOG.md for main [skip ci]
 
