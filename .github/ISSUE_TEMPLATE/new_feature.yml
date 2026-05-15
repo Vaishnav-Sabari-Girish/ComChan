@@ -1,0 +1,45 @@
+name: ✨ New Feature
+description: Suggest an idea or enhancement for ComChan
+title: "feat: <short description of the feature>"
+labels:
+  - enhancement
+
+body:
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: Make sure to check if this feature has already been requested.
+      options:
+        - label: I have searched the existing issues
+          required: true
+  - type: textarea
+    attributes:
+      label: Problem Statement (The Pain)
+      description: Explain the pain you're experiencing or the use case you are trying to solve.
+      placeholder: When debugging I2C bridge payloads, standard ASCII text makes it impossible to read the raw bytes cleanly...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Suggested Solution
+      description: Tell us about the solution you have in mind. How should it look/work from the CLI?
+      placeholder: Add a `--hex` flag that formats the output in a classic hex dump format...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Useful Resources
+      description: Provide any Rust crates, documentation, or CLI examples (like xxd) that could help implement this.
+  - type: textarea
+    attributes:
+      label: Additional Information
+      description: Anything else you'd like to include?
+    validations:
+      required: false
+  - type: checkboxes
+    attributes:
+      label: Self Grab
+      description: If you are a developer and want to build this feature yourself, check this box. We welcome contributions!
+      options:
+        - label: I'm ready to work on this issue!
+          required: false

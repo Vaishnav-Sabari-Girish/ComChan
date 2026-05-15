@@ -1,0 +1,100 @@
+name: 🐛 Bug Report
+description: Report a bug, crash, or incorrect behavior in ComChan
+title: "bug: <short description of the issue>"
+labels:
+  - bug
+
+body:
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: |
+        🚨 PLEASE! Make sure to check if this issue is a duplicate. 🚨
+        
+        Try searching with multiple similar keywords, and check the closed issues too.
+      options:
+        - label: I have searched the existing issues
+          required: true
+  - type: textarea
+    attributes:
+      label: Current Behavior
+      description: Write what you are experiencing currently.
+      placeholder: |
+        When I run `comchan --plot`, the terminal UI freezes after 2 minutes...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: Write what you expected to happen.
+      placeholder: |
+        The plotter should continue streaming telemetry without freezing...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the issue. Please be as detailed as possible.
+      placeholder: |
+        1. Connect hardware sending 115200 baud data
+        2. Run `comchan -p /dev/ttyUSB0 -r 115200 --plot`
+        3. Wait for about 2 minutes
+        4. The UI locks up and ignores Ctrl+C
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Logs or Terminal Output
+      description: |
+        If you have any crash logs or error messages, paste them here. 
+        You can use `comchan -l log.txt` to gather raw logs if applicable.
+      value: |
+        <details>
+        <summary>Logs</summary>
+
+        ```text
+        <Replace this line by pasting your logs/output here>
+        ```
+        </details>
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Operating System & Terminal
+      description: What OS and Terminal Emulator are you using?
+      placeholder: Arch Linux / Foot, Windows / Windows Terminal, macOS / iTerm2
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: ComChan Version
+      description: Run `comchan -V` or `comchan --version` and paste the output.
+      placeholder: (e.g.) comchan 0.3.3
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Installation Source
+      description: How did you install ComChan?
+      multiple: true
+      options:
+        - "crates.io (cargo install)"
+        - "Built from source (git clone)"
+        - "Arch User Repository (AUR - yay/paru)"
+        - "GitHub Releases (Binary)"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional Information
+      description: What hardware are you communicating with? (e.g., ESP32, STM32, Arduino) Anything else we should know?
+    validations:
+      required: false
+  - type: checkboxes
+    attributes:
+      label: Self Grab
+      description: |
+        If you are a developer and want to fix this issue yourself, check this box. PRs are highly appreciated!
+      options:
+        - label: I'm ready to work on this issue!
+          required: false
