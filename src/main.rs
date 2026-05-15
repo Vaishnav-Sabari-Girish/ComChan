@@ -7,6 +7,7 @@ mod monitor;
 mod parser;
 mod plotter;
 mod port_finder;
+mod replay;
 mod serial;
 
 use config::{
@@ -60,8 +61,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return list_available_ports();
     }
 
-    let port_name = if merged.simulate {
-        println!("{color_magenta}Starting in SIMULATE mode....{color_reset}");
+    let port_name = if merged.simulate || merged.replay_file.is_some() {
+        println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
         "SIMULATE_PORT".to_string()
     } else {
         match &merged.port {

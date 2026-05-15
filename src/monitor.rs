@@ -74,6 +74,15 @@ pub fn run_normal_mode(
         None
     };
 
+    let mut session_replayer = if let Some(ref path) = config.replay_file {
+        Some(
+            crate::replay::SessionReplayer::new(path)
+                .map_err(|e| format!("Failed to open replay file '{}': {}", path, e))?,
+        )
+    } else {
+        None
+    };
+
     println!("{color_green} Listening… (Ctrl+C to exit, Ctrl+L to clear screen){color_reset}\n");
 
     // 2. Setup channels and input thread ONCE
@@ -136,7 +145,7 @@ pub fn run_normal_mode(
 
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
-        let mut port = if config.simulate {
+        let mut port = if config.simulate || config.replay_file.is_some() {
             None
         } else {
             // Match handles the error instead of returning it
@@ -215,6 +224,21 @@ pub fn run_normal_mode(
                 }
 
                 thread::sleep(Duration::from_millis(500));
+            } else if let Some(ref mut replayer) = session_replayer {
+                match replayer.next_payload() {
+                    crate::replay::ReplayEvent::Payload(payload) => {
+                        let text = format!("{}\r\n", payload);
+
+                        io::stdout().write_all(text.as_bytes()).ok();
+                        io::stdout().flush().ok();
+                    }
+                    crate::replay::ReplayEvent::Waiting => {}
+                    crate::replay::ReplayEvent::EOF => {
+                        println!("\n{color_yellow}Replay Finished.{color_reset}");
+                        running.store(false, std::sync::atomic::Ordering::SeqCst);
+                        break;
+                    }
+                }
             } else if let Some(p) = port.as_mut() {
                 match p.read(&mut buffer) {
                     Ok(n) if n > 0 => {

@@ -35,6 +35,7 @@ pub struct Config {
     pub plot_title: Option<String>,
     pub simulate: Option<bool>,
     pub csv_file: Option<String>,
+    pub replay_file: Option<String>,
 }
 
 impl Default for Config {
@@ -57,6 +58,7 @@ impl Default for Config {
             plot_title: None,
             simulate: Some(false),
             csv_file: None,
+            replay_file: None,
         }
     }
 }
@@ -64,7 +66,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.3.7",
+    version = "0.4.0",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -143,6 +145,12 @@ pub struct Args {
         help = "Export numeric data to a CSV file while streaming serial data"
     )]
     pub csv_file: Option<String>,
+
+    #[arg(
+        long = "replay",
+        help = "Replay a previous session from its *.log or *.csv file"
+    )]
+    pub replay_file: Option<String>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -165,6 +173,7 @@ pub struct MergedConfig {
     pub plot_title: String,
     pub simulate: bool,
     pub csv_file: Option<String>,
+    pub replay_file: Option<String>,
 }
 
 // Generate completions
@@ -347,5 +356,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
             .unwrap_or_else(|| "Sensor Data".to_string()),
         simulate: args.simulate || config.simulate.unwrap_or(false),
         csv_file: args.csv_file.or(config.csv_file),
+        replay_file: args.replay_file.or(config.replay_file),
     }
 }
