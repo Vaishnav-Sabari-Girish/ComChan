@@ -145,6 +145,8 @@ pub fn run_normal_mode(
     let mut lines_discarded = 0;
     const DISCARD_COUNT: usize = 5;
 
+    let mut hex_buf: Vec<u8> = Vec::new();
+
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         let mut port = if config.simulate || config.replay_file.is_some() {
@@ -254,17 +256,34 @@ pub fn run_normal_mode(
                     Ok(n) if n > 0 => {
                         let raw = &buffer[..n];
 
-                        if config.hex_mode.unwrap_or(false) {
-                            let hex_out = format!("{:?}", raw.hex_dump());
+                        if config.hex_mode.unwrap_or(false) || config.hex_pretty.unwrap_or(false) {
+                            let (should_print, data_to_print) =
+                                if config.hex_pretty.unwrap_or(false) {
+                                    hex_buf.extend_from_slice(raw);
 
-                            let raw_mode_safe_hex = hex_out.replace('\n', "\r\n");
+                                    if hex_buf.contains(&b'\n') || hex_buf.len() >= 64 {
+                                        let data = hex_buf.clone();
+                                        hex_buf.clear();
+                                        (true, data)
+                                    } else {
+                                        (false, Vec::new())
+                                    }
+                                } else {
+                                    (true, raw.to_vec())
+                                };
 
-                            print!("\r\n{}\r\n", raw_mode_safe_hex);
-                            io::stdout().flush().ok();
+                            if should_print {
+                                let hex_out = format!("{:?}", data_to_print.hex_dump());
+                                let raw_mode_safe_hex = hex_out.replace('\n', "\r\n");
 
-                            if let Some(ref mut writer) = log_writer {
-                                writeln!(writer, "RX HEX [{}]:\n{}", get_timestamp(), hex_out).ok();
-                                let _ = writer.flush();
+                                print!("\r\n{}\r\n", raw_mode_safe_hex);
+                                io::stdout().flush().ok();
+
+                                if let Some(ref mut writer) = log_writer {
+                                    writeln!(writer, "RX HEX [{}]:\n{}", get_timestamp(), hex_out)
+                                        .ok();
+                                    let _ = writer.flush();
+                                }
                             }
                             continue;
                         }

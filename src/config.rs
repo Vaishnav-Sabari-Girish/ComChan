@@ -37,6 +37,7 @@ pub struct Config {
     pub csv_file: Option<String>,
     pub replay_file: Option<String>,
     pub hex_mode: Option<bool>,
+    pub hex_pretty: Option<bool>,
 }
 
 impl Default for Config {
@@ -61,6 +62,7 @@ impl Default for Config {
             csv_file: None,
             replay_file: None,
             hex_mode: Some(false),
+            hex_pretty: Some(false),
         }
     }
 }
@@ -156,6 +158,9 @@ pub struct Args {
 
     #[arg(short = 'x', long = "hex", action = clap::ArgAction::SetTrue, help = "Display incoming serial data in hex dump format")]
     pub hex_mode: Option<bool>,
+
+    #[arg(long = "hex-pretty", action = clap::ArgAction::SetTrue, help = "Display incoming serial data in a clean, buffered hex-dump format")]
+    pub hex_pretty: Option<bool>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -180,6 +185,7 @@ pub struct MergedConfig {
     pub csv_file: Option<String>,
     pub replay_file: Option<String>,
     pub hex_mode: Option<bool>,
+    pub hex_pretty: Option<bool>,
 }
 
 // Generate completions
@@ -364,5 +370,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         csv_file: args.csv_file.or(config.csv_file),
         replay_file: args.replay_file.or(config.replay_file),
         hex_mode: args.hex_mode.or(config.hex_mode),
+        hex_pretty: args.hex_pretty.or(config.hex_pretty),
     }
 }
