@@ -45,13 +45,11 @@ split_commits = false
 commit_parsers = [
     { message = "^feat", group = "<!-- 0 -->:rocket: New features" },
     { message = "^fix", group = "<!-- 1 -->:bug: Bug fixes" },
-    { message = "^docs", group = "<!-- 2 -->:page_facing_up: Documentation" },
     { message = "^perf", group = "<!-- 3 -->:zap: Performance" },
-    { message = "^chore", group = "<!-- 4 -->:wrench: Miscellaneous" },
     { message = "^refactor", group = "<!-- 5 -->:recycle: Refactoring" },
     { message = "^style", group = "<!-- 6 -->:art: Styling" },
     { message = "^build", group = "<!-- 9 -->:hammer: Build" },
-    { message = ".*", group = "<!-- 11 -->:package: Other" },
+    { message = ".*", skip = true },
 ]
 # An array of regex based parsers to modify commit messages prior to further processing.
 commit_preprocessors = [{ pattern = '\((\w+\s)?#([0-9]+)\)', replace = "" }]
