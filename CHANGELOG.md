@@ -1,13 +1,4 @@
 
-## Unreleased
-
-
-
-### :package: Other
-
-- **(ISSUE_TEMPLATE)** Add issue templates
-
-
 ## v0.4.0 - 2026-05-15
 
 
@@ -15,18 +6,6 @@
 ### :rocket: New features
 
 - **(session_replay)** Add Session Replay feature
-
-
-### :page_facing_up: Documentation
-
-- **(README)** Update README.md
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ### :art: Styling
@@ -43,36 +22,6 @@
 - **(csv)** Add CSV file streaming
 
 
-### :page_facing_up: Documentation
-
-- **(README)** Update README.md
-
-- **(badges)** Add badges
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-
-## v0.3.6 - 2026-05-07
-
-
-
-### :page_facing_up: Documentation
-
-- **(README)** Update README
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-
 ## v0.3.6-rc4 - 2026-05-07
 
 
@@ -80,11 +29,6 @@
 ### :rocket: New features
 
 - **(recovery)** Add recovery after re-connection
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.6-rc3 - 2026-05-07
@@ -96,11 +40,6 @@
 - **(graceful-exit)** Add a graceful exit during disconnection
 
 
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-
 ## v0.3.6-rc2 - 2026-05-07
 
 
@@ -108,11 +47,6 @@
 ### :rocket: New features
 
 - **(nushell)** Add completions for nushell
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.6-rc1 - 2026-05-07
@@ -124,18 +58,6 @@
 - **(completions)** Add completions
 
 
-### :page_facing_up: Documentation
-
-- **(cliff)** Update cliff.toml
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-
 ## v0.3.5 - 2026-05-06
 
 
@@ -143,11 +65,6 @@
 ### :rocket: New features
 
 - **(simulate)** Add simulate option to simulate without hardware
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ## v0.3.5-beta - 2026-04-30
@@ -159,23 +76,9 @@
 - **(plot-title)** Add custom plot-title option
 
 
-### :package: Other
-
-- **(trigger)** Trigger build
-
-
 ### :zap: Performance
 
 - **(&str)** Change &String to &str for idiomatic rust
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ### :hammer: Build
@@ -201,27 +104,6 @@
 - **(zephyr)** Add seperate mode for Zephyr shell
 
 
-### :package: Other
-
-- **(font)** Add font installation
-
-- **(trigger)** Trigger build [skip ci]
-
-
-### :page_facing_up: Documentation
-
-- **(add brain made)** Brain Made section added to README
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-
 ## v0.3.3 - 2026-04-21
 
 
@@ -231,19 +113,6 @@
 - **(control code)** Add control codes (CTRL+L) to clear screen
 
 - **(timestamps)** Timestamps changed from EPOCH to local time
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(cliff.toml)** Update cliff.toml for CHANGELOG
 
 
 ### :hammer: Build
@@ -262,11 +131,6 @@
 - **(zephyr)** Zephyr Shell support
 
 
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-
 ## v0.3.0 - 2026-04-09
 
 
@@ -278,29 +142,9 @@
 - **(bug)** Fixed copy issue for variable `self.x`
 
 
-### :page_facing_up: Documentation
-
-- **(cliff)** Add cliff.toml
-
-- **(theme)** Enhance UI with Luna color palette and modern design
-
-- **(TOC update)** Add guidelines to TOC
-
-- **(discussion link)** Updated Discussion link
-
-- **(add guidelines)** Mentor and Contributor Guidelines
-
-
 ### :zap: Performance
 
 - **(Optimization)** Use Cow to reduce string cloning
-
-
-### :wrench: Miscellaneous
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
-
-- **(changelog)** Update CHANGELOG.md for main [skip ci]
 
 
 ### :recycle: Refactoring
@@ -315,18 +159,6 @@
 ### :rocket: New features
 
 - **(replaced emojis)** Replaced emojis with Nerd Font Characters
-
-
-### :package: Other
-
-- **(removed paper build)** Removed pape build
-
-
-### :wrench: Miscellaneous
-
-- **(remove CONTRIBUTING)** Remove CONTRIBUTING.md file
-
-- **(remove paper files)** Remove Paper files
 
 
 ### :hammer: Build
