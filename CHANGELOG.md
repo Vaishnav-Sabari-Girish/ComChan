@@ -1,4 +1,20 @@
 
+## Unreleased
+
+
+
+### :rocket: New features
+
+- **(hex-pretty)** Add pretty print mode for hex dump
+
+- **(hex mode)** Basic hex mode
+
+
+### :bug: Bug fixes
+
+- **(hex)** Resolve stale buffer, simulate logic, and config types
+
+
 ## v0.4.0 - 2026-05-15
 
 
