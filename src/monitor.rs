@@ -14,6 +14,8 @@ use crossterm::{
     terminal,
 };
 
+use pretty_hex::*;
+
 fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
 
@@ -199,6 +201,7 @@ pub fn run_normal_mode(
         };
 
         let mut is_connected = true;
+        let mut hex_buf: Vec<u8> = Vec::new();
 
         // Read / Write Data
         while running.load(std::sync::atomic::Ordering::SeqCst) && is_connected {
@@ -214,8 +217,16 @@ pub fn run_normal_mode(
                     (t * 0.8).cos() * 50.0,
                     (t * 0.5).sin() * 50.0
                 );
-                io::stdout().write_all(sim_text.as_bytes()).ok();
-                io::stdout().flush().ok();
+
+                if config.hex_mode || config.hex_pretty {
+                    let hex_out = format!("{:?}", sim_text.as_bytes().hex_dump());
+                    let raw_mode_safe_hex = hex_out.replace('\n', "\r\n");
+                    print!("\r\n{}\r\n", raw_mode_safe_hex);
+                    io::stdout().flush().ok();
+                } else {
+                    io::stdout().write_all(sim_text.as_bytes()).ok();
+                    io::stdout().flush().ok();
+                }
 
                 if let Some(ref mut streamer) = csv_streamer {
                     let clean = strip_ansi(sim_text.trim());
@@ -243,6 +254,38 @@ pub fn run_normal_mode(
                 match p.read(&mut buffer) {
                     Ok(n) if n > 0 => {
                         let raw = &buffer[..n];
+
+                        if config.hex_mode || config.hex_pretty {
+                            let (should_print, data_to_print) = if config.hex_pretty {
+                                hex_buf.extend_from_slice(raw);
+
+                                if hex_buf.contains(&b'\n') || hex_buf.len() >= 64 {
+                                    let data = hex_buf.clone();
+                                    hex_buf.clear();
+                                    (true, data)
+                                } else {
+                                    (false, Vec::new())
+                                }
+                            } else {
+                                (true, raw.to_vec())
+                            };
+
+                            if should_print {
+                                let hex_out = format!("{:?}", data_to_print.hex_dump());
+                                let raw_mode_safe_hex = hex_out.replace('\n', "\r\n");
+
+                                print!("\r\n{}\r\n", raw_mode_safe_hex);
+                                io::stdout().flush().ok();
+
+                                if let Some(ref mut writer) = log_writer {
+                                    writeln!(writer, "RX HEX [{}]:\n{}", get_timestamp(), hex_out)
+                                        .ok();
+                                    let _ = writer.flush();
+                                }
+                            }
+                            continue;
+                        }
+
                         let text = String::from_utf8_lossy(raw);
 
                         // ── Echo suppression ─────────────────────────────────────────

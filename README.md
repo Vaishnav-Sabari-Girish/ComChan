@@ -25,12 +25,14 @@ Choose your preferred installation method:
 ```bash
 # Install from source
 cargo install comchan
+
 ```
 
 Verify the installation:
 
 ```bash
 comchan --version
+
 ```
 
 ### From AUR
@@ -44,6 +46,7 @@ yay -S comchan
 
 # Using paru
 paru -S comchan
+
 ```
 
 ### From source
@@ -54,6 +57,7 @@ You can do either of the following
 
 ```bash
 cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+
 ```
 
 OR
@@ -65,6 +69,7 @@ git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 # Build and run
 cd ComChan
 cargo run --release -- --version
+
 ```
 
 ## CLI Usage
@@ -98,8 +103,11 @@ Options:
       --simulate                      Simulate Serial Data with no need for hardware (Use for testing ComChan)
       --csv <CSV_FILE>                Export numeric data to a CSV file while streaming serial data
       --replay <REPLAY_FILE>          Replay a previous session from its *.log or *.csv file
+  -x, --hex                           Display incoming serial data in raw hex dump format
+      --hex-pretty                    Display incoming serial data in a clean, buffered hex dump format
   -h, --help                          Print help
   -V, --version                       Print version
+
 ```
 
 ---
@@ -114,13 +122,33 @@ Monitor serial output from your device:
 comchan -p <port> -r <baud_rate>
 # OR
 comchan --port <port> --baud <baud_rate>
+
 ```
 
 **Example:**
 
 ```bash
 comchan -p /dev/ttyUSB0 -r 9600
+
 ```
+
+### Hex Dump Mode
+
+Analyze raw binary data from industrial equipment (like Modbus RTU), custom
+SPI/I2C bridge payloads, or corrupted serial transmissions:
+
+```bash
+# Raw Mode: Print incoming fragmented USB bytes exactly as they arrive
+comchan --auto --hex
+
+# Pretty Mode: Buffer the incoming bytes into clean, 16-byte aligned frames
+comchan --auto --hex-pretty
+
+```
+
+> [!NOTE]
+> Both hex dump modes can be safely tested locally by passing the `--simulate`
+> flag!
 
 ### Verbose Mode
 
@@ -129,6 +157,7 @@ timestamps):
 
 ```bash
 comchan -p <port> -r <baud_rate> -v
+
 ```
 
 ### Log Mode
@@ -137,6 +166,7 @@ Save raw serial output to a log file:
 
 ```bash
 comchan -p <port> -r <baud_rate> -l <log_file_name>
+
 ```
 
 [View example log file](./test.log)
@@ -148,12 +178,14 @@ file on-the-fly. This works perfectly alongside both standard and plotter modes.
 
 ```bash
 comchan --auto --baud 115200 --csv sensor_data.csv
+
 ```
 
 [View example CSV file](./sensor_data.csv)
 
 > [!NOTE]
-> Works with `--simulate` ([Simulate Mode](#simulate-mode)) too
+> Works with `--simulate`
+> ([Simulate Mode](#simulate-mode)) too
 
 ### Serial Plotter
 
@@ -161,6 +193,7 @@ Visualize sensor data in real-time, with optional SVG exports:
 
 ```bash
 comchan --port <port> --baud <baud_rate> --plot
+
 ```
 
 *Want to export the plot?*
@@ -170,8 +203,6 @@ comchan -r 115200 --plot    # In the Serial plotter window press CTRL+S
 ```
 
 The exported plot will look like this
-
-![export](./comchan_plot_13-44-08.632.svg)
 
 *Add a title and memory limit (Both are optional):*
 
@@ -219,6 +250,7 @@ Generate autocomplete scripts for your favorite shell (`bash`, `zsh`, `fish`,
 ```bash
 comchan --completions zsh > ~/.zshrc
 comchan --completions nu > ~/.config/nushell/comchan-completions.nu
+
 ```
 
 ### Simulate Mode
@@ -228,6 +260,7 @@ microcontroller plugged in? Use simulate mode to generate mock sensor data!
 
 ```bash
 comchan --simulate --plot
+
 ```
 
 ### Zephyr Shell Mode
@@ -237,6 +270,7 @@ a better interactive experience:
 
 ```bash
 comchan --auto --zephyr
+
 ```
 
 ### Use a Configuration File
@@ -246,6 +280,7 @@ You can use a configuration file instead of command-line flags:
 ```bash
 # Generate default configuration file
 comchan --generate-config
+
 ```
 
 This creates a config file at `~/.config/comchan/comchan.toml` (or
@@ -273,6 +308,8 @@ plot_title = "Sensor Data"
 simulate = false
 csv_file = "latest_run.csv"
 replay_file = "test.log"
+hex_mode = false
+hex_pretty = false
 ```
 
 ---
@@ -281,32 +318,35 @@ replay_file = "test.log"
 
 ### Current Features ✅
 
-- **Read & Write Serial Data** - Monitor incoming data and send commands to your
-  device.
-- **Auto-Recovery & Graceful Exit** - Automatically detects broken pipes and
-  safely shuts down or reconnects when hardware is unplugged/replugged.
-- **Terminal-Based Serial Plotter** - Visualize multiple sensor values in
-  real-time with automatic legends using the `--plot` flag.
-- **Real-Time Session Replay** - Play back previously recorded `.log` or `.csv`
-  files natively to analyze anomalies without needing physical hardware.
-- **Continuous CSV Streaming** - Automatically parse and log numeric sensor data
-  into clean, multi-column `.csv` files on-the-fly.
-- **Export Plot to SVG** - Save your visualized serial data as an SVG image,
-  complete with custom plot titles and memory-safe export limits.
-- **Hardware Simulation** - Test ComChan functionalities and plotting without
-  needing physical hardware connected (`--simulate`).
-- **Zephyr Shell Support** - Dedicated mode for cleanly interacting with Zephyr
-  RTOS shells.
-- **Shell Completions** - Native tab-autocomplete support for Bash, Zsh, Fish,
-  Elvish, PowerShell, and Nushell.
-- **Auto-Detect Serial Ports** - Automatically find connected serial devices
-  (`--auto`).
-- **Configuration Files** - Use `.toml` files instead of typing out long
-  command-line flags every time.
-- **Basic Logging & Local Timestamps** - Save serial output to log files with
-  accurate local time tracking.
-- **Control Codes** - Send `CTRL+L` to clear the screen and nudge the device to
-  redraw prompts natively.
+* **Read & Write Serial Data** - Monitor incoming data and send commands to your
+device.
+* **Auto-Recovery & Graceful Exit** - Automatically detects broken pipes and
+safely shuts down or reconnects when hardware is unplugged/replugged.
+* **Terminal-Based Serial Plotter** - Visualize multiple sensor values in
+real-time with automatic legends using the `--plot` flag.
+* **Real-Time Session Replay** - Play back previously recorded `.log` or `.csv`
+files natively to analyze anomalies without needing physical hardware.
+* **Continuous CSV Streaming** - Automatically parse and log numeric sensor data
+into clean, multi-column `.csv` files on-the-fly.
+* **Hex Dump View** - Inspect raw binary payloads with `--hex` for fragmented
+  USB bus truths, or `--hex-pretty` for perfectly aligned, buffered 16-byte
+  frames.
+* **Export Plot to SVG** - Save your visualized serial data as an SVG image,
+complete with custom plot titles and memory-safe export limits.
+* **Hardware Simulation** - Test ComChan functionalities and plotting without
+needing physical hardware connected (`--simulate`).
+* **Zephyr Shell Support** - Dedicated mode for cleanly interacting with Zephyr
+RTOS shells.
+* **Shell Completions** - Native tab-autocomplete support for Bash, Zsh, Fish,
+Elvish, PowerShell, and Nushell.
+* **Auto-Detect Serial Ports** - Automatically find connected serial devices
+(`--auto`).
+* **Configuration Files** - Use `.toml` files instead of typing out long
+command-line flags every time.
+* **Basic Logging & Local Timestamps** - Save serial output to log files with
+accurate local time tracking.
+* **Control Codes** - Send `CTRL+L` to clear the screen and nudge the device to
+redraw prompts natively.
 
 ## Stargazers over time (Graph)
 
@@ -317,23 +357,11 @@ replay_file = "test.log"
 **This project was NOT vibe-coded BUT AI is still involved in some parts of
 it.**
 
-- **Generating test code:** Because it's something I always skip so I would
-  rather have some AI generated tests than none at all.
-- **Micro-improvements:** I have used AI as an advisor to improve some bits of
-  code here and there. Big refactors or new features are done by my hand though.
-
-<a href="https://brainmade.org/">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://brainmade.org/white-logo.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://brainmade.org/black-logo.svg">
-  <img alt="brainmade" src="https://brainmade.org/white-logo.svg">
-</picture>
-</a>
-
-<div align="center">
+* **Generating test code:** Because it's something I always skip so I would
+rather have some AI generated tests than none at all.
+* **Micro-improvements:** I have used AI as an advisor to improve some bits of
+code here and there. Big refactors or new features are done by my hand though.
 
 Made with ❤️ by the ComChan Community
 
 [⬆ Back to Top](#comchan-communication-channel)
-
-</div>
