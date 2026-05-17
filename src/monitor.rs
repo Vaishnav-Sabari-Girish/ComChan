@@ -14,6 +14,8 @@ use crossterm::{
     terminal,
 };
 
+use pretty_hex::*;
+
 fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
 
@@ -214,8 +216,16 @@ pub fn run_normal_mode(
                     (t * 0.8).cos() * 50.0,
                     (t * 0.5).sin() * 50.0
                 );
-                io::stdout().write_all(sim_text.as_bytes()).ok();
-                io::stdout().flush().ok();
+
+                if config.hex_mode.unwrap_or(false) {
+                    let hex_out = format!("{:?}", sim_text.as_bytes().hex_dump());
+                    let raw_mode_safe_hex = hex_out.replace('\n', "\r\n");
+                    print!("\r\n{}\r\n", raw_mode_safe_hex);
+                    io::stdout().flush().ok();
+                } else {
+                    io::stdout().write_all(sim_text.as_bytes()).ok();
+                    io::stdout().flush().ok();
+                }
 
                 if let Some(ref mut streamer) = csv_streamer {
                     let clean = strip_ansi(sim_text.trim());
@@ -243,6 +253,22 @@ pub fn run_normal_mode(
                 match p.read(&mut buffer) {
                     Ok(n) if n > 0 => {
                         let raw = &buffer[..n];
+
+                        if config.hex_mode.unwrap_or(false) {
+                            let hex_out = format!("{:?}", raw.hex_dump());
+
+                            let raw_mode_safe_hex = hex_out.replace('\n', "\r\n");
+
+                            print!("\r\n{}\r\n", raw_mode_safe_hex);
+                            io::stdout().flush().ok();
+
+                            if let Some(ref mut writer) = log_writer {
+                                writeln!(writer, "RX HEX [{}]:\n{}", get_timestamp(), hex_out).ok();
+                                let _ = writer.flush();
+                            }
+                            continue;
+                        }
+
                         let text = String::from_utf8_lossy(raw);
 
                         // ── Echo suppression ─────────────────────────────────────────

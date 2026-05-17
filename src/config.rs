@@ -36,6 +36,7 @@ pub struct Config {
     pub simulate: Option<bool>,
     pub csv_file: Option<String>,
     pub replay_file: Option<String>,
+    pub hex_mode: Option<bool>,
 }
 
 impl Default for Config {
@@ -59,6 +60,7 @@ impl Default for Config {
             simulate: Some(false),
             csv_file: None,
             replay_file: None,
+            hex_mode: Some(false),
         }
     }
 }
@@ -66,7 +68,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.4.0",
+    version = "0.5.0",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -151,6 +153,9 @@ pub struct Args {
         help = "Replay a previous session from its *.log or *.csv file"
     )]
     pub replay_file: Option<String>,
+
+    #[arg(short = 'x', long = "hex", action = clap::ArgAction::SetTrue, help = "Display incoming serial data in hex dump format")]
+    pub hex_mode: Option<bool>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -174,6 +179,7 @@ pub struct MergedConfig {
     pub simulate: bool,
     pub csv_file: Option<String>,
     pub replay_file: Option<String>,
+    pub hex_mode: Option<bool>,
 }
 
 // Generate completions
@@ -357,5 +363,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         simulate: args.simulate || config.simulate.unwrap_or(false),
         csv_file: args.csv_file.or(config.csv_file),
         replay_file: args.replay_file.or(config.replay_file),
+        hex_mode: args.hex_mode.or(config.hex_mode),
     }
 }

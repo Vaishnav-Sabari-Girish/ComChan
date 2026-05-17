@@ -1,6 +1,6 @@
 [package]
 name = "comchan"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 authors = ["Vaishnav Sabari Girish <vaishnav.sabari.girish@gmail.com>"]
 license = "MIT"
@@ -21,6 +21,7 @@ ctrlc = "3.5"
 dirs = "6.0.0"
 inline_colorization = "0.1.6"
 plotters = "0.3.7"
+pretty-hex = "0.4.2"
 ratatui = "0.30.0"
 serde = { version = "1.0", features = ["derive"] }
 serialport = "4.9"
