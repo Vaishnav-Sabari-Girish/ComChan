@@ -145,8 +145,6 @@ pub fn run_normal_mode(
     let mut lines_discarded = 0;
     const DISCARD_COUNT: usize = 5;
 
-    let mut hex_buf: Vec<u8> = Vec::new();
-
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         let mut port = if config.simulate || config.replay_file.is_some() {
@@ -203,6 +201,7 @@ pub fn run_normal_mode(
         };
 
         let mut is_connected = true;
+        let mut hex_buf: Vec<u8> = Vec::new();
 
         // Read / Write Data
         while running.load(std::sync::atomic::Ordering::SeqCst) && is_connected {
@@ -219,7 +218,7 @@ pub fn run_normal_mode(
                     (t * 0.5).sin() * 50.0
                 );
 
-                if config.hex_mode.unwrap_or(false) {
+                if config.hex_mode || config.hex_pretty {
                     let hex_out = format!("{:?}", sim_text.as_bytes().hex_dump());
                     let raw_mode_safe_hex = hex_out.replace('\n', "\r\n");
                     print!("\r\n{}\r\n", raw_mode_safe_hex);
@@ -256,21 +255,20 @@ pub fn run_normal_mode(
                     Ok(n) if n > 0 => {
                         let raw = &buffer[..n];
 
-                        if config.hex_mode.unwrap_or(false) || config.hex_pretty.unwrap_or(false) {
-                            let (should_print, data_to_print) =
-                                if config.hex_pretty.unwrap_or(false) {
-                                    hex_buf.extend_from_slice(raw);
+                        if config.hex_mode || config.hex_pretty {
+                            let (should_print, data_to_print) = if config.hex_pretty {
+                                hex_buf.extend_from_slice(raw);
 
-                                    if hex_buf.contains(&b'\n') || hex_buf.len() >= 64 {
-                                        let data = hex_buf.clone();
-                                        hex_buf.clear();
-                                        (true, data)
-                                    } else {
-                                        (false, Vec::new())
-                                    }
+                                if hex_buf.contains(&b'\n') || hex_buf.len() >= 64 {
+                                    let data = hex_buf.clone();
+                                    hex_buf.clear();
+                                    (true, data)
                                 } else {
-                                    (true, raw.to_vec())
-                                };
+                                    (false, Vec::new())
+                                }
+                            } else {
+                                (true, raw.to_vec())
+                            };
 
                             if should_print {
                                 let hex_out = format!("{:?}", data_to_print.hex_dump());

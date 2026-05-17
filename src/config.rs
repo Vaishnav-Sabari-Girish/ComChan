@@ -184,8 +184,8 @@ pub struct MergedConfig {
     pub simulate: bool,
     pub csv_file: Option<String>,
     pub replay_file: Option<String>,
-    pub hex_mode: Option<bool>,
-    pub hex_pretty: Option<bool>,
+    pub hex_mode: bool,
+    pub hex_pretty: bool,
 }
 
 // Generate completions
@@ -369,7 +369,7 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         simulate: args.simulate || config.simulate.unwrap_or(false),
         csv_file: args.csv_file.or(config.csv_file),
         replay_file: args.replay_file.or(config.replay_file),
-        hex_mode: args.hex_mode.or(config.hex_mode),
-        hex_pretty: args.hex_pretty.or(config.hex_pretty),
+        hex_mode: args.hex_mode.unwrap_or(false) || config.hex_mode.unwrap_or(false),
+        hex_pretty: args.hex_pretty.unwrap_or(false) || config.hex_pretty.unwrap_or(false),
     }
 }

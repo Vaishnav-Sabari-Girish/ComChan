@@ -56,7 +56,7 @@ Build from source for the latest development version:
 You can do either of the following
 
 ```bash
-cargo install --git [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
+cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 ```
 
@@ -64,7 +64,7 @@ OR
 
 ```bash
 # Clone from GitHub
-git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
+git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 # Build and run
 cd ComChan
@@ -169,7 +169,7 @@ comchan -p <port> -r <baud_rate> -l <log_file_name>
 
 ```
 
-[View example log file](https://www.google.com/search?q=./test.log)
+[View example log file](./test.log)
 
 ### CSV Data Streaming
 
@@ -181,11 +181,11 @@ comchan --auto --baud 115200 --csv sensor_data.csv
 
 ```
 
-[View example CSV file](https://www.google.com/search?q=./sensor_data.csv)
+[View example CSV file](./sensor_data.csv)
 
 > [!NOTE]
 > Works with `--simulate`
-> ([Simulate Mode](https://www.google.com/search?q=%23simulate-mode)) too
+> ([Simulate Mode](#simulate-mode)) too
 
 ### Serial Plotter
 
@@ -364,4 +364,4 @@ code here and there. Big refactors or new features are done by my hand though.
 
 Made with ❤️ by the ComChan Community
 
-[⬆ Back to Top](https://www.google.com/search?q=%23comchan-communication-channel)
+[⬆ Back to Top](#comchan-communication-channel)
