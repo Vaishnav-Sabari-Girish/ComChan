@@ -1,16 +1,14 @@
 #!/bin/sh
 set -e
 
-echo "Clean build artifacts"
-cargo clean
-
 # Ensure the script runs from the repository root
 cd "$(git rev-parse --show-toplevel)"
 
-echo "Checking for typos"
+echo "Checking for typos..."
 typos
 
-echo "Formatting Rust code..."
+echo "Formatting Rust code (Workspace)..."
+# --all automatically formats the main binary and all workspace crates
 cargo fmt --all
 
 # Get staged Rust files and re-stage them so the formatting is included in the commit
@@ -19,12 +17,15 @@ if [ -n "$RUST_FILES" ]; then
   echo "$RUST_FILES" | tr '\n' '\0' | xargs -0 -r git add
 fi
 
+echo "Running Clippy (Workspace)..."
+# Run clippy on the whole workspace and fail the commit if there are any warnings
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+
 echo "Fixing all markdown files..."
+# 1. Find every .md file, explicitly IGNORING the target/ and .git/ folders
+find . -type d \( -name target -o -name .git \) -prune -o -type f -name "*.md" ! -name "CHANGELOG.md" -exec rumdl check --fix {} +
 
-# 1. Find every .md file in the repo (except CHANGELOG.md) and format it
-find . -type f -name "*.md" ! -name "CHANGELOG.md" -exec rumdl check --fix {} +
-
-# 2. Stage all of those markdown files so the fixes actually make it into the commit
-find . -type f -name "*.md" ! -name "CHANGELOG.md" -exec git add {} +
+# 2. Stage the fixed files so they make it into the commit
+find . -type d \( -name target -o -name .git \) -prune -o -type f -name "*.md" ! -name "CHANGELOG.md" -exec git add {} +
 
 exit 0

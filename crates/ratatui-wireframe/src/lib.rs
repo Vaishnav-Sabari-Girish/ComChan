@@ -1,10 +1,10 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Style},
+    style::Color,
     widgets::{
         Block, Borders, Widget,
-        canvas::{Canvas, Context, Line},
+        canvas::{Canvas, Line},
     },
 };
 
