@@ -24,8 +24,15 @@ use std::fs::OpenOptions;
 use std::io::{self, BufWriter, Read, Write};
 use std::time::{Duration, Instant};
 
-// ── Plotter state ─────────────────────────────────────────────────────────────
+use ratatui_wireframe::WireframeWidget;
 
+#[derive(PartialEq)]
+enum ActiveTab {
+    Chart2D,
+    Wireframe3D,
+}
+
+// ── Plotter state ─────────────────────────────────────────────────────────────
 struct PlotterState {
     sensors: HashMap<String, SensorData>,
     /// Ordered list of sensor names (insertion order)
@@ -49,6 +56,7 @@ struct PlotterState {
     export_data: HashMap<String, Vec<(f64, f64)>>,
     pub export_limit: usize,
     pub csv_streamer: Option<crate::export::CsvStreamer>,
+    active_tab: ActiveTab,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
@@ -74,6 +82,7 @@ impl PlotterState {
             export_data: HashMap::new(),
             export_limit,
             csv_streamer,
+            active_tab: ActiveTab::Chart2D,
         }
     }
 
@@ -233,6 +242,10 @@ pub fn run_plotter_mode(
 
     std::thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
+    if let Some(p) = port.as_mut() {
+        let _ = p.clear(serialport::ClearBuffer::Input);
+    }
+
     let csv_streamer = config
         .csv_file
         .as_ref()
@@ -262,6 +275,21 @@ pub fn run_plotter_mode(
                 // Space: pause / resume
                 KeyCode::Char(' ') => {
                     state.paused = !state.paused;
+                }
+
+                // Tab changing
+                KeyCode::Char('1') => {
+                    state.active_tab = ActiveTab::Chart2D;
+                }
+                KeyCode::Char('2') => {
+                    state.active_tab = ActiveTab::Wireframe3D;
+                }
+
+                KeyCode::Tab => {
+                    state.active_tab = match state.active_tab {
+                        ActiveTab::Chart2D => ActiveTab::Wireframe3D,
+                        ActiveTab::Wireframe3D => ActiveTab::Chart2D,
+                    }
                 }
 
                 // 'c': clear all data
@@ -303,13 +331,13 @@ pub fn run_plotter_mode(
         // ── Serial read ───────────────────────────────────────────────────────
         if config.simulate {
             let t = state.x * 0.1;
-            let temp = (t * 1.0).sin() * 50.0;
-            let hum = (t * 0.8).cos() * 50.0;
-            let pres = (t * 0.5).sin() * 50.0;
+            let pitch = (t * 0.5).sin() * 45.0;
+            let roll = (t * 0.8).cos() * 30.0;
+            let yaw = (t * 2.0) % 360.0;
 
-            state.ingest_line(&format!("Temperature: {:.2}", temp), config.plot_points);
-            state.ingest_line(&format!("Humidity: {:.2}", hum), config.plot_points);
-            state.ingest_line(&format!("Pressure: {:.2}", pres), config.plot_points);
+            state.ingest_line(&format!("Pitch: {:.2}", pitch), config.plot_points);
+            state.ingest_line(&format!("Roll: {:.2}", roll), config.plot_points);
+            state.ingest_line(&format!("Yaw: {:.2}", yaw), config.plot_points);
 
             std::thread::sleep(Duration::from_millis(50));
         } else if let Some(ref mut replayer) = session_replayer {
@@ -407,16 +435,6 @@ pub fn run_plotter_mode(
             .collect();
 
         terminal.draw(|f| {
-            // ── Layout ────────────────────────────────────────────────────────
-            //
-            //  ┌───────────────── chart ──────────────┬── sidebar ──┐
-            //  │                                       │             │
-            //  │                                       │  sensor     │
-            //  │                                       │  stats      │
-            //  │                                       │             │
-            //  └───────────────────────────────────────┴─────────────┘
-            //  ┌─────────────────── status bar ───────────────────────┐
-
             let outer = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Min(3), Constraint::Length(3)])
@@ -427,48 +445,66 @@ pub fn run_plotter_mode(
                 .constraints([Constraint::Min(10), Constraint::Length(28)])
                 .split(outer[0]);
 
-            // ── Chart ─────────────────────────────────────────────────────────
-            let chart_title = format!(
-                " 󰕾 ComChan Plotter  {}  {}  {} sensors{}",
-                port_name_disp, baud, sensor_count, pause_indicator
-            );
+            match state.active_tab {
+                ActiveTab::Chart2D => {
+                    let chart_title = format!(
+                        " 󰕾 ComChan Plotter  {}  {}  {} sensors{}",
+                        port_name_disp, baud, sensor_count, pause_indicator
+                    );
 
-            let chart = Chart::new(datasets)
-                .block(
-                    Block::default()
-                        .title(Span::styled(
-                            chart_title,
-                            Style::default()
-                                .fg(Color::White)
-                                .add_modifier(Modifier::BOLD),
-                        ))
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::DarkGray)),
-                )
-                .x_axis(
-                    Axis::default()
-                        .title(Span::styled("Sample", Style::default().fg(Color::Gray)))
-                        .style(Style::default().fg(Color::DarkGray))
-                        .bounds(x_bounds)
-                        .labels(vec![
-                            x_labels[0].as_str(),
-                            x_labels[1].as_str(),
-                            x_labels[2].as_str(),
-                        ]),
-                )
-                .y_axis(
-                    Axis::default()
-                        .title(Span::styled("Value", Style::default().fg(Color::Gray)))
-                        .style(Style::default().fg(Color::DarkGray))
-                        .bounds(y_bounds)
-                        .labels(vec![
-                            y_labels[0].as_str(),
-                            y_labels[1].as_str(),
-                            y_labels[2].as_str(),
-                        ]),
-                );
+                    let chart = Chart::new(datasets)
+                        .block(
+                            Block::default()
+                                .title(Span::styled(
+                                    chart_title,
+                                    Style::default()
+                                        .fg(Color::White)
+                                        .add_modifier(Modifier::BOLD),
+                                ))
+                                .borders(Borders::ALL)
+                                .border_style(Style::default().fg(Color::DarkGray)),
+                        )
+                        .x_axis(
+                            Axis::default()
+                                .title(Span::styled("Sample", Style::default().fg(Color::Gray)))
+                                .style(Style::default().fg(Color::DarkGray))
+                                .bounds(x_bounds)
+                                .labels(vec![
+                                    x_labels[0].as_str(),
+                                    x_labels[1].as_str(),
+                                    x_labels[2].as_str(),
+                                ]),
+                        )
+                        .y_axis(
+                            Axis::default()
+                                .title(Span::styled("Value", Style::default().fg(Color::Gray)))
+                                .style(Style::default().fg(Color::DarkGray))
+                                .bounds(y_bounds)
+                                .labels(vec![
+                                    y_labels[0].as_str(),
+                                    y_labels[1].as_str(),
+                                    y_labels[2].as_str(),
+                                ]),
+                        );
 
-            f.render_widget(chart, main_row[0]);
+                    f.render_widget(chart, main_row[0]);
+                }
+
+                ActiveTab::Wireframe3D => {
+                    let pitch_deg = state.sensors.get("Pitch").map_or(0.0, |s| s.current_value);
+                    let yaw_deg = state.sensors.get("Yaw").map_or(0.0, |s| s.current_value);
+                    let roll_deg = state.sensors.get("Roll").map_or(0.0, |s| s.current_value);
+
+                    let pitch = pitch_deg.to_radians();
+                    let yaw = yaw_deg.to_radians();
+                    let roll = roll_deg.to_radians();
+
+                    let wireframe = WireframeWidget::new(pitch, yaw, roll)
+                        .title("Rolling 3D Cube")
+                        .color(Color::Green);
+                    f.render_widget(wireframe, main_row[0]);
+                }
+            }
 
             // ── Sidebar (sensor stats) ────────────────────────────────────────
             let sidebar_block = Block::default()
@@ -546,7 +582,7 @@ pub fn run_plotter_mode(
                 Span::raw("  "),
                 error_span,
                 Span::styled(
-                    "  [Space] pause  [c] clear  [q/Esc] quit [Ctrl + s] Export",
+                    "  [Space] pause  [c] clear  [1/2/Tab] views  [q/Esc] quit [Ctrl + s] Export",
                     Style::default().fg(Color::DarkGray),
                 ),
             ]);

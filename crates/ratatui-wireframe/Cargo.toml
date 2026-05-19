@@ -1,0 +1,8 @@
+[package]
+name = "ratatui-wireframe"
+version = "0.3.0"
+edition = "2024"
+
+[dependencies]
+nalgebra = "0.34.2"
+ratatui = "0.30.0"
