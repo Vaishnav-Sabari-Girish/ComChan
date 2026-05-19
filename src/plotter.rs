@@ -242,6 +242,10 @@ pub fn run_plotter_mode(
 
     std::thread::sleep(Duration::from_millis(config.reset_delay_ms));
 
+    if let Some(p) = port.as_mut() {
+        let _ = p.clear(serialport::ClearBuffer::Input);
+    }
+
     let csv_streamer = config
         .csv_file
         .as_ref()
@@ -327,13 +331,13 @@ pub fn run_plotter_mode(
         // ── Serial read ───────────────────────────────────────────────────────
         if config.simulate {
             let t = state.x * 0.1;
-            let temp = (t * 1.0).sin() * 50.0;
-            let hum = (t * 0.8).cos() * 50.0;
-            let pres = (t * 0.5).sin() * 50.0;
+            let pitch = (t * 0.5).sin() * 45.0;
+            let roll = (t * 0.8).cos() * 30.0;
+            let yaw = (t * 2.0) % 360.0;
 
-            state.ingest_line(&format!("Temperature: {:.2}", temp), config.plot_points);
-            state.ingest_line(&format!("Humidity: {:.2}", hum), config.plot_points);
-            state.ingest_line(&format!("Pressure: {:.2}", pres), config.plot_points);
+            state.ingest_line(&format!("Pitch: {:.2}", pitch), config.plot_points);
+            state.ingest_line(&format!("Roll: {:.2}", roll), config.plot_points);
+            state.ingest_line(&format!("Yaw: {:.2}", yaw), config.plot_points);
 
             std::thread::sleep(Duration::from_millis(50));
         } else if let Some(ref mut replayer) = session_replayer {
@@ -487,9 +491,13 @@ pub fn run_plotter_mode(
                 }
 
                 ActiveTab::Wireframe3D => {
-                    let pitch = state.x * 0.02;
-                    let yaw = state.x * 0.03;
-                    let roll = state.x * 0.01;
+                    let pitch_deg = state.sensors.get("Pitch").map_or(0.0, |s| s.current_value);
+                    let yaw_deg = state.sensors.get("Yaw").map_or(0.0, |s| s.current_value);
+                    let roll_deg = state.sensors.get("Roll").map_or(0.0, |s| s.current_value);
+
+                    let pitch = pitch_deg.to_radians();
+                    let yaw = yaw_deg.to_radians();
+                    let roll = roll_deg.to_radians();
 
                     let wireframe = WireframeWidget::new(pitch, yaw, roll)
                         .title("Rolling 3D Cube")
