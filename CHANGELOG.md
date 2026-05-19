@@ -5,6 +5,17 @@
 
 ### :rocket: New features
 
+- **(plotter)** Integrate live IMU telemetry and modularize 3D engine
+
+- **(plotter)** Add zero-dependency 3D wireframe engine and tabbed UI
+
+
+## v0.5.0-rc1 - 2026-05-17
+
+
+
+### :rocket: New features
+
 - **(hex-pretty)** Add pretty print mode for hex dump
 
 - **(hex mode)** Basic hex mode
