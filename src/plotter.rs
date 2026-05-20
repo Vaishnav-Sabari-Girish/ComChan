@@ -26,10 +26,40 @@ use std::time::{Duration, Instant};
 
 use ratatui_wireframe::WireframeWidget;
 
+#[cfg(feature = "ratty")]
+use ratatui_ratty::{ObjectFormat, RattyGraphic, RattyGraphicSettings};
+
 #[derive(PartialEq)]
 enum ActiveTab {
     Chart2D,
     Wireframe3D,
+}
+
+fn detect_terminal() -> String {
+    if std::env::var("TERM_PROGRAM").is_ok_and(|v| v.to_lowercase() == "ratty") {
+        return "Ratty (GPU 3D)".to_string();
+    }
+
+    if std::env::var("WEZTERM_EXECUTABLE").is_ok() {
+        return "WezTerm (Braille)".to_string();
+    }
+
+    // 3. Check Ghostty and Kitty via TERM_PROGRAM
+    if let Ok(prog) = std::env::var("TERM_PROGRAM") {
+        let prog_lower = prog.to_lowercase();
+        if prog_lower == "ghostty" {
+            return "Ghostty (Braille)".to_string();
+        } else if prog_lower == "kitty" {
+            return "Kitty (Braille)".to_string();
+        }
+    }
+
+    // 4. Check Foot via the standard TERM variable
+    if std::env::var("TERM").is_ok_and(|v| v.to_lowercase() == "foot") {
+        return "Foot (Braille)".to_string();
+    }
+
+    "Standard TTY (Braille)".to_string()
 }
 
 // ── Plotter state ─────────────────────────────────────────────────────────────
@@ -57,6 +87,10 @@ struct PlotterState {
     pub export_limit: usize,
     pub csv_streamer: Option<crate::export::CsvStreamer>,
     active_tab: ActiveTab,
+    terminal_type: String,
+
+    #[cfg(feature = "ratty")]
+    ratty_graphic: Option<RattyGraphic<'static>>,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
@@ -64,6 +98,31 @@ const DISCARD_FIRST_LINES: usize = 3;
 impl PlotterState {
     fn new(export_limit: usize, csv_streamer: Option<crate::export::CsvStreamer>) -> Self {
         let now = Instant::now();
+
+        #[cfg(feature = "ratty")]
+        let ratty_graphic = {
+            let is_ratty = std::env::var("TERM_PROGRAM")
+                .map(|v| v.to_lowercase() == "ratty")
+                .unwrap_or(false);
+
+            if is_ratty {
+                let graphic = RattyGraphic::new(
+                    RattyGraphicSettings::new("cube.obj")
+                        .id(1)
+                        .format(ObjectFormat::Obj)
+                        .scale(0.15)
+                        .depth(3.0)
+                        .brightness(1.5),
+                );
+
+                let obj = b"v -1 -1 1\nv 1 -1 1\nv -1 1 1\nv 1 1 1\nv -1 -1 -1\nv 1 -1 -1\nv -1 1 -1\nv 1 1 -1\nvn 0 0 1\nvn 0 0 -1\nvn 0 1 0\nvn 0 -1 0\nvn 1 0 0\nvn -1 0 0\nf 1//1 2//1 4//1 3//1\nf 5//2 7//2 8//2 6//2\nf 3//3 4//3 8//3 7//3\nf 1//4 5//4 6//4 2//4\nf 2//5 6//5 8//5 4//5\nf 1//6 3//6 7//6 5//6\n";
+                let _ = graphic.register_payload(obj);
+                Some(graphic)
+            } else {
+                None
+            }
+        };
+
         PlotterState {
             sensors: HashMap::new(),
             sensor_order: Vec::new(),
@@ -83,6 +142,10 @@ impl PlotterState {
             export_limit,
             csv_streamer,
             active_tab: ActiveTab::Chart2D,
+            terminal_type: detect_terminal(),
+
+            #[cfg(feature = "ratty")]
+            ratty_graphic,
         }
     }
 
@@ -495,14 +558,26 @@ pub fn run_plotter_mode(
                     let yaw_deg = state.sensors.get("Yaw").map_or(0.0, |s| s.current_value);
                     let roll_deg = state.sensors.get("Roll").map_or(0.0, |s| s.current_value);
 
-                    let pitch = pitch_deg.to_radians();
-                    let yaw = yaw_deg.to_radians();
-                    let roll = roll_deg.to_radians();
+                    let mut _rendered_3d = false;
 
-                    let wireframe = WireframeWidget::new(pitch, yaw, roll)
-                        .title("Rolling 3D Cube")
-                        .color(Color::Green);
-                    f.render_widget(wireframe, main_row[0]);
+                    #[cfg(feature = "ratty")]
+                    if let Some(graphics) = &mut state.ratty_graphic {
+                        graphics.settings_mut().rotation =
+                            [pitch_deg as f32, yaw_deg as f32, roll_deg as f32];
+                        f.render_widget(&*graphics, main_row[0]);
+                        _rendered_3d = true;
+                    }
+
+                    if !_rendered_3d {
+                        let pitch = pitch_deg.to_radians();
+                        let yaw = yaw_deg.to_radians();
+                        let roll = roll_deg.to_radians();
+
+                        let wireframe = WireframeWidget::new(pitch, yaw, roll)
+                            .title("Rolling 3D Cube")
+                            .color(Color::Green);
+                        f.render_widget(wireframe, main_row[0]);
+                    }
                 }
             }
 
@@ -581,6 +656,12 @@ pub fn run_plotter_mode(
                 ),
                 Span::raw("  "),
                 error_span,
+                Span::styled(
+                    format!(" 🖥 {} ", state.terminal_type),
+                    Style::default()
+                        .fg(Color::Magenta)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     "  [Space] pause  [c] clear  [1/2/Tab] views  [q/Esc] quit [Ctrl + s] Export",
                     Style::default().fg(Color::DarkGray),

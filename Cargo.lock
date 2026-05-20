@@ -311,6 +311,7 @@ dependencies = [
  "plotters",
  "pretty-hex",
  "ratatui",
+ "ratatui-ratty",
  "ratatui-wireframe",
  "serde",
  "serialport",
@@ -1876,6 +1877,16 @@ checksum = "a7f1342a13e83e4bb9d0b793d0ea762be633f9582048c892ae9041ef39c936f4"
 dependencies = [
  "ratatui-core",
  "ratatui-widgets",
+]
+
+[[package]]
+name = "ratatui-ratty"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a4628ffc4abd26ae6da794639f146c5f3922803a9ad9775054e957371a84dbe"
+dependencies = [
+ "base64",
+ "ratatui-core",
 ]
 
 [[package]]
