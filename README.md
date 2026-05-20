@@ -23,9 +23,11 @@ Choose your preferred installation method:
 > The easiest way to install ComChan is via `cargo install`
 
 ```bash
-# Install from source
+# Install from source (Standard Braille Engine)
 cargo install comchan
 
+# Install with Hardware-Accelerated 3D support (Ratty Terminal)
+cargo install comchan --features ratty
 ```
 
 Verify the installation:
@@ -187,7 +189,7 @@ comchan --auto --baud 115200 --csv sensor_data.csv
 > Works with `--simulate`
 > ([Simulate Mode](#simulate-mode)) too
 
-### Serial Plotter
+### Serial Plotter & 2D Graphs
 
 Visualize sensor data in real-time, with optional SVG exports:
 
@@ -209,6 +211,23 @@ The exported plot will look like this
 ```bash
 comchan -r 115200 --plot --plot-title "Plot Title" --export-limit 5000
 ```
+
+### 3D Spatial Telemetry Dashboard
+
+If you are streaming IMU data (`Pitch`, `Yaw`, and `Roll`), ComChan can render a
+real-time 3D dashboard directly in your terminal.
+
+While running in `--plot` mode, simply press **`Tab`** or **`2`** to switch from
+the 2D Line Chart to the 3D Telemetry view.
+
+ComChan features a **Graceful Degradation Pipeline** for 3D graphics:
+
+* **GPU-Accelerated 3D:** If compiled with `--features ratty` and run inside the
+  Ratty terminal emulator, it bypasses the standard grid and injects true,
+  shaded 3D `.obj` models via the Ratty Graphics Protocol (RGP).
+* **CPU Braille Wireframe:** If running in standard modern terminals (WezTerm,
+  Kitty, Foot, Alacritty), it silently falls back to a zero-dependency,
+  math-driven Braille wireframe rendering engine.
 
 ### Session Replay
 
@@ -255,8 +274,9 @@ comchan --completions nu > ~/.config/nushell/comchan-completions.nu
 
 ### Simulate Mode
 
-Want to test ComChan, the Plotter, or CSV Streaming without a physical
-microcontroller plugged in? Use simulate mode to generate mock sensor data!
+Want to test ComChan, the Plotter, the 3D Dashboard, or CSV Streaming without a
+physical microcontroller plugged in? Use simulate mode to generate mock sensor
+data!
 
 ```bash
 comchan --simulate --plot
@@ -324,6 +344,16 @@ device.
 safely shuts down or reconnects when hardware is unplugged/replugged.
 * **Terminal-Based Serial Plotter** - Visualize multiple sensor values in
 real-time with automatic legends using the `--plot` flag.
+* **3D Spatial Telemetry (IMU)** - Visualize Pitch, Yaw, and Roll data in a live
+  3D terminal dashboard equipped with a static global reference frame (X/Y/Z
+  axes).
+* **Hardware-Accelerated 3D & Graceful Fallback** - Native support for the Ratty
+  terminal (RGP) for true shaded `.obj` 3D rendering, with a zero-dependency
+  CPU-rendered Braille wireframe fallback for standard terminals (WezTerm,
+  Kitty, Foot, etc.).
+* **Runtime Terminal Detection** - Automatically detects your terminal emulator
+  to serve the best possible rendering engine and displays it directly in the
+  status bar.
 * **Real-Time Session Replay** - Play back previously recorded `.log` or `.csv`
 files natively to analyze anomalies without needing physical hardware.
 * **Continuous CSV Streaming** - Automatically parse and log numeric sensor data
