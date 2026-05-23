@@ -5,9 +5,20 @@
 
 ### :rocket: New features
 
+- **(3D)** Cube is proper (kinda) with a gnomon
+
+- **(plotter)** Add hardware-accelerated 3D rendering with graceful fallback
+
 - **(plotter)** Integrate live IMU telemetry and modularize 3D engine
 
 - **(plotter)** Add zero-dependency 3D wireframe engine and tabbed UI
+
+
+### :bug: Bug fixes
+
+- **(plotter)** Correct Ratty terminal rendering mode detection
+
+- **(ghosting)** Cube did not clear after changing tabs
 
 
 ## v0.5.0-rc1 - 2026-05-17
