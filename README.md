@@ -215,7 +215,9 @@ comchan -r 115200 --plot --plot-title "Plot Title" --export-limit 5000
 ### 3D Spatial Telemetry Dashboard
 
 If you are streaming IMU data (`Pitch`, `Yaw`, and `Roll`), ComChan can render a
-real-time 3D dashboard directly in your terminal.
+real-time 3D dashboard directly in your terminal. The 3D view is equipped with a
+**static global reference frame (X/Y/Z axes)** overlay that remains perfectly
+stationary while your hardware telemetry dictates the object rotation.
 
 While running in `--plot` mode, simply press **`Tab`** or **`2`** to switch from
 the 2D Line Chart to the 3D Telemetry view.
@@ -223,10 +225,12 @@ the 2D Line Chart to the 3D Telemetry view.
 ComChan features a **Graceful Degradation Pipeline** for 3D graphics:
 
 * **GPU-Accelerated 3D:** If compiled with `--features ratty` and run inside the
-  Ratty terminal emulator, it bypasses the standard grid and injects true,
-  shaded 3D `.obj` models via the Ratty Graphics Protocol (RGP).
+  [`ratty`](https://github.com/orhun/ratty) terminal emulator, it bypasses the
+  standard grid and injects true, shaded 3D `.obj` models via the Ratty Graphics
+  Protocol (RGP).
 * **CPU Braille Wireframe:** If running in standard modern terminals (WezTerm,
-  Kitty, Foot, Alacritty), it silently falls back to a zero-dependency,
+  Kitty, Foot, Alacritty)—or if launched inside Ratty *without* the required
+  compile-time feature flag—it safely falls back to a zero-dependency,
   math-driven Braille wireframe rendering engine.
 
 ### Session Replay
@@ -351,9 +355,10 @@ real-time with automatic legends using the `--plot` flag.
   terminal (RGP) for true shaded `.obj` 3D rendering, with a zero-dependency
   CPU-rendered Braille wireframe fallback for standard terminals (WezTerm,
   Kitty, Foot, etc.).
-* **Runtime Terminal Detection** - Automatically detects your terminal emulator
-  to serve the best possible rendering engine and displays it directly in the
-  status bar.
+* **Runtime & Compile-Time Terminal Detection** - Automatically detects your
+  terminal emulator and active feature flags to serve the best possible
+  rendering engine. Accurately reports states like `Ratty (GPU 3D)` or
+  `Ratty (Braille)` directly in the status bar.
 * **Real-Time Session Replay** - Play back previously recorded `.log` or `.csv`
 files natively to analyze anomalies without needing physical hardware.
 * **Continuous CSV Streaming** - Automatically parse and log numeric sensor data
