@@ -2,7 +2,14 @@
 name = "ratatui-wireframe"
 version = "0.3.0"
 edition = "2024"
+authors = ["Vaishnav Sabari Girish <vaishnav.sabari.girish@gmail.com>"]
+license = "MIT"
+description = "A lightweight, zero-dependency `ratatui` widget for rendering interactive 3D wireframe models in the terminal." 
+readme = "README.md"
+homepage = "https://github.com/Vaishnav-Sabari-Girish/ComChan"
+repository = "https://github.com/Vaishnav-Sabari-Girish/ComChan"
+keywords = ["tui", "embedded-systems", "serial-communication"]
+categories = ["command-line-utilities", "embedded"]
 
 [dependencies]
-nalgebra = "0.34.2"
 ratatui = "0.30.0"
