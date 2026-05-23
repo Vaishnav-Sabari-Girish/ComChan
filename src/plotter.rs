@@ -44,7 +44,6 @@ fn detect_terminal() -> String {
         return "WezTerm (Braille)".to_string();
     }
 
-    // 3. Check Ghostty and Kitty via TERM_PROGRAM
     if let Ok(prog) = std::env::var("TERM_PROGRAM") {
         let prog_lower = prog.to_lowercase();
         if prog_lower == "ghostty" {
@@ -54,7 +53,6 @@ fn detect_terminal() -> String {
         }
     }
 
-    // 4. Check Foot via the standard TERM variable
     if std::env::var("TERM").is_ok_and(|v| v.to_lowercase() == "foot") {
         return "Foot (Braille)".to_string();
     }
@@ -493,7 +491,6 @@ pub fn run_plotter_mode(
             .filter(|s| s.has_data())
             .map(|sensor| {
                 Dataset::default()
-                    //.name(format!("{} ({:.2})", sensor.name, sensor.current_value))
                     .marker(symbols::Marker::Braille)
                     .graph_type(GraphType::Line)
                     .style(Style::default().fg(sensor.color))
@@ -555,6 +552,23 @@ pub fn run_plotter_mode(
                         );
 
                     f.render_widget(chart, main_row[0]);
+
+                    // ── The Fix: Clear the GPU graphic ──
+                    #[cfg(feature = "ratty")]
+                    if let Some(graphic) = &mut state.ratty_engines {
+                        // By rendering the hardware graphic into an empty 0x0 Area when not in 3D mode,
+                        // we force the terminal engine to erase it so it doesn't bleed into the chart.
+                        graphic.settings_mut().scale = 0.0;
+                        f.render_widget(
+                            &*graphic,
+                            ratatui::layout::Rect {
+                                x: main_row[0].x,
+                                y: main_row[0].y,
+                                width: 1,
+                                height: 1,
+                            },
+                        );
+                    }
                 }
 
                 ActiveTab::Wireframe3D => {
@@ -567,6 +581,7 @@ pub fn run_plotter_mode(
                     #[cfg(feature = "ratty")]
                     if let Some(main_cube) = &mut state.ratty_engines {
                         let rot = [pitch_deg as f32, yaw_deg as f32, roll_deg as f32];
+                        main_cube.settings_mut().scale = 0.25;
                         main_cube.settings_mut().rotation = rot;
                         f.render_widget(&*main_cube, main_row[0]);
 
