@@ -3,6 +3,15 @@
 
 
 
+### :hammer: Build
+
+- **(version)** Add version for `ratatui-wireframe`
+
+
+## v0.6.0 - 2026-05-23
+
+
+
 ### :rocket: New features
 
 - **(3D)** Cube is proper (kinda) with a gnomon
