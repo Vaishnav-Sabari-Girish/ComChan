@@ -37,7 +37,11 @@ enum ActiveTab {
 
 fn detect_terminal() -> String {
     if std::env::var("TERM_PROGRAM").is_ok_and(|v| v.to_lowercase() == "ratty") {
-        return "Ratty (GPU 3D)".to_string();
+        return if cfg!(feature = "ratty") {
+            "Ratty (GPU 3D)".to_string()
+        } else {
+            "Ratty (Braille)".to_string()
+        };
     }
 
     if std::env::var("WEZTERM_EXECUTABLE").is_ok() {
