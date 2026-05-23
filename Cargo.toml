@@ -12,7 +12,7 @@ keywords = ["cli", "embedded-systems", "serial-communication"]
 categories = ["command-line-utilities", "embedded"]
 
 [features]
-default = []
+default = ["ratty"]
 ratty = ["dep:ratatui-ratty"]
 
 [dependencies]
