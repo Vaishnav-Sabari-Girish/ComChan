@@ -26,10 +26,42 @@ use std::time::{Duration, Instant};
 
 use ratatui_wireframe::WireframeWidget;
 
+#[cfg(feature = "ratty")]
+use ratatui_ratty::{ObjectFormat, RattyGraphic, RattyGraphicSettings};
+
 #[derive(PartialEq)]
 enum ActiveTab {
     Chart2D,
     Wireframe3D,
+}
+
+fn detect_terminal() -> String {
+    if std::env::var("TERM_PROGRAM").is_ok_and(|v| v.to_lowercase() == "ratty") {
+        return if cfg!(feature = "ratty") {
+            "Ratty (GPU 3D)".to_string()
+        } else {
+            "Ratty (Braille)".to_string()
+        };
+    }
+
+    if std::env::var("WEZTERM_EXECUTABLE").is_ok() {
+        return "WezTerm (Braille)".to_string();
+    }
+
+    if let Ok(prog) = std::env::var("TERM_PROGRAM") {
+        let prog_lower = prog.to_lowercase();
+        if prog_lower == "ghostty" {
+            return "Ghostty (Braille)".to_string();
+        } else if prog_lower == "kitty" {
+            return "Kitty (Braille)".to_string();
+        }
+    }
+
+    if std::env::var("TERM").is_ok_and(|v| v.to_lowercase() == "foot") {
+        return "Foot (Braille)".to_string();
+    }
+
+    "Standard TTY (Braille)".to_string()
 }
 
 // ── Plotter state ─────────────────────────────────────────────────────────────
@@ -57,6 +89,10 @@ struct PlotterState {
     pub export_limit: usize,
     pub csv_streamer: Option<crate::export::CsvStreamer>,
     active_tab: ActiveTab,
+    terminal_type: String,
+
+    #[cfg(feature = "ratty")]
+    ratty_engines: Option<RattyGraphic<'static>>,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
@@ -64,6 +100,35 @@ const DISCARD_FIRST_LINES: usize = 3;
 impl PlotterState {
     fn new(export_limit: usize, csv_streamer: Option<crate::export::CsvStreamer>) -> Self {
         let now = Instant::now();
+
+        #[cfg(feature = "ratty")]
+        let ratty_engines = {
+            let is_ratty = std::env::var("TERM_PROGRAM")
+                .map(|v| v.to_lowercase() == "ratty")
+                .unwrap_or(false);
+
+            if is_ratty {
+                // Cube
+                let graphic = RattyGraphic::new(
+                    RattyGraphicSettings::new("cube.obj")
+                        .id(1)
+                        .format(ObjectFormat::Obj)
+                        .scale(0.25)
+                        .depth(3.0)
+                        .brightness(1.8)
+                        .animate(false),
+                );
+
+                let obj = b"v -1 -1 1\nv 1 -1 1\nv -1 1 1\nv 1 1 1\nv -1 -1 -1\nv 1 -1 -1\nv -1 1 -1\nv 1 1 -1\nvn 0 0 1\nvn 0 0 -1\nvn 0 1 0\nvn 0 -1 0\nvn 1 0 0\nvn -1 0 0\ns off\nf 1//1 2//1 4//1\nf 1//1 4//1 3//1\nf 6//2 5//2 7//2\nf 6//2 7//2 8//2\nf 3//3 4//3 8//3\nf 3//3 8//3 7//3\nf 5//4 6//4 2//4\nf 5//4 2//4 1//4\nf 2//5 6//5 8//5\nf 2//5 8//5 4//5\nf 5//6 1//6 3//6\nf 5//6 3//6 7//6\n";
+                let _ = graphic.register_payload(obj);
+                let _ = graphic.update();
+
+                Some(graphic)
+            } else {
+                None
+            }
+        };
+
         PlotterState {
             sensors: HashMap::new(),
             sensor_order: Vec::new(),
@@ -83,6 +148,10 @@ impl PlotterState {
             export_limit,
             csv_streamer,
             active_tab: ActiveTab::Chart2D,
+            terminal_type: detect_terminal(),
+
+            #[cfg(feature = "ratty")]
+            ratty_engines,
         }
     }
 
@@ -426,7 +495,6 @@ pub fn run_plotter_mode(
             .filter(|s| s.has_data())
             .map(|sensor| {
                 Dataset::default()
-                    //.name(format!("{} ({:.2})", sensor.name, sensor.current_value))
                     .marker(symbols::Marker::Braille)
                     .graph_type(GraphType::Line)
                     .style(Style::default().fg(sensor.color))
@@ -488,6 +556,23 @@ pub fn run_plotter_mode(
                         );
 
                     f.render_widget(chart, main_row[0]);
+
+                    // ── The Fix: Clear the GPU graphic ──
+                    #[cfg(feature = "ratty")]
+                    if let Some(graphic) = &mut state.ratty_engines {
+                        // By rendering the hardware graphic into an empty 0x0 Area when not in 3D mode,
+                        // we force the terminal engine to erase it so it doesn't bleed into the chart.
+                        graphic.settings_mut().scale = 0.0;
+                        f.render_widget(
+                            &*graphic,
+                            ratatui::layout::Rect {
+                                x: main_row[0].x,
+                                y: main_row[0].y,
+                                width: 1,
+                                height: 1,
+                            },
+                        );
+                    }
                 }
 
                 ActiveTab::Wireframe3D => {
@@ -495,14 +580,107 @@ pub fn run_plotter_mode(
                     let yaw_deg = state.sensors.get("Yaw").map_or(0.0, |s| s.current_value);
                     let roll_deg = state.sensors.get("Roll").map_or(0.0, |s| s.current_value);
 
-                    let pitch = pitch_deg.to_radians();
-                    let yaw = yaw_deg.to_radians();
-                    let roll = roll_deg.to_radians();
+                    let mut _rendered_3d = false;
 
-                    let wireframe = WireframeWidget::new(pitch, yaw, roll)
-                        .title("Rolling 3D Cube")
-                        .color(Color::Green);
-                    f.render_widget(wireframe, main_row[0]);
+                    #[cfg(feature = "ratty")]
+                    if let Some(main_cube) = &mut state.ratty_engines {
+                        let rot = [pitch_deg as f32, yaw_deg as f32, roll_deg as f32];
+                        main_cube.settings_mut().scale = 0.25;
+                        main_cube.settings_mut().rotation = rot;
+                        f.render_widget(&*main_cube, main_row[0]);
+
+                        // Static canvas gnomon — identical to WireframeWidget's axes, no rotation
+                        let gnomon_area = {
+                            let area = main_row[0];
+                            let g_width = 18u16;
+                            let g_height = 9u16;
+                            ratatui::layout::Rect {
+                                x: area.x + area.width.saturating_sub(g_width + 2),
+                                y: area.y + area.height.saturating_sub(g_height + 1),
+                                width: g_width.min(area.width),
+                                height: g_height.min(area.height),
+                            }
+                        };
+
+                        f.render_widget(ratatui::widgets::Clear, gnomon_area);
+
+                        let gnomon_canvas = ratatui::widgets::canvas::Canvas::default()
+                            .block(
+                                Block::default()
+                                    .borders(Borders::ALL)
+                                    .border_style(Style::default().fg(Color::DarkGray)),
+                            )
+                            .marker(ratatui::symbols::Marker::Braille)
+                            .x_bounds([-5.0, 5.0])
+                            .y_bounds([-5.0, 5.0])
+                            .paint(|ctx| {
+                                let p_origin = (0.0, 0.0);
+                                let p_x = (4.0, 0.0);
+                                let p_y = (0.0, 3.5);
+                                let p_z = (-2.8, -2.8);
+
+                                ctx.draw(&ratatui::widgets::canvas::Line {
+                                    x1: p_origin.0,
+                                    y1: p_origin.1,
+                                    x2: p_x.0,
+                                    y2: p_x.1,
+                                    color: Color::Red,
+                                });
+                                ctx.draw(&ratatui::widgets::canvas::Line {
+                                    x1: p_origin.0,
+                                    y1: p_origin.1,
+                                    x2: p_y.0,
+                                    y2: p_y.1,
+                                    color: Color::Yellow,
+                                });
+                                ctx.draw(&ratatui::widgets::canvas::Line {
+                                    x1: p_origin.0,
+                                    y1: p_origin.1,
+                                    x2: p_z.0,
+                                    y2: p_z.1,
+                                    color: Color::LightBlue,
+                                });
+
+                                ctx.print(
+                                    p_x.0 + 0.2,
+                                    p_x.1,
+                                    ratatui::text::Span::styled(
+                                        "X",
+                                        Style::default().fg(Color::Red),
+                                    ),
+                                );
+                                ctx.print(
+                                    p_y.0,
+                                    p_y.1 + 0.2,
+                                    ratatui::text::Span::styled(
+                                        "Y",
+                                        Style::default().fg(Color::Yellow),
+                                    ),
+                                );
+                                ctx.print(
+                                    p_z.0 - 0.5,
+                                    p_z.1 - 0.5,
+                                    ratatui::text::Span::styled(
+                                        "Z",
+                                        Style::default().fg(Color::LightBlue),
+                                    ),
+                                );
+                            });
+
+                        f.render_widget(gnomon_canvas, gnomon_area);
+                        _rendered_3d = true;
+                    }
+
+                    if !_rendered_3d {
+                        let pitch = pitch_deg.to_radians();
+                        let yaw = yaw_deg.to_radians();
+                        let roll = roll_deg.to_radians();
+
+                        let wireframe = WireframeWidget::new(pitch, yaw, roll)
+                            .title("Rolling 3D Cube")
+                            .color(Color::Green);
+                        f.render_widget(wireframe, main_row[0]);
+                    }
                 }
             }
 
@@ -581,6 +759,12 @@ pub fn run_plotter_mode(
                 ),
                 Span::raw("  "),
                 error_span,
+                Span::styled(
+                    format!(" 🖥 {} ", state.terminal_type),
+                    Style::default()
+                        .fg(Color::Magenta)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     "  [Space] pause  [c] clear  [1/2/Tab] views  [q/Esc] quit [Ctrl + s] Export",
                     Style::default().fg(Color::DarkGray),
