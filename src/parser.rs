@@ -80,27 +80,23 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
     let mut results = Vec::new();
     let line = line.trim();
 
-    // Zephyr Log format
-    let mut working_line = line;
-    if let Some(pos) = line.find("> ") {
-        working_line = &line[pos + 2..];
-    }
+    // ── Pattern 0: Zephyr Log format (Specific) ──
+    // Look specifically for the log signature to avoid "greedy" colon matching
+    let is_zephyr_log = line.contains("<inf>") || line.contains("<err>") || line.contains("<wrn>");
+    if is_zephyr_log && let Some(pos) = line.find("> ") {
+        let working_line = &line[pos + 2..];
+        // Only split at the LAST colon if it's followed by a number
+        if let Some(colon_pos) = working_line.rfind(':') {
+            let (label, val_part) = working_line.split_at(colon_pos);
+            let val_str = val_part[1..].trim();
+            let numeric_part = val_str.split_whitespace().next().unwrap_or(val_str);
 
-    if line.find("> ").is_some()
-        && let Some(colon_pos) = working_line.rfind(':')
-    {
-        let (label, val_part) = working_line.split_at(colon_pos);
-
-        // Split the logger name
-        let clean_label = label.split(':').next_back().unwrap_or(label).trim();
-
-        let val_str = val_part[1..].trim();
-
-        let numeric_part = val_str.split_whitespace().next().unwrap_or(val_str);
-
-        if let Ok(val) = numeric_part.parse::<f64>() {
-            results.push((Cow::Owned(clean_label.to_string()), val));
-            return results;
+            if let Ok(val) = numeric_part.parse::<f64>() {
+                // Extract the actual sensor label by taking the part after the last internal colon
+                let clean_label = label.split(':').next_back().unwrap_or(label).trim();
+                results.push((Cow::Owned(clean_label.to_string()), val));
+                return results;
+            }
         }
     }
 
