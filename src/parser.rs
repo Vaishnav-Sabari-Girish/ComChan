@@ -80,6 +80,28 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
     let mut results = Vec::new();
     let line = line.trim();
 
+    // Zephyr Log format
+    let mut working_line = line;
+    if let Some(pos) = line.find("> ") {
+        working_line = &line[pos + 2..];
+    }
+
+    if let Some(colon_pos) = working_line.rfind(':') {
+        let (label, val_part) = working_line.split_at(colon_pos);
+
+        // Split the logger name
+        let clean_label = label.split(':').next_back().unwrap_or(label).trim();
+
+        let val_str = val_part[1..].trim();
+
+        let numeric_part = val_str.split_whitespace().next().unwrap_or(val_str);
+
+        if let Ok(val) = numeric_part.parse::<f64>() {
+            results.push((Cow::Owned(clean_label.to_string()), val));
+            return results;
+        }
+    }
+
     // ── Pattern 1: Comma-separated multiple items ──
     // Handles: "Mag: 45, Gyro: 12" OR "Mag=45, Gyro=12" OR "45, 12"
     if line.contains(',') {
