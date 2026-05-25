@@ -86,7 +86,9 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
         working_line = &line[pos + 2..];
     }
 
-    if let Some(colon_pos) = working_line.rfind(':') {
+    if line.find("> ").is_some()
+        && let Some(colon_pos) = working_line.rfind(':')
+    {
         let (label, val_part) = working_line.split_at(colon_pos);
 
         // Split the logger name
