@@ -3,6 +3,23 @@
 
 
 
+### :rocket: New features
+
+- **(zephyr_logs)** Supports plotting from Zephyr Logs
+
+
+### :bug: Bug fixes
+
+- **(debug)** Debug logging type added
+
+- **(better parsing)** Better parsing for logs
+
+
+### :art: Styling
+
+- **(parser)** Better coding standards
+
+
 ### :hammer: Build
 
 - **(version)** Add version for `ratatui-wireframe`
