@@ -82,7 +82,10 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
 
     // ── Pattern 0: Zephyr Log format (Specific) ──
     // Look specifically for the log signature to avoid "greedy" colon matching
-    let is_zephyr_log = line.contains("<inf>") || line.contains("<err>") || line.contains("<wrn>");
+    let is_zephyr_log = line.contains("<inf>")
+        || line.contains("<err>")
+        || line.contains("<wrn>")
+        || line.contains("<dbg>");
     if is_zephyr_log && let Some(pos) = line.find("> ") {
         let working_line = &line[pos + 2..];
         // Only split at the LAST colon if it's followed by a number
