@@ -118,7 +118,13 @@ impl PlotterState {
                 let (name, payload) = if let Some(path) = _obj_file {
                     match std::fs::read(&path) {
                         Ok(bytes) => (path, bytes),
-                        Err(_) => ("cube.obj".to_string(), default_obj.to_vec()),
+                        Err(err) => {
+                            eprintln!(
+                                "Failed to read .obj file '{}': {err}. Falling back to default cube.",
+                                path
+                            );
+                            ("cube.obj".to_string(), default_obj.to_vec())
+                        }
                     }
                 } else {
                     ("cube.obj".to_string(), default_obj.to_vec())
