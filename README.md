@@ -107,6 +107,7 @@ Options:
       --replay <REPLAY_FILE>          Replay a previous session from its *.log or *.csv file
   -x, --hex                           Display incoming serial data in raw hex dump format
       --hex-pretty                    Display incoming serial data in a clean, buffered hex dump format
+      --obj <OBJ_FILE>                Path to a custom .obj file for 3D telemetry
   -h, --help                          Print help
   -V, --version                       Print version
 
@@ -233,6 +234,14 @@ ComChan features a **Graceful Degradation Pipeline** for 3D graphics:
   compile-time feature flag—it safely falls back to a zero-dependency,
   math-driven Braille wireframe rendering engine.
 
+**Custom 3D Models:** By default, ComChan renders a 3D Cube. If you are using
+the Ratty GPU-accelerated engine, you can inject your own custom `.obj` models
+using the `--obj` flag:
+
+```bash
+comchan --plot --auto --obj spaceship.obj
+```
+
 ### Session Replay
 
 Replay a previously recorded hardware session in real-time. ComChan will read
@@ -334,6 +343,7 @@ csv_file = "latest_run.csv"
 replay_file = "test.log"
 hex_mode = false
 hex_pretty = false
+obj_file = "custom_model.obj"
 ```
 
 ---
@@ -352,9 +362,9 @@ real-time with automatic legends using the `--plot` flag.
   3D terminal dashboard equipped with a static global reference frame (X/Y/Z
   axes).
 * **Hardware-Accelerated 3D & Graceful Fallback** - Native support for the Ratty
-  terminal (RGP) for true shaded `.obj` 3D rendering, with a zero-dependency
-  CPU-rendered Braille wireframe fallback for standard terminals (WezTerm,
-  Kitty, Foot, etc.).
+  terminal (RGP) for true shaded `.obj` 3D rendering (with custom `--obj` file
+  support), with a zero-dependency CPU-rendered Braille wireframe fallback for
+  standard terminals (WezTerm, Kitty, Foot, etc.).
 * **Runtime & Compile-Time Terminal Detection** - Automatically detects your
   terminal emulator and active feature flags to serve the best possible
   rendering engine. Accurately reports states like `Ratty (GPU 3D)` or
