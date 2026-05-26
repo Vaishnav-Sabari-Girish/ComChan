@@ -5,10 +5,16 @@
 
 ### :rocket: New features
 
+- **(custom_obj_file)** Ability to use a custom obj file
+
 - **(zephyr_logs)** Supports plotting from Zephyr Logs
 
 
 ### :bug: Bug fixes
+
+- **(cargo)** Removed `ratty` from default features
+
+- **(error)** Fixes silent error in obj file finding
 
 - **(debug)** Debug logging type added
 
