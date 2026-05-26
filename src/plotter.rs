@@ -98,7 +98,11 @@ struct PlotterState {
 const DISCARD_FIRST_LINES: usize = 3;
 
 impl PlotterState {
-    fn new(export_limit: usize, csv_streamer: Option<crate::export::CsvStreamer>) -> Self {
+    fn new(
+        export_limit: usize,
+        csv_streamer: Option<crate::export::CsvStreamer>,
+        _obj_file: Option<String>,
+    ) -> Self {
         let now = Instant::now();
 
         #[cfg(feature = "ratty")]
@@ -109,8 +113,27 @@ impl PlotterState {
 
             if is_ratty {
                 // Cube
+                let default_obj = b"v -1 -1 1\nv 1 -1 1\nv -1 1 1\nv 1 1 1\nv -1 -1 -1\nv 1 -1 -1\nv -1 1 -1\nv 1 1 -1\nvn 0 0 1\nvn 0 0 -1\nvn 0 1 0\nvn 0 -1 0\nvn 1 0 0\nvn -1 0 0\ns off\nf 1//1 2//1 4//1\nf 1//1 4//1 3//1\nf 6//2 5//2 7//2\nf 6//2 7//2 8//2\nf 3//3 4//3 8//3\nf 3//3 8//3 7//3\nf 5//4 6//4 2//4\nf 5//4 2//4 1//4\nf 2//5 6//5 8//5\nf 2//5 8//5 4//5\nf 5//6 1//6 3//6\nf 5//6 3//6 7//6\n";
+
+                let (name, payload) = if let Some(path) = _obj_file {
+                    match std::fs::read(&path) {
+                        Ok(bytes) => (path, bytes),
+                        Err(err) => {
+                            eprintln!(
+                                "Failed to read .obj file '{}': {err}. Falling back to default cube.",
+                                path
+                            );
+                            ("cube.obj".to_string(), default_obj.to_vec())
+                        }
+                    }
+                } else {
+                    ("cube.obj".to_string(), default_obj.to_vec())
+                };
+
+                let name_static: &'static str = Box::leak(name.into_boxed_str());
+
                 let graphic = RattyGraphic::new(
-                    RattyGraphicSettings::new("cube.obj")
+                    RattyGraphicSettings::new(name_static)
                         .id(1)
                         .format(ObjectFormat::Obj)
                         .scale(0.25)
@@ -119,8 +142,7 @@ impl PlotterState {
                         .animate(false),
                 );
 
-                let obj = b"v -1 -1 1\nv 1 -1 1\nv -1 1 1\nv 1 1 1\nv -1 -1 -1\nv 1 -1 -1\nv -1 1 -1\nv 1 1 -1\nvn 0 0 1\nvn 0 0 -1\nvn 0 1 0\nvn 0 -1 0\nvn 1 0 0\nvn -1 0 0\ns off\nf 1//1 2//1 4//1\nf 1//1 4//1 3//1\nf 6//2 5//2 7//2\nf 6//2 7//2 8//2\nf 3//3 4//3 8//3\nf 3//3 8//3 7//3\nf 5//4 6//4 2//4\nf 5//4 2//4 1//4\nf 2//5 6//5 8//5\nf 2//5 8//5 4//5\nf 5//6 1//6 3//6\nf 5//6 3//6 7//6\n";
-                let _ = graphic.register_payload(obj);
+                let _ = graphic.register_payload(&payload);
                 let _ = graphic.update();
 
                 Some(graphic)
@@ -329,7 +351,7 @@ pub fn run_plotter_mode(
         None
     };
 
-    let mut state = PlotterState::new(config.export_limit, csv_streamer);
+    let mut state = PlotterState::new(config.export_limit, csv_streamer, config.obj_file);
     let mut serial_buf = [0u8; 1024];
 
     loop {

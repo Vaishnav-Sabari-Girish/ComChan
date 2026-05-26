@@ -38,6 +38,7 @@ pub struct Config {
     pub replay_file: Option<String>,
     pub hex_mode: Option<bool>,
     pub hex_pretty: Option<bool>,
+    pub obj_file: Option<String>,
 }
 
 impl Default for Config {
@@ -63,6 +64,7 @@ impl Default for Config {
             replay_file: None,
             hex_mode: Some(false),
             hex_pretty: Some(false),
+            obj_file: None,
         }
     }
 }
@@ -161,6 +163,9 @@ pub struct Args {
 
     #[arg(long = "hex-pretty", action = clap::ArgAction::SetTrue, help = "Display incoming serial data in a clean, buffered hex-dump format")]
     pub hex_pretty: Option<bool>,
+
+    #[arg(long = "obj", help = "Path to .obj file")]
+    pub obj_file: Option<String>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -186,6 +191,7 @@ pub struct MergedConfig {
     pub replay_file: Option<String>,
     pub hex_mode: bool,
     pub hex_pretty: bool,
+    pub obj_file: Option<String>,
 }
 
 // Generate completions
@@ -371,5 +377,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         replay_file: args.replay_file.or(config.replay_file),
         hex_mode: args.hex_mode.unwrap_or(false) || config.hex_mode.unwrap_or(false),
         hex_pretty: args.hex_pretty.unwrap_or(false) || config.hex_pretty.unwrap_or(false),
+        obj_file: args.obj_file.or(config.obj_file),
     }
 }
