@@ -40,6 +40,11 @@ impl WireframeWidget {
         self.color = color;
         self
     }
+
+    pub fn model(mut self, model: Model) -> Self {
+        self.model = model;
+        self
+    }
 }
 
 impl Widget for WireframeWidget {

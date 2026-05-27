@@ -698,9 +698,20 @@ pub fn run_plotter_mode(
                         let yaw = yaw_deg.to_radians();
                         let roll = roll_deg.to_radians();
 
+                        let selected_model = match config.braille {
+                            crate::config::BrailleModel::Cube => {
+                                ratatui_wireframe::model::Model::cube()
+                            }
+                            crate::config::BrailleModel::Tetrahedron => {
+                                ratatui_wireframe::model::Model::tetrahedron()
+                            }
+                        };
+
                         let wireframe = WireframeWidget::new(pitch, yaw, roll)
-                            .title("Rolling 3D Cube")
-                            .color(Color::Green);
+                            .title(format!("Rolling 3D {:?}", config.braille))
+                            .color(Color::Green)
+                            .model(selected_model);
+
                         f.render_widget(wireframe, main_row[0]);
                     }
                 }
