@@ -1,49 +1,41 @@
+use std::sync::OnceLock;
+use wrfm::WrfmModel;
+
 /// Represents a 3D wireframe model consisting of vertices and edges.
+#[derive(Clone)]
 pub struct Model {
     pub vertices: Vec<(f64, f64, f64)>,
     pub edges: Vec<(usize, usize)>,
 }
 
 impl Model {
-    /// Creates a standard 3D cube model.
-    pub fn cube() -> Self {
+    pub fn from_wrfm(wrfm: WrfmModel) -> Self {
         Self {
-            vertices: vec![
-                (-1.0, -1.0, -1.0),
-                (1.0, -1.0, -1.0),
-                (1.0, 1.0, -1.0),
-                (-1.0, 1.0, -1.0), // Front face
-                (-1.0, -1.0, 1.0),
-                (1.0, -1.0, 1.0),
-                (1.0, 1.0, 1.0),
-                (-1.0, 1.0, 1.0), // Back face
-            ],
-            edges: vec![
-                (0, 1),
-                (1, 2),
-                (2, 3),
-                (3, 0), // Front facing edges
-                (4, 5),
-                (5, 6),
-                (6, 7),
-                (7, 4), // Back facing edges
-                (0, 4),
-                (1, 5),
-                (2, 6),
-                (3, 7), // Connecting edges
-            ],
+            vertices: wrfm.vertices,
+            edges: wrfm.edges,
         }
     }
 
+    pub fn cube() -> Self {
+        static CUBE: OnceLock<Model> = OnceLock::new();
+
+        CUBE.get_or_init(|| {
+            let cube_data = include_str!("./models/cube.wrfm");
+            let wrfm = WrfmModel::from_str("cube", cube_data).unwrap();
+            Self::from_wrfm(wrfm)
+        })
+        .clone()
+    }
+
     pub fn tetrahedron() -> Self {
-        Self {
-            vertices: vec![
-                (1.0, 1.0, 1.0),
-                (1.0, -1.0, -1.0),
-                (-1.0, 1.0, -1.0),
-                (-1.0, -1.0, 1.0),
-            ],
-            edges: vec![(0, 1), (0, 2), (0, 3), (1, 2), (2, 3), (3, 1)],
-        }
+        static TETRAHEDRON: OnceLock<Model> = OnceLock::new();
+
+        TETRAHEDRON
+            .get_or_init(|| {
+                let tetra_data = include_str!("./models/tetrahedron.wrfm");
+                let wrfm = WrfmModel::from_str("tetrahedron", tetra_data).unwrap();
+                Self::from_wrfm(wrfm)
+            })
+            .clone()
     }
 }

@@ -1,0 +1,12 @@
+# ComChan Default: Regular Tetrahedron
+v 1.0 1.0 1.0
+v 1.0 -1.0 -1.0
+v -1.0 1.0 -1.0
+v -1.0 -1.0 1.0
+
+e 0 1
+e 0 2
+e 0 3
+e 1 2
+e 2 3
+e 3 1

@@ -13,3 +13,4 @@ categories = ["command-line-utilities", "embedded"]
 
 [dependencies]
 ratatui = "0.30.0"
+wrfm = "0.3.0"
