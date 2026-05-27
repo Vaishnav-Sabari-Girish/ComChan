@@ -5,6 +5,8 @@
 
 ### :rocket: New features
 
+- **(file)** Add wrfm file based braille models
+
 - **(tetrahedron)** Add tetrahedron braille model
 
 - **(custom_obj_file)** Ability to use a custom obj file
@@ -13,6 +15,8 @@
 
 
 ### :bug: Bug fixes
+
+- **(model)** Cache parsed wrfm models to prevent per-frame parsing overhead
 
 - **(tetrahedron)** Tetrahedron placement
 
