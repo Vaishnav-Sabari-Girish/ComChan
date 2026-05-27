@@ -58,7 +58,7 @@ Build from source for the latest development version:
 You can do either of the following
 
 ```bash
-cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+cargo install --git [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
 
 ```
 
@@ -66,7 +66,7 @@ OR
 
 ```bash
 # Clone from GitHub
-git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
 
 # Build and run
 cd ComChan
@@ -108,6 +108,7 @@ Options:
   -x, --hex                           Display incoming serial data in raw hex dump format
       --hex-pretty                    Display incoming serial data in a clean, buffered hex dump format
       --obj <OBJ_FILE>                Path to a custom .obj file for 3D telemetry
+      --braille <BRAILLE>             Select the CPU Braille 3D model [default: cube] [possible values: cube, tetrahedron]
   -h, --help                          Print help
   -V, --version                       Print version
 
@@ -234,13 +235,23 @@ ComChan features a **Graceful Degradation Pipeline** for 3D graphics:
   compile-time feature flag—it safely falls back to a zero-dependency,
   math-driven Braille wireframe rendering engine.
 
-**Custom 3D Models:** By default, ComChan renders a 3D Cube. If you are using
-the Ratty GPU-accelerated engine, you can inject your own custom `.obj` models
-using the `--obj` flag:
+**Custom 3D Models (Ratty GPU):** By default, ComChan renders a 3D Cube. If you
+are using the Ratty GPU-accelerated engine, you can inject your own custom
+`.obj` models using the `--obj` flag:
 
 ```bash
 comchan --plot --auto --obj spaceship.obj
 ```
+
+**Custom 3D Models (CPU Braille):** If you are using the CPU Braille wireframe
+engine, ComChan defaults to rendering a 3D Cube. You can change the shape using
+the `--braille` flag:
+
+```bash
+comchan --plot --auto --braille tetrahedron
+```
+
+See [BRAILLE.md](./BRAILLE.md) for a full list of supported CPU models.
 
 ### Session Replay
 
@@ -344,6 +355,7 @@ replay_file = "test.log"
 hex_mode = false
 hex_pretty = false
 obj_file = "custom_model.obj"
+braille = "cube"
 ```
 
 ---
@@ -364,7 +376,7 @@ real-time with automatic legends using the `--plot` flag.
 * **Hardware-Accelerated 3D & Graceful Fallback** - Native support for the Ratty
   terminal (RGP) for true shaded `.obj` 3D rendering (with custom `--obj` file
   support), with a zero-dependency CPU-rendered Braille wireframe fallback for
-  standard terminals (WezTerm, Kitty, Foot, etc.).
+  standard terminals (WezTerm, Kitty, Foot, etc.) featuring customizable models.
 * **Runtime & Compile-Time Terminal Detection** - Automatically detects your
   terminal emulator and active feature flags to serve the best possible
   rendering engine. Accurately reports states like `Ratty (GPU 3D)` or
