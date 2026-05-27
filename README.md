@@ -58,7 +58,7 @@ Build from source for the latest development version:
 You can do either of the following
 
 ```bash
-cargo install --git [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
+cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 ```
 
@@ -66,7 +66,7 @@ OR
 
 ```bash
 # Clone from GitHub
-git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
+git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 # Build and run
 cd ComChan
