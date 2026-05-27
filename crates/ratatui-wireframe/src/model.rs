@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use wrfm::WrfmModel;
 
 /// Represents a 3D wireframe model consisting of vertices and edges.
@@ -16,14 +17,25 @@ impl Model {
     }
 
     pub fn cube() -> Self {
-        let data = include_str!("./models/cube.wrfm");
-        let wrfm = WrfmModel::from_str("cube", data).unwrap();
-        Self::from_wrfm(wrfm)
+        static CUBE: OnceLock<Model> = OnceLock::new();
+
+        CUBE.get_or_init(|| {
+            let cube_data = include_str!("./models/cube.wrfm");
+            let wrfm = WrfmModel::from_str("cube", cube_data).unwrap();
+            Self::from_wrfm(wrfm)
+        })
+        .clone()
     }
 
     pub fn tetrahedron() -> Self {
-        let data = include_str!("./models/tetrahedron.wrfm");
-        let wrfm = WrfmModel::from_str("tetrahedron", data).unwrap();
-        Self::from_wrfm(wrfm)
+        static TETRAHEDRON: OnceLock<Model> = OnceLock::new();
+
+        TETRAHEDRON
+            .get_or_init(|| {
+                let tetra_data = include_str!("./models/tetrahedron.wrfm");
+                let wrfm = WrfmModel::from_str("tetrahedron", tetra_data).unwrap();
+                Self::from_wrfm(wrfm)
+            })
+            .clone()
     }
 }
