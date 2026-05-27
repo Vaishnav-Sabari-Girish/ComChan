@@ -5,12 +5,16 @@
 
 ### :rocket: New features
 
+- **(tetrahedron)** Add tetrahedron braille model
+
 - **(custom_obj_file)** Ability to use a custom obj file
 
 - **(zephyr_logs)** Supports plotting from Zephyr Logs
 
 
 ### :bug: Bug fixes
+
+- **(tetrahedron)** Tetrahedron placement
 
 - **(cargo)** Removed `ratty` from default features
 
