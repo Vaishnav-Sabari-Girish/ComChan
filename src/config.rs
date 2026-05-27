@@ -16,6 +16,13 @@ pub enum GenShell {
     Nu,
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum BrailleModel {
+    Cube,
+    Tetrahedron,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub port: Option<String>,
@@ -39,6 +46,7 @@ pub struct Config {
     pub hex_mode: Option<bool>,
     pub hex_pretty: Option<bool>,
     pub obj_file: Option<String>,
+    pub braille: Option<BrailleModel>,
 }
 
 impl Default for Config {
@@ -65,6 +73,7 @@ impl Default for Config {
             hex_mode: Some(false),
             hex_pretty: Some(false),
             obj_file: None,
+            braille: Some(BrailleModel::Cube),
         }
     }
 }
@@ -166,6 +175,12 @@ pub struct Args {
 
     #[arg(long = "obj", help = "Path to .obj file")]
     pub obj_file: Option<String>,
+
+    #[arg(
+        long = "braille",
+        help = "Select the Braille 3D wireframe [default = cube]"
+    )]
+    pub braille: Option<BrailleModel>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -192,6 +207,7 @@ pub struct MergedConfig {
     pub hex_mode: bool,
     pub hex_pretty: bool,
     pub obj_file: Option<String>,
+    pub braille: BrailleModel,
 }
 
 // Generate completions
@@ -378,5 +394,9 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         hex_mode: args.hex_mode.unwrap_or(false) || config.hex_mode.unwrap_or(false),
         hex_pretty: args.hex_pretty.unwrap_or(false) || config.hex_pretty.unwrap_or(false),
         obj_file: args.obj_file.or(config.obj_file),
+        braille: args
+            .braille
+            .or(config.braille)
+            .unwrap_or(BrailleModel::Cube),
     }
 }
