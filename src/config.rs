@@ -35,7 +35,16 @@ impl FromStr for BrailleModel {
             "cube" => Ok(BrailleModel::Cube),
             "tetrahedron" => Ok(BrailleModel::Tetrahedron),
             "octahedron" => Ok(BrailleModel::Octahedron),
-            _ => Ok(BrailleModel::Custom(s.to_string())), // Everything else is treated as a file path
+            _ => {
+                if s.to_lowercase().ends_with(".wrfm") {
+                    Ok(BrailleModel::Custom(s.to_string()))
+                } else {
+                    Err(format!(
+                        "Invalid Braille Model '{}', Must be 'cube', 'tetrahedron', 'octahedron', or a valid '.wrfm' file path",
+                        s
+                    ))
+                }
+            }
         }
     }
 }

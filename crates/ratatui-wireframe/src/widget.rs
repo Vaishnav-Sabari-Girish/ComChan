@@ -10,16 +10,16 @@ use ratatui::{
     },
 };
 
-pub struct WireframeWidget {
+pub struct WireframeWidget<'a> {
     title: String,
     color: Color,
     pitch: f64,
     yaw: f64,
     roll: f64,
-    model: Model,
+    model: Option<&'a Model>,
 }
 
-impl WireframeWidget {
+impl<'a> WireframeWidget<'a> {
     pub fn new(pitch: f64, yaw: f64, roll: f64) -> Self {
         Self {
             title: "3D Telemetry".to_string(),
@@ -27,7 +27,7 @@ impl WireframeWidget {
             pitch,
             yaw,
             roll,
-            model: Model::cube(), // Default to the cube
+            model: Some(Model::cube()), // Default to the cube
         }
     }
 
@@ -41,17 +41,18 @@ impl WireframeWidget {
         self
     }
 
-    pub fn model(mut self, model: Model) -> Self {
-        self.model = model;
+    pub fn model(mut self, model: &'a Model) -> Self {
+        self.model = Some(model);
         self
     }
 }
 
-impl Widget for WireframeWidget {
+impl<'a> Widget for WireframeWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let current_model = self.model.expect("WireframeWidget must have a model");
         // 1. Rotate main model vertices
         let mut rotated = Vec::new();
-        for (x, y, z) in self.model.vertices.iter() {
+        for (x, y, z) in current_model.vertices.iter() {
             let y1 = y * self.pitch.cos() - z * self.pitch.sin();
             let z1 = y * self.pitch.sin() + z * self.pitch.cos();
 
@@ -76,7 +77,7 @@ impl Widget for WireframeWidget {
             .y_bounds([-y_extent, y_extent])
             .paint(|ctx| {
                 // ── A. Draw the Main 3D Object ────────────────────────────────
-                for &(start_idx, end_idx) in self.model.edges.iter() {
+                for &(start_idx, end_idx) in current_model.edges.iter() {
                     let v1 = rotated[start_idx];
                     let v2 = rotated[end_idx];
 

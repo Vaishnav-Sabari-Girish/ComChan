@@ -728,7 +728,7 @@ pub fn run_plotter_mode(
                             ),
                             crate::config::BrailleModel::Custom(path) => {
                                 if let Some(ref m) = state.custom_model {
-                                    (m.clone(), format!("Rolling Custom 3D [{}]", path))
+                                    (m, format!("Rolling Custom 3D [{}]", path))
                                 } else {
                                     (
                                         ratatui_wireframe::model::Model::cube(),

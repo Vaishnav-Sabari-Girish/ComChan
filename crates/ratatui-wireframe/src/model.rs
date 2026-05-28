@@ -16,7 +16,7 @@ impl Model {
         }
     }
 
-    pub fn cube() -> Self {
+    pub fn cube() -> &'static Self {
         static CUBE: OnceLock<Model> = OnceLock::new();
 
         CUBE.get_or_init(|| {
@@ -24,30 +24,25 @@ impl Model {
             let wrfm = WrfmModel::from_str("cube", cube_data).unwrap();
             Self::from_wrfm(wrfm)
         })
-        .clone()
     }
 
-    pub fn tetrahedron() -> Self {
+    pub fn tetrahedron() -> &'static Self {
         static TETRAHEDRON: OnceLock<Model> = OnceLock::new();
 
-        TETRAHEDRON
-            .get_or_init(|| {
-                let tetra_data = include_str!("./models/tetrahedron.wrfm");
-                let wrfm = WrfmModel::from_str("tetrahedron", tetra_data).unwrap();
-                Self::from_wrfm(wrfm)
-            })
-            .clone()
+        TETRAHEDRON.get_or_init(|| {
+            let tetra_data = include_str!("./models/tetrahedron.wrfm");
+            let wrfm = WrfmModel::from_str("tetrahedron", tetra_data).unwrap();
+            Self::from_wrfm(wrfm)
+        })
     }
 
-    pub fn octahedron() -> Self {
+    pub fn octahedron() -> &'static Self {
         static OCTAHEDRON: OnceLock<Model> = OnceLock::new();
 
-        OCTAHEDRON
-            .get_or_init(|| {
-                let octa_data = include_str!("./models/octahedron.wrfm");
-                let wrfm = WrfmModel::from_str("octahedron", octa_data).unwrap();
-                Self::from_wrfm(wrfm)
-            })
-            .clone()
+        OCTAHEDRON.get_or_init(|| {
+            let octa_data = include_str!("./models/octahedron.wrfm");
+            let wrfm = WrfmModel::from_str("octahedron", octa_data).unwrap();
+            Self::from_wrfm(wrfm)
+        })
     }
 }
