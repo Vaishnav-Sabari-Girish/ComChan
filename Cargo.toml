@@ -32,6 +32,7 @@ ratatui-wireframe = { version = "0.4.0", path = "crates/ratatui-wireframe" }
 serde = { version = "1.0", features = ["derive"] }
 serialport = "4.9"
 toml = "1.1.2"
+wrfm = "0.3.0"
 
 [workspace]
 members = [

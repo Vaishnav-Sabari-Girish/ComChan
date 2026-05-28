@@ -38,4 +38,16 @@ impl Model {
             })
             .clone()
     }
+
+    pub fn octahedron() -> Self {
+        static OCTAHEDRON: OnceLock<Model> = OnceLock::new();
+
+        OCTAHEDRON
+            .get_or_init(|| {
+                let octa_data = include_str!("./models/octahedron.wrfm");
+                let wrfm = WrfmModel::from_str("octahedron", octa_data).unwrap();
+                Self::from_wrfm(wrfm)
+            })
+            .clone()
+    }
 }

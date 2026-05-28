@@ -2,9 +2,10 @@ use clap::{CommandFactory, Parser, ValueEnum};
 use clap_complete::Shell;
 use clap_complete_nushell::Nushell;
 use inline_colorization::*;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum GenShell {
@@ -16,11 +17,54 @@ pub enum GenShell {
     Nu,
 }
 
-#[derive(Clone, Copy, Debug, ValueEnum, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
+// Removed ValueEnum, Serialize, and Deserialize derive macros
+#[derive(Clone, Debug, PartialEq)]
 pub enum BrailleModel {
     Cube,
     Tetrahedron,
+    Octahedron,
+    Custom(String), // This holds the path to your .wrfm file!
+}
+
+// Teach Clap how to parse the string from the CLI
+impl FromStr for BrailleModel {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "cube" => Ok(BrailleModel::Cube),
+            "tetrahedron" => Ok(BrailleModel::Tetrahedron),
+            "octahedron" => Ok(BrailleModel::Octahedron),
+            _ => Ok(BrailleModel::Custom(s.to_string())), // Everything else is treated as a file path
+        }
+    }
+}
+
+// Teach Serde how to read it from config.toml
+impl<'de> Deserialize<'de> for BrailleModel {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(BrailleModel::from_str(&s).unwrap_or(BrailleModel::Cube))
+    }
+}
+
+// Teach Serde how to write it to config.toml
+impl Serialize for BrailleModel {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            BrailleModel::Cube => "cube",
+            BrailleModel::Tetrahedron => "tetrahedron",
+            BrailleModel::Octahedron => "octahedron",
+            BrailleModel::Custom(path) => path.as_str(),
+        };
+        serializer.serialize_str(s)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -178,7 +222,7 @@ pub struct Args {
 
     #[arg(
         long = "braille",
-        help = "Select the Braille 3D wireframe [default = cube]"
+        help = "Select a built-in Braille 3D model (cube, tetrahedron, octahedron) or provide a path to a custom .wrfm file"
     )]
     pub braille: Option<BrailleModel>,
 }

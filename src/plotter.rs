@@ -91,6 +91,8 @@ struct PlotterState {
     active_tab: ActiveTab,
     terminal_type: String,
 
+    custom_model: Option<ratatui_wireframe::model::Model>,
+
     #[cfg(feature = "ratty")]
     ratty_engines: Option<RattyGraphic<'static>>,
 }
@@ -171,6 +173,7 @@ impl PlotterState {
             csv_streamer,
             active_tab: ActiveTab::Chart2D,
             terminal_type: detect_terminal(),
+            custom_model: None,
 
             #[cfg(feature = "ratty")]
             ratty_engines,
@@ -353,6 +356,18 @@ pub fn run_plotter_mode(
 
     let mut state = PlotterState::new(config.export_limit, csv_streamer, config.obj_file);
     let mut serial_buf = [0u8; 1024];
+
+    if let crate::config::BrailleModel::Custom(ref path) = config.braille {
+        match wrfm::WrfmModel::from_file(path) {
+            Ok(parsed_wrfm) => {
+                let render_model = ratatui_wireframe::model::Model::from_wrfm(parsed_wrfm);
+                state.custom_model = Some(render_model);
+            }
+            Err(e) => {
+                state.last_error = Some(format!("Failed to load {}: {}", path, e));
+            }
+        }
+    }
 
     loop {
         // ── Input handling ────────────────────────────────────────────────────
@@ -698,17 +713,33 @@ pub fn run_plotter_mode(
                         let yaw = yaw_deg.to_radians();
                         let roll = roll_deg.to_radians();
 
-                        let selected_model = match config.braille {
-                            crate::config::BrailleModel::Cube => {
-                                ratatui_wireframe::model::Model::cube()
-                            }
-                            crate::config::BrailleModel::Tetrahedron => {
-                                ratatui_wireframe::model::Model::tetrahedron()
+                        let (selected_model, displayed_title) = match &config.braille {
+                            crate::config::BrailleModel::Cube => (
+                                ratatui_wireframe::model::Model::cube(),
+                                "Rolling 3D Cube".to_string(),
+                            ),
+                            crate::config::BrailleModel::Tetrahedron => (
+                                ratatui_wireframe::model::Model::tetrahedron(),
+                                "Rolling 3D Tetrahedron".to_string(),
+                            ),
+                            crate::config::BrailleModel::Octahedron => (
+                                ratatui_wireframe::model::Model::octahedron(),
+                                "Rolling 3D Octahedron".to_string(),
+                            ),
+                            crate::config::BrailleModel::Custom(path) => {
+                                if let Some(ref m) = state.custom_model {
+                                    (m.clone(), format!("Rolling Custom 3D [{}]", path))
+                                } else {
+                                    (
+                                        ratatui_wireframe::model::Model::cube(),
+                                        format!("Error loading [{}], using Cube", path),
+                                    )
+                                }
                             }
                         };
 
                         let wireframe = WireframeWidget::new(pitch, yaw, roll)
-                            .title(format!("Rolling 3D {:?}", config.braille))
+                            .title(displayed_title)
                             .color(Color::Green)
                             .model(selected_model);
 
