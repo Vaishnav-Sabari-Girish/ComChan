@@ -108,7 +108,7 @@ Options:
   -x, --hex                           Display incoming serial data in raw hex dump format
       --hex-pretty                    Display incoming serial data in a clean, buffered hex dump format
       --obj <OBJ_FILE>                Path to a custom .obj file for 3D telemetry
-      --braille <BRAILLE>             Select the CPU Braille 3D model [default: cube] [possible values: cube, tetrahedron]
+      --braille <BRAILLE>             Select a built-in Braille 3D model (cube, tetrahedron, octahedron) or provide a path to a custom .wrfm file [default: cube]
   -h, --help                          Print help
   -V, --version                       Print version
 
@@ -244,14 +244,17 @@ comchan --plot --auto --obj spaceship.obj
 ```
 
 **Custom 3D Models (CPU Braille):** If you are using the CPU Braille wireframe
-engine, ComChan defaults to rendering a 3D Cube. You can change the shape using
-the `--braille` flag:
+engine, ComChan defaults to rendering a 3D Cube. You can change the shape to one
+of the built-in models (`cube`, `tetrahedron`, `octahedron`) or seamlessly load
+your own custom `.wrfm` wireframe files using the `--braille` flag:
 
 ```bash
-comchan --plot --auto --braille tetrahedron
-```
+# Use a built-in model
+comchan --plot --auto --braille octahedron
 
-See [BRAILLE.md](./BRAILLE.md) for a full list of supported CPU models.
+# Use a custom wireframe model
+comchan --plot --auto --braille path/to/my_drone.wrfm
+```
 
 ### Session Replay
 
@@ -355,7 +358,7 @@ replay_file = "test.log"
 hex_mode = false
 hex_pretty = false
 obj_file = "custom_model.obj"
-braille = "cube"
+braille = "cube" # Can also be "tetrahedron", "octahedron", or "path/to/model.wrfm"
 ```
 
 ---
@@ -376,7 +379,8 @@ real-time with automatic legends using the `--plot` flag.
 * **Hardware-Accelerated 3D & Graceful Fallback** - Native support for the Ratty
   terminal (RGP) for true shaded `.obj` 3D rendering (with custom `--obj` file
   support), with a zero-dependency CPU-rendered Braille wireframe fallback for
-  standard terminals (WezTerm, Kitty, Foot, etc.) featuring customizable models.
+  standard terminals (WezTerm, Kitty, Foot, etc.) featuring customizable `.wrfm`
+  models.
 * **Runtime & Compile-Time Terminal Detection** - Automatically detects your
   terminal emulator and active feature flags to serve the best possible
   rendering engine. Accurately reports states like `Ratty (GPU 3D)` or
