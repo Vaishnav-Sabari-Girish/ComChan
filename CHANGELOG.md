@@ -5,6 +5,8 @@
 
 ### :rocket: New features
 
+- **(octahedron_plus_custom_file)** Add octahedron model
+
 - **(file)** Add wrfm file based braille models
 
 - **(tetrahedron)** Add tetrahedron braille model
@@ -27,6 +29,11 @@
 - **(debug)** Debug logging type added
 
 - **(better parsing)** Better parsing for logs
+
+
+### :zap: Performance
+
+- **(render)** Stop cloning mesh data inside the 60fps loop
 
 
 ### :art: Styling
