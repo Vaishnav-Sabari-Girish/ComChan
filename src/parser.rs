@@ -128,11 +128,8 @@ fn strip_zephyr_headers(line: &str) -> &str {
         || line.contains("<dbg>");
 
     if is_zephyr_log && let Some(gt_pos) = line.find('>') {
-        let after_tag = line[gt_pos + 1..].trim_start();
-        if let Some(colon_pos) = after_tag.find(':') {
-            return after_tag[colon_pos + 1..].trim();
-        }
-        return after_tag;
+        // Just return everything after the '>', keeping the module name and label intact.
+        return line[gt_pos + 1..].trim_start();
     }
     line
 }
@@ -224,13 +221,17 @@ fn parse_keyword_fallback(line: &str) -> Option<(String, f64)> {
 
 /// Internal helper to split a single chunk at a character delimiter and safely parse the right flank
 fn parse_kv_split(part: &str, delimiter: char) -> Option<(&str, f64)> {
-    let pos = part.find(delimiter)?;
+    // FIX 1: Use `rfind` instead of `find` so we split at the *last* colon/equals.
+    // This safely handles Zephyr logs like "dht22_logger: Temperature: 25.0"
+    let pos = part.rfind(delimiter)?;
     let (name, val_str) = part.split_at(pos);
     let clean_val_str = val_str.get(1..)?.trim();
 
-    // Find the boundary where the float stops (e.g. stop at "C" in "28.50 C")
+    // FIX 2: Include 'e' and 'E' to support scientific notation!
     let end_idx = clean_val_str
-        .find(|c: char| !c.is_ascii_digit() && c != '.' && c != '-' && c != '+')
+        .find(|c: char| {
+            !c.is_ascii_digit() && c != '.' && c != '-' && c != '+' && c != 'e' && c != 'E'
+        })
         .unwrap_or(clean_val_str.len());
 
     let numeric_str = &clean_val_str[..end_idx];
