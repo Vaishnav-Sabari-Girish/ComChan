@@ -111,10 +111,7 @@ impl CsvStreamer {
         })
     }
 
-    pub fn write_row(
-        &mut self,
-        parsed_data: &[(std::borrow::Cow<'_, str>, f64)],
-    ) -> std::io::Result<()> {
+    pub fn write_row(&mut self, parsed_data: &[(String, f64)]) -> std::io::Result<()> {
         if parsed_data.is_empty() {
             return Ok(());
         }
@@ -137,7 +134,7 @@ impl CsvStreamer {
         write!(self.writer, "{}", get_timestamp())?;
 
         for header in &self.headers {
-            if let Some((_, value)) = parsed_data.iter().find(|(name, _)| name.as_ref() == header) {
+            if let Some((_, value)) = parsed_data.iter().find(|(name, _)| name == header) {
                 write!(self.writer, ",{}", value)?;
             } else {
                 write!(self.writer, ",")?;
