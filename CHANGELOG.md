@@ -18,6 +18,12 @@
 
 ### :bug: Bug fixes
 
+- **(zephyr)** Logged data was not plotting
+
+- **(edge)** Fixed some edge cases
+
+- **(zephyr)** Logged data was not plotting
+
 - **(model)** Cache parsed wrfm models to prevent per-frame parsing overhead
 
 - **(tetrahedron)** Tetrahedron placement
