@@ -1,7 +1,5 @@
 use ratatui::style::Color;
-use std::borrow::Cow;
 
-// Color palette for different sensors
 pub const COLORS: &[Color] = &[
     Color::Cyan,
     Color::Magenta,
@@ -22,7 +20,6 @@ pub fn get_color_for_index(index: usize) -> Color {
     COLORS[index % COLORS.len()]
 }
 
-/// Holds a rolling window of (x, y) data points for one named sensor stream.
 #[derive(Debug, Clone)]
 pub struct SensorData {
     pub name: String,
@@ -61,129 +58,150 @@ impl SensorData {
         }
     }
 
-    /// Returns true if this sensor has at least one data point.
     pub fn has_data(&self) -> bool {
         !self.data.is_empty()
     }
 }
 
-/// Parse a raw serial line into zero or more (sensor_name, value) pairs.
-///
-/// Supported formats (in priority order):
-///   1. `SensorName : Value` or `SensorName: Value`
-///   2. `SensorName = Value` or `SensorName=Value`
-///   3. Comma-separated  `v1,v2,v3`  → Channel 0, Channel 1, …
-///   4. Space-separated multiple numbers → Channel 0, Channel 1, …
-///   5. Single bare number → "Value"
-///   6. Number embedded in text with keyword heuristics (Temperature, Humidity, …)
-pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
-    let mut results = Vec::new();
-    let line = line.trim();
+/// Entry point to parse a raw serial line into zero or more (sensor_name, value) pairs.
+pub fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
+    // 1. Strip ANSI escape sequences (Colors) entirely from the line
+    let clean_line = strip_ansi(line);
+    let mut working_line = clean_line.trim();
 
-    // ── Pattern 0: Zephyr Log format (Specific) ──
-    // Look specifically for the log signature to avoid "greedy" colon matching
+    // 2. Preprocess and strip metadata if it originates from a Zephyr logger
+    working_line = strip_zephyr_headers(working_line);
+
+    // 3. Try parsing as comma-separated multiple items
+    if working_line.contains(',')
+        && let Some(results) = parse_comma_separated(working_line)
+    {
+        return results;
+    }
+
+    // 4. Try parsing single key-value pairs (Name: Value or Name=Value)
+    if let Some(result) = parse_single_key_value(working_line) {
+        return vec![result];
+    }
+
+    // 5. Try parsing space-separated numbers
+    if let Some(results) = parse_space_separated_numbers(working_line) {
+        return results;
+    }
+
+    // 6. Try parsing a single bare number
+    if let Some(result) = parse_bare_number(working_line) {
+        return vec![result];
+    }
+
+    // 7. Fallback to keyword heuristics
+    if let Some(result) = parse_keyword_fallback(working_line) {
+        return vec![result];
+    }
+
+    Vec::new()
+}
+
+/// Safely removes ANSI color codes (like \x1b[0m) so they don't break float parsing
+fn strip_ansi(s: &str) -> String {
+    let mut clean_str = String::with_capacity(s.len());
+    let mut in_escape = false;
+    for c in s.chars() {
+        if c == '\x1b' {
+            in_escape = true;
+        } else if in_escape {
+            if c.is_ascii_alphabetic() {
+                in_escape = false;
+            }
+        } else {
+            clean_str.push(c);
+        }
+    }
+    clean_str
+}
+
+/// Preprocessor that strips Zephyr log headers, returning the raw payload slice.
+fn strip_zephyr_headers(line: &str) -> &str {
     let is_zephyr_log = line.contains("<inf>")
         || line.contains("<err>")
         || line.contains("<wrn>")
         || line.contains("<dbg>");
-    if is_zephyr_log && let Some(pos) = line.find("> ") {
-        let working_line = &line[pos + 2..];
-        // Only split at the LAST colon if it's followed by a number
-        if let Some(colon_pos) = working_line.rfind(':') {
-            let (label, val_part) = working_line.split_at(colon_pos);
-            let val_str = val_part[1..].trim();
-            let numeric_part = val_str.split_whitespace().next().unwrap_or(val_str);
 
-            if let Ok(val) = numeric_part.parse::<f64>() {
-                // Extract the actual sensor label by taking the part after the last internal colon
-                let clean_label = label.split(':').next_back().unwrap_or(label).trim();
-                results.push((Cow::Owned(clean_label.to_string()), val));
-                return results;
-            }
+    if is_zephyr_log && let Some(gt_pos) = line.find('>') {
+        let after_tag = line[gt_pos + 1..].trim_start();
+        if let Some(colon_pos) = after_tag.find(':') {
+            return after_tag[colon_pos + 1..].trim();
+        }
+        return after_tag;
+    }
+    line
+}
+
+/// Strategy 1: Handles multi-item rows separated by commas (e.g., "Temp: 24, Humid: 60")
+fn parse_comma_separated(line: &str) -> Option<Vec<(String, f64)>> {
+    let parts: Vec<&str> = line.split(',').collect();
+    let mut results = Vec::new();
+    let mut found_any = false;
+
+    for (i, part) in parts.iter().enumerate() {
+        let part = part.trim();
+
+        // Match "Key : Value" or "Key = Value" patterns within the comma group
+        if let Some((name, val)) = parse_kv_split(part, ':').or_else(|| parse_kv_split(part, '=')) {
+            results.push((name.to_string(), val));
+            found_any = true;
+            continue;
+        }
+
+        // Match bare numbers inside commas (e.g., "23.5, 71.2")
+        if let Ok(val) = part.parse::<f64>() {
+            results.push((format!("Channel {}", i), val));
+            found_any = true;
         }
     }
 
-    // ── Pattern 1: Comma-separated multiple items ──
-    // Handles: "Mag: 45, Gyro: 12" OR "Mag=45, Gyro=12" OR "45, 12"
-    if line.contains(',') {
-        let parts: Vec<&str> = line.split(',').collect();
-        let mut found_any = false;
+    if found_any { Some(results) } else { None }
+}
 
-        for (i, part) in parts.iter().enumerate() {
-            let part = part.trim();
+/// Strategy 2: Handles standalone "Name: Value" or "Name=Value" lines without commas
+fn parse_single_key_value(line: &str) -> Option<(String, f64)> {
+    parse_kv_split(line, ':')
+        .or_else(|| parse_kv_split(line, '='))
+        .map(|(name, val)| (name.to_string(), val))
+}
 
-            // Sub-pattern A: "Key : Value"
-            if let Some(pos) = part.find(':') {
-                let (name, val_str) = part.split_at(pos);
-                if let Ok(val) = val_str[1..].trim().parse::<f64>() {
-                    results.push((Cow::Owned(name.trim().to_string()), val));
-                    found_any = true;
-                    continue;
-                }
-            }
-
-            // Sub-pattern B: "Key = Value"
-            if let Some(pos) = part.find('=') {
-                let (name, val_str) = part.split_at(pos);
-                if let Ok(val) = val_str[1..].trim().parse::<f64>() {
-                    results.push((Cow::Owned(name.trim().to_string()), val));
-                    found_any = true;
-                    continue;
-                }
-            }
-
-            // Sub-pattern C: Bare number in comma list
-            if let Ok(val) = part.parse::<f64>() {
-                results.push((Cow::Owned(format!("Channel {}", i)), val));
-                found_any = true;
-            }
-        }
-
-        if found_any {
-            return results;
-        }
-    }
-
-    // ── Pattern 2: Single "Name : Value" (No commas) ──
-    if let Some(pos) = line.find(':') {
-        let (name, val_str) = line.split_at(pos);
-        if let Ok(val) = val_str[1..].trim().parse::<f64>() {
-            results.push((Cow::Borrowed(name.trim()), val));
-            return results;
-        }
-    }
-
-    // ── Pattern 3: Single "Name = Value" (No commas) ──
-    if let Some(pos) = line.find('=') {
-        let (name, val_str) = line.split_at(pos);
-        if let Ok(val) = val_str[1..].trim().parse::<f64>() {
-            results.push((Cow::Borrowed(name.trim()), val));
-            return results;
-        }
-    }
-
-    // ── Pattern 4: Space-separated multiple numbers ──
+/// Strategy 3: Handles purely whitespace-separated lists of values (e.g., "12.4 45.2 78.1")
+fn parse_space_separated_numbers(line: &str) -> Option<Vec<(String, f64)>> {
     let words: Vec<&str> = line.split_whitespace().collect();
     let numeric: Vec<f64> = words.iter().filter_map(|w| w.parse::<f64>().ok()).collect();
+
     if numeric.len() > 1 {
-        for (i, v) in numeric.iter().enumerate() {
-            results.push((Cow::Owned(format!("Channel {}", i)), *v));
-        }
-        return results;
+        let results = numeric
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (format!("Channel {}", i), v))
+            .collect();
+        Some(results)
+    } else {
+        None
     }
+}
 
-    // ── Pattern 5: Single bare number ──
-    if let Ok(value) = line.parse::<f64>() {
-        results.push((Cow::Borrowed("Value"), value));
-        return results;
-    }
+/// Strategy 4: Handles single plain value transmissions (e.g., "45.19")
+fn parse_bare_number(line: &str) -> Option<(String, f64)> {
+    line.parse::<f64>()
+        .ok()
+        .map(|val| ("Value".to_string(), val))
+}
 
-    // ── Pattern 6: Keyword heuristics fallback ──
+/// Strategy 5: Searches text chunks for substring keyword hints to classify untagged readings
+fn parse_keyword_fallback(line: &str) -> Option<(String, f64)> {
+    let words: Vec<&str> = line.split_whitespace().collect();
     for word in &words {
         let cleaned = word.trim_matches(|c: char| !c.is_ascii_digit() && c != '.' && c != '-');
         if let Ok(value) = cleaned.parse::<f64>() {
             let ll = line.to_lowercase();
-            let sensor_name: &'static str = if ll.contains("temp") {
+            let sensor_name = if ll.contains("temp") {
                 "Temperature"
             } else if ll.contains("humid") {
                 "Humidity"
@@ -198,10 +216,28 @@ pub fn parse_sensor_data<'a>(line: &'a str) -> Vec<(Cow<'a, str>, f64)> {
             } else {
                 "Sensor"
             };
-            results.push((Cow::Borrowed(sensor_name), value));
-            break; // Grab the first heuristic match and exit
+            return Some((sensor_name.to_string(), value));
         }
     }
+    None
+}
 
-    results
+/// Internal helper to split a single chunk at a character delimiter and safely parse the right flank
+fn parse_kv_split(part: &str, delimiter: char) -> Option<(&str, f64)> {
+    let pos = part.find(delimiter)?;
+    let (name, val_str) = part.split_at(pos);
+    let clean_val_str = val_str.get(1..)?.trim();
+
+    // Find the boundary where the float stops (e.g. stop at "C" in "28.50 C")
+    let end_idx = clean_val_str
+        .find(|c: char| !c.is_ascii_digit() && c != '.' && c != '-' && c != '+')
+        .unwrap_or(clean_val_str.len());
+
+    let numeric_str = &clean_val_str[..end_idx];
+
+    if let Ok(val) = numeric_str.parse::<f64>() {
+        Some((name.trim(), val))
+    } else {
+        None
+    }
 }
