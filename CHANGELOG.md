@@ -5,6 +5,26 @@
 
 ### :rocket: New features
 
+- **(feature)** Added feature flags to terminal canvas
+
+- **(rw_no_std)** Add no_std support for `ratatui-wireframe`
+
+
+### :bug: Bug fixes
+
+- **(trig)** Trigonometry issues
+
+- **(default)** Removed `ratatui` default features
+
+- **(features)** Add features
+
+
+## v0.7.0 - 2026-05-29
+
+
+
+### :rocket: New features
+
 - **(octahedron_plus_custom_file)** Add octahedron model
 
 - **(file)** Add wrfm file based braille models
