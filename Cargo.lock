@@ -1094,6 +1094,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "libm"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
+
+[[package]]
 name = "libredox"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1305,6 +1311,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
@@ -1738,6 +1745,7 @@ dependencies = [
 name = "ratatui-wireframe"
 version = "0.6.0"
 dependencies = [
+ "num-traits",
  "ratatui",
  "spin",
  "wrfm",
@@ -1995,9 +2003,6 @@ name = "spin"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1527984ca054dfca79333baec451042863f485fbee01b7bf6d911de915cac865"
-dependencies = [
- "lock_api",
-]
 
 [[package]]
 name = "static_assertions"

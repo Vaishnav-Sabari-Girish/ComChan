@@ -1,6 +1,9 @@
+// Only import the software math trait when compiling for bare-metal (no_std)
 use crate::model::Model;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
