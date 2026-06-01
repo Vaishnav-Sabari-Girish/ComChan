@@ -1,4 +1,6 @@
 use crate::model::Model;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
