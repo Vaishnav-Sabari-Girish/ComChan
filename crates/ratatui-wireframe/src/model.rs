@@ -1,4 +1,5 @@
-use std::sync::OnceLock;
+use crate::alloc::vec::Vec;
+use spin::Once;
 use wrfm::WrfmModel;
 
 /// Represents a 3D wireframe model consisting of vertices and edges.
@@ -17,9 +18,9 @@ impl Model {
     }
 
     pub fn cube() -> &'static Self {
-        static CUBE: OnceLock<Model> = OnceLock::new();
+        static CUBE: Once<Model> = Once::new();
 
-        CUBE.get_or_init(|| {
+        CUBE.call_once(|| {
             let cube_data = include_str!("./models/cube.wrfm");
             let wrfm = WrfmModel::from_str("cube", cube_data).unwrap();
             Self::from_wrfm(wrfm)
@@ -27,9 +28,9 @@ impl Model {
     }
 
     pub fn tetrahedron() -> &'static Self {
-        static TETRAHEDRON: OnceLock<Model> = OnceLock::new();
+        static TETRAHEDRON: Once<Model> = Once::new();
 
-        TETRAHEDRON.get_or_init(|| {
+        TETRAHEDRON.call_once(|| {
             let tetra_data = include_str!("./models/tetrahedron.wrfm");
             let wrfm = WrfmModel::from_str("tetrahedron", tetra_data).unwrap();
             Self::from_wrfm(wrfm)
@@ -37,9 +38,9 @@ impl Model {
     }
 
     pub fn octahedron() -> &'static Self {
-        static OCTAHEDRON: OnceLock<Model> = OnceLock::new();
+        static OCTAHEDRON: Once<Model> = Once::new();
 
-        OCTAHEDRON.get_or_init(|| {
+        OCTAHEDRON.call_once(|| {
             let octa_data = include_str!("./models/octahedron.wrfm");
             let wrfm = WrfmModel::from_str("octahedron", octa_data).unwrap();
             Self::from_wrfm(wrfm)

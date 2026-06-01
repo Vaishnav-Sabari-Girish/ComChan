@@ -1,4 +1,9 @@
+// Only import the software math trait when compiling for bare-metal (no_std)
 use crate::model::Model;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -65,10 +70,18 @@ impl<'a> Widget for WireframeWidget<'a> {
             rotated.push((x3, y3, z2));
         }
 
-        // Calculate dynamic aspect ratio to prevent stretching
-        let aspect = (area.width as f64) / ((area.height as f64) * 2.0);
         let y_extent = 4.0;
-        let x_extent = aspect * y_extent;
+
+        // Desktop (std): Dynamically calculate aspect ratio based on terminal resize
+        #[cfg(feature = "std")]
+        let x_extent = {
+            let aspect = (area.width as f64) / ((area.height as f64) * 2.0);
+            aspect * y_extent
+        };
+
+        // Embedded (no_std): Hardcode the aspect ratio to squish the 1:2 Braille font
+        #[cfg(not(feature = "std"))]
+        let x_extent = y_extent * 2.0;
 
         let canvas = Canvas::default()
             .block(Block::default().borders(Borders::ALL).title(self.title))
