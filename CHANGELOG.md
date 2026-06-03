@@ -5,6 +5,10 @@
 
 ### :rocket: New features
 
+- **(dark_mode)** Added Dark Mode for SVG exports
+
+- **(dark_mode)** Added Dark Mode for SVG exports
+
 - **(smooth)** Smoother 3D telemetry viewer.
 
 - **(smooth)** Smoother 3D telemetry viewer.
