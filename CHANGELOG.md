@@ -5,6 +5,10 @@
 
 ### :rocket: New features
 
+- **(smooth)** Smoother 3D telemetry viewer.
+
+- **(smooth)** Smoother 3D telemetry viewer.
+
 - **(feature)** Added feature flags to terminal canvas
 
 - **(rw_no_std)** Add no_std support for `ratatui-wireframe`
@@ -12,11 +16,18 @@
 
 ### :bug: Bug fixes
 
+- **(error)** Added proper error message for drain loop
+
 - **(trig)** Trigonometry issues
 
 - **(default)** Removed `ratatui` default features
 
 - **(features)** Add features
+
+
+### :zap: Performance
+
+- **(limit)** Limited the drain to prevent overloading of thread
 
 
 ## v0.7.0 - 2026-05-29
