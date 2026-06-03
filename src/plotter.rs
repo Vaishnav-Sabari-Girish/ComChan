@@ -469,7 +469,15 @@ pub fn run_plotter_mode(
             }
         } else if let Some(p) = port.as_mut() {
             // DRAIN LOOP: Pull all available data from the OS buffer before rendering
+            let mut drain_iters = 0;
+            const MAX_DRAIN_SIZE: usize = 10; // 10 iterations * 1024 byte = 10kB max per frame
+
             loop {
+                if drain_iters >= MAX_DRAIN_SIZE {
+                    break;
+                }
+
+                drain_iters += 1;
                 match p.bytes_to_read() {
                     Ok(avail) if avail > 0 => match p.read(&mut serial_buf) {
                         Ok(n) if n > 0 => {
