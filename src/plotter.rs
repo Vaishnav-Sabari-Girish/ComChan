@@ -431,6 +431,7 @@ pub fn run_plotter_mode(
                         &filename,
                         &state.sensor_order,
                         &config.plot_title,
+                        config.dark_mode,
                     ) {
                         Ok(_) => {
                             state.last_error = Some(format!("✅ Exported to {}", filename));

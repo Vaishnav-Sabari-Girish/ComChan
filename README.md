@@ -105,13 +105,13 @@ Options:
       --simulate                      Simulate Serial Data with no need for hardware (Use for testing ComChan)
       --csv <CSV_FILE>                Export numeric data to a CSV file while streaming serial data
       --replay <REPLAY_FILE>          Replay a previous session from its *.log or *.csv file
-  -x, --hex                           Display incoming serial data in raw hex dump format
-      --hex-pretty                    Display incoming serial data in a clean, buffered hex dump format
-      --obj <OBJ_FILE>                Path to a custom .obj file for 3D telemetry
-      --braille <BRAILLE>             Select a built-in Braille 3D model (cube, tetrahedron, octahedron) or provide a path to a custom .wrfm file [default: cube]
+  -x, --hex                           Display incoming serial data in hex dump format
+      --hex-pretty                    Display incoming serial data in a clean, buffered hex-dump format
+      --obj <OBJ_FILE>                Path to .obj file
+      --braille <BRAILLE>             Select a built-in Braille 3D model (cube, tetrahedron, octahedron) or provide a path to a custom .wrfm file
+      --dark                          Exports the plot in Dark Mode
   -h, --help                          Print help
   -V, --version                       Print version
-
 ```
 
 ---
@@ -207,6 +207,14 @@ comchan -r 115200 --plot    # In the Serial plotter window press CTRL+S
 ```
 
 The exported plot will look like this
+
+#### Light mode
+
+![light](./light_comchan.svg)
+
+#### Dark Mode
+
+![dark](./dark_comchan.svg)
 
 *Add a title and memory limit (Both are optional):*
 

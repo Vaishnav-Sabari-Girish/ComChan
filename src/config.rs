@@ -134,7 +134,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.7.0",
+    version = "0.8.0",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -234,6 +234,9 @@ pub struct Args {
         help = "Select a built-in Braille 3D model (cube, tetrahedron, octahedron) or provide a path to a custom .wrfm file"
     )]
     pub braille: Option<BrailleModel>,
+
+    #[arg(long, default_value_t = false, help = "Exports the plot in Dark Mode")]
+    pub dark: bool,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -261,6 +264,7 @@ pub struct MergedConfig {
     pub hex_pretty: bool,
     pub obj_file: Option<String>,
     pub braille: BrailleModel,
+    pub dark_mode: bool,
 }
 
 // Generate completions
@@ -451,5 +455,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
             .braille
             .or(config.braille)
             .unwrap_or(BrailleModel::Cube),
+        dark_mode: args.dark,
     }
 }
