@@ -93,6 +93,12 @@ struct PlotterState {
 
     custom_model: Option<ratatui_wireframe::model::Model>,
 
+    // Interpolation state
+    display_pitch: f64,
+    display_yaw: f64,
+    display_roll: f64,
+    last_frame_time: Instant,
+
     #[cfg(feature = "ratty")]
     ratty_engines: Option<RattyGraphic<'static>>,
 }
@@ -174,6 +180,11 @@ impl PlotterState {
             active_tab: ActiveTab::Chart2D,
             terminal_type: detect_terminal(),
             custom_model: None,
+
+            display_pitch: 0.0,
+            display_yaw: 0.0,
+            display_roll: 0.0,
+            last_frame_time: now,
 
             #[cfg(feature = "ratty")]
             ratty_engines,
@@ -457,30 +468,63 @@ pub fn run_plotter_mode(
                 }
             }
         } else if let Some(p) = port.as_mut() {
-            match p.read(&mut serial_buf) {
-                Ok(n) if n > 0 => {
-                    let chunk = String::from_utf8_lossy(&serial_buf[..n]);
-                    state.receive_buf.push_str(&chunk);
+            // DRAIN LOOP: Pull all available data from the OS buffer before rendering
+            loop {
+                match p.bytes_to_read() {
+                    Ok(avail) if avail > 0 => match p.read(&mut serial_buf) {
+                        Ok(n) if n > 0 => {
+                            let chunk = String::from_utf8_lossy(&serial_buf[..n]);
+                            state.receive_buf.push_str(&chunk);
 
-                    while let Some(pos) = state.receive_buf.find('\n') {
-                        let line = state.receive_buf.drain(..=pos).collect::<String>();
+                            while let Some(pos) = state.receive_buf.find('\n') {
+                                let line = state.receive_buf.drain(..=pos).collect::<String>();
 
-                        if let Some(ref mut writer) = log_writer {
-                            let _ =
-                                writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
-                            let _ = writer.flush();
+                                if let Some(ref mut writer) = log_writer {
+                                    let _ = writeln!(
+                                        writer,
+                                        "RX [{}]: {}",
+                                        get_timestamp(),
+                                        line.trim_end()
+                                    );
+                                    let _ = writer.flush();
+                                }
+
+                                state.ingest_line(&line, config.plot_points);
+                            }
                         }
-
-                        state.ingest_line(&line, config.plot_points);
-                    }
-                }
-                Ok(_) => {}
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
-                Err(e) => {
-                    state.last_error = Some(format!("Read error: {}", e));
+                        Ok(_) => break,
+                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
+                        Err(e) => {
+                            state.last_error = Some(format!("Read error: {}", e));
+                            break;
+                        }
+                    },
+                    _ => break, // Break the drain loop if the OS buffer is empty
                 }
             }
         }
+
+        // ---Smooth Interpolation (Lerp) ----------
+        let now = Instant::now();
+        let dt = now.duration_since(state.last_frame_time).as_secs_f64();
+        state.last_frame_time = now;
+
+        let target_pitch = state.sensors.get("Pitch").map_or(0.0, |s| s.current_value);
+        let target_yaw = state.sensors.get("Yaw").map_or(0.0, |s| s.current_value);
+        let target_roll = state.sensors.get("Roll").map_or(0.0, |s| s.current_value);
+
+        // Speed multiplier. Higher = faster snapping, Lower = smoother but floaty
+        let lerp_speed = 15.0;
+        let amount = (lerp_speed * dt).clamp(0.0, 1.0);
+
+        // Calculate shortest path for Euler angles to prevent backwards spinning on 360 wrap-around
+        let pitch_diff = (target_pitch - state.display_pitch + 180.0).rem_euclid(360.0) - 180.0;
+        let yaw_diff = (target_yaw - state.display_yaw + 180.0).rem_euclid(360.0) - 180.0;
+        let roll_diff = (target_roll - state.display_roll + 180.0).rem_euclid(360.0) - 180.0;
+
+        state.display_pitch = (state.display_pitch + pitch_diff * amount).rem_euclid(360.0);
+        state.display_yaw = (state.display_yaw + yaw_diff * amount).rem_euclid(360.0);
+        state.display_roll = (state.display_roll + roll_diff * amount).rem_euclid(360.0);
 
         // ── Render ────────────────────────────────────────────────────────────
         let x_bounds = state.x_bounds();
@@ -613,9 +657,9 @@ pub fn run_plotter_mode(
                 }
 
                 ActiveTab::Wireframe3D => {
-                    let pitch_deg = state.sensors.get("Pitch").map_or(0.0, |s| s.current_value);
-                    let yaw_deg = state.sensors.get("Yaw").map_or(0.0, |s| s.current_value);
-                    let roll_deg = state.sensors.get("Roll").map_or(0.0, |s| s.current_value);
+                    let pitch_deg = state.display_pitch;
+                    let yaw_deg = state.display_yaw;
+                    let roll_deg = state.display_roll;
 
                     let mut _rendered_3d = false;
 
