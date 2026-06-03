@@ -499,7 +499,11 @@ pub fn run_plotter_mode(
                             break;
                         }
                     },
-                    _ => break, // Break the drain loop if the OS buffer is empty
+                    Ok(_) => break, // Break the drain loop if the OS buffer is empty
+                    Err(e) => {
+                        state.last_error = Some(format!("Read error: {}", e));
+                        break;
+                    }
                 }
             }
         }
