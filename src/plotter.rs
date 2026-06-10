@@ -497,9 +497,16 @@ pub fn run_plotter_mode(
                     state.last_error = Some(format!("RTT lost: {}. Reconnecting...", e));
 
                     let elf = config.elf.as_deref().unwrap_or("");
-                    if let Ok(new_reader) = RttDefmtReader::new(elf, config.chip.clone()) {
-                        *reader = new_reader;
-                        state.last_error = Some("RTT re-connected!".to_string());
+                    match RttDefmtReader::new(elf, config.chip.clone()) {
+                        Ok(new_reader) => {
+                            *reader = new_reader;
+                            state.last_error = Some("RTT re-connected!".to_string());
+                        }
+                        Err(err) => {
+                            state.last_error = Some(format!("RTT re-connect failed: {}", err));
+
+                            std::thread::sleep(Duration::from_millis(500));
+                        }
                     }
                 }
             }
