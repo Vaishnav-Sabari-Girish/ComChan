@@ -482,13 +482,25 @@ pub fn run_plotter_mode(
             }
         } else if let Some(reader) = rtt_reader.as_mut() {
             // Drain RTT/DEFMT buffer
-            if let Ok(logs) = reader.poll_logs() {
-                for line in logs {
-                    if let Some(ref mut writer) = log_writer {
-                        let _ = writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
-                        let _ = writer.flush();
+            match reader.poll_logs() {
+                Ok(logs) => {
+                    for line in logs {
+                        if let Some(ref mut writer) = log_writer {
+                            let _ =
+                                writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
+                            let _ = writer.flush();
+                        }
+                        state.ingest_line(&line, config.plot_points);
                     }
-                    state.ingest_line(&line, config.plot_points);
+                }
+                Err(e) => {
+                    state.last_error = Some(format!("RTT lost: {}. Reconnecting...", e));
+
+                    let elf = config.elf.as_deref().unwrap_or("");
+                    if let Ok(new_reader) = RttDefmtReader::new(elf, config.chip.clone()) {
+                        *reader = new_reader;
+                        state.last_error = Some("RTT re-connected!".to_string());
+                    }
                 }
             }
         } else if let Some(p) = port.as_mut() {

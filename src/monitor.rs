@@ -154,17 +154,22 @@ pub fn run_normal_mode(
         // Initialize RTT reader
         let mut rtt_reader = if config.rtt {
             let elf = config.elf.as_deref().unwrap_or("");
-            if elf.is_empty() {
-                return Err("RTT mode requires an ELF file. Use --elf <path>".into());
-            }
 
             match RttDefmtReader::new(elf, config.chip.clone()) {
                 Ok(reader) => Some(reader),
                 Err(e) => {
-                    eprintln!(
-                        "\r\n{color_yellow}⏳ Waiting for RTT target ({color_red}{}{color_yellow})...{color_reset}",
-                        e
-                    );
+                    let err_msg = e.to_string();
+
+                    if err_msg.contains("No such file")
+                        || err_msg.contains("No defmt table")
+                        || err_msg.contains("ChipNotFound")
+                        || err_msg.contains("requires an ELF file")
+                    {
+                        return Err(e);
+                    }
+                    // Otherwise, treat as a transient hardware/connection error and wait
+                    print!("\r{color_yellow}⏳ Waiting for RTT target...{color_reset}\x1b[K");
+                    io::stdout().flush().ok();
                     thread::sleep(Duration::from_millis(1000));
                     continue;
                 }
