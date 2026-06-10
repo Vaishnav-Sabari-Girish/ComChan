@@ -1,5 +1,6 @@
 use crate::config::MergedConfig;
 use crate::parser::{SensorData, get_color_for_index, parse_sensor_data};
+use crate::rtt_reader::RttDefmtReader;
 use crate::serial::{
     get_timestamp, parse_data_bits, parse_flow_control, parse_parity, parse_stop_bits,
 };
@@ -321,6 +322,17 @@ pub fn run_plotter_mode(
     let parity = parse_parity(&config.parity)?;
     let flow_control = parse_flow_control(&config.flow_control)?;
 
+    let mut rtt_reader = if config.rtt {
+        let elf = config.elf.as_deref().unwrap_or("");
+
+        if elf.is_empty() {
+            return Err("RTT mode requires an ELF file. Use --elf <path>".into());
+        }
+        Some(RttDefmtReader::new(elf, config.chip.clone())?)
+    } else {
+        None
+    };
+
     let mut port = if config.simulate || config.replay_file.is_some() {
         None
     } else {
@@ -466,6 +478,17 @@ pub fn run_plotter_mode(
                 crate::replay::ReplayEvent::Waiting => {}
                 crate::replay::ReplayEvent::Eof => {
                     std::thread::sleep(Duration::from_millis(100));
+                }
+            }
+        } else if let Some(reader) = rtt_reader.as_mut() {
+            // Drain RTT/DEFMT buffer
+            if let Ok(logs) = reader.poll_logs() {
+                for line in logs {
+                    if let Some(ref mut writer) = log_writer {
+                        let _ = writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
+                        let _ = writer.flush();
+                    }
+                    state.ingest_line(&line, config.plot_points);
                 }
             }
         } else if let Some(p) = port.as_mut() {

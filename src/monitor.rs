@@ -1,4 +1,5 @@
 use crate::config::MergedConfig;
+use crate::rtt_reader::RttDefmtReader;
 use crate::serial::{
     get_timestamp, parse_data_bits, parse_flow_control, parse_parity, parse_stop_bits,
 };
@@ -85,6 +86,18 @@ pub fn run_normal_mode(
         None
     };
 
+    // Initialize RTT reader
+    let mut rtt_reader = if config.rtt {
+        let elf = config.elf.as_deref().unwrap_or("");
+        if elf.is_empty() {
+            return Err("RTT mode requires an ELF file. Use --elf <path>".into());
+        }
+
+        Some(RttDefmtReader::new(elf, config.chip.clone())?)
+    } else {
+        None
+    };
+
     println!("{color_green} Listening… (Ctrl+C to exit, Ctrl+L to clear screen){color_reset}\n");
 
     // 2. Setup channels and input thread ONCE
@@ -147,7 +160,7 @@ pub fn run_normal_mode(
 
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
-        let mut port = if config.simulate || config.replay_file.is_some() {
+        let mut port = if config.simulate || config.replay_file.is_some() || config.rtt {
             None
         } else {
             // Match handles the error instead of returning it
@@ -248,6 +261,37 @@ pub fn run_normal_mode(
                         println!("\n{color_yellow}Replay Finished.{color_reset}");
                         running.store(false, std::sync::atomic::Ordering::SeqCst);
                         break;
+                    }
+                }
+            } else if let Some(reader) = rtt_reader.as_mut() {
+                if let Ok(logs) = reader.poll_logs() {
+                    if logs.is_empty() {
+                        thread::sleep(Duration::from_millis(10));
+                    } else {
+                        for line in logs {
+                            let trimmed = line.trim_end();
+
+                            if trimmed.is_empty() {
+                                continue;
+                            }
+
+                            if config.verbose {
+                                print!("\r[{}] {}\r\n", get_timestamp(), trimmed);
+                            } else {
+                                print!("\r{}\r\n", trimmed);
+                            }
+                            io::stdout().flush().ok();
+
+                            if let Some(ref mut writer) = log_writer {
+                                writeln!(writer, "RX [{}]: {}", get_timestamp(), trimmed).ok();
+                                let _ = writer.flush();
+                            }
+
+                            if let Some(ref mut streamer) = csv_streamer {
+                                let readings = crate::parser::parse_sensor_data(trimmed);
+                                let _ = streamer.write_row(&readings);
+                            }
+                        }
                     }
                 }
             } else if let Some(p) = port.as_mut() {
@@ -433,6 +477,10 @@ pub fn run_normal_mode(
                             continue;
                         }
                         p.flush().ok();
+                    } else if config.rtt {
+                        eprintln!(
+                            "\r\n{color_yellow}Sending Input over RTT is not supported{color_reset}"
+                        );
                     }
 
                     last_sent = Some(clean.to_string());

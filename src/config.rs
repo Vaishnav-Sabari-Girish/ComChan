@@ -237,6 +237,15 @@ pub struct Args {
 
     #[arg(long, default_value_t = false, help = "Exports the plot in Dark Mode")]
     pub dark: bool,
+
+    #[arg(long, default_value_t = false, help = "View RTT logs")]
+    pub rtt: bool,
+
+    #[arg(long, requires = "rtt", help = "The Path to the compiled .elf file")]
+    pub elf: Option<String>,
+
+    #[arg(long, requires = "rtt", help = "Chip name for probe-rs")]
+    pub chip: Option<String>,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -265,6 +274,9 @@ pub struct MergedConfig {
     pub obj_file: Option<String>,
     pub braille: BrailleModel,
     pub dark_mode: bool,
+    pub rtt: bool,
+    pub elf: Option<String>,
+    pub chip: Option<String>,
 }
 
 // Generate completions
@@ -456,5 +468,8 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
             .or(config.braille)
             .unwrap_or(BrailleModel::Cube),
         dark_mode: args.dark,
+        rtt: args.rtt,
+        elf: args.elf,
+        chip: args.chip,
     }
 }
