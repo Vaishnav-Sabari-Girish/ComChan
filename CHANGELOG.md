@@ -1,4 +1,26 @@
 
+## Unreleased
+
+
+
+### :rocket: New features
+
+- **(rtt)** Add `rtt`/`defmt` log viewing
+
+- **(rtt)** Add `rtt`/`defmt` log viewing
+
+
+### :bug: Bug fixes
+
+- **(error)** Better error propagation in case re-connect fails
+
+- **(error)** Better error propagation and re-connection
+
+- **(rtt)** Resolve reconnect failures and eager config validation
+
+- **(cubic+reconnection)** Fixed stuff as per cubic and fixed reconnection
+
+
 ## v0.8.0 - 2026-06-03
 
 
