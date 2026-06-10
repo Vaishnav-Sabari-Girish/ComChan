@@ -46,6 +46,14 @@ impl RttDefmtReader {
             return Err("No debug probes detected. Check your USB connection.".into());
         }
 
+        if probes.len() > 1 {
+            eprintln!("⚠️ Warning: Multiple debug probes detected!");
+            eprintln!(
+                "⚠️ Silently attaching to the first enumerated probe: {}",
+                probes[0].identifier
+            );
+        }
+
         let probe = probes[0].open()?;
 
         let target_selector = match chip_override {

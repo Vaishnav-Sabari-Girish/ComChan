@@ -311,12 +311,6 @@ pub fn run_plotter_mode(
     config: MergedConfig,
     port_name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-
     let data_bits = parse_data_bits(config.data_bits)?;
     let stop_bits = parse_stop_bits(config.stop_bits)?;
     let parity = parse_parity(&config.parity)?;
@@ -333,7 +327,7 @@ pub fn run_plotter_mode(
         None
     };
 
-    let mut port = if config.simulate || config.replay_file.is_some() {
+    let mut port = if config.simulate || config.replay_file.is_some() || config.rtt {
         None
     } else {
         Some(
@@ -346,6 +340,13 @@ pub fn run_plotter_mode(
                 .open()?,
         )
     };
+
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
     let mut log_writer: Option<BufWriter<std::fs::File>> =
         if let Some(ref log_path) = config.log_file {
             let file = OpenOptions::new()

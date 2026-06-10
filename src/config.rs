@@ -238,7 +238,13 @@ pub struct Args {
     #[arg(long, default_value_t = false, help = "Exports the plot in Dark Mode")]
     pub dark: bool,
 
-    #[arg(long, default_value_t = false, help = "View RTT logs")]
+    #[arg(
+        long,
+        default_value_t = false,
+        requires = "elf",
+        requires = "chip",
+        help = "View RTT logs"
+    )]
     pub rtt: bool,
 
     #[arg(long, requires = "rtt", help = "The Path to the compiled .elf file")]
