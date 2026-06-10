@@ -37,7 +37,7 @@ comchan --version
 
 ```
 
-### From AUR
+### From AUR (Can be behind)
 
 For Arch Linux users, ComChan is available in the AUR (thanks to
 [orhun](https://github.com/orhun)!):
@@ -51,6 +51,21 @@ paru -S comchan
 
 ```
 
+> [!WARNING]
+> The AUR version may be behind the source as it is not being maintained by me.
+
+### Using `elda`
+
+`comchan` can also be installed using
+[`elda`](https://github.com/Mjoyufull/Elda)
+
+```bash
+elda i https://github.com/Vaishnav-Sabari-Girish/ComChan
+```
+
+> [!NOTE]
+> Credits for `elda` go to [**Rikona**](https://github.com/Mjoyufull)
+
 ### From source
 
 Build from source for the latest development version:
@@ -58,7 +73,7 @@ Build from source for the latest development version:
 You can do either of the following
 
 ```bash
-cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+cargo install --git [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
 
 ```
 
@@ -66,7 +81,7 @@ OR
 
 ```bash
 # Clone from GitHub
-git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
 
 # Build and run
 cd ComChan
@@ -110,6 +125,9 @@ Options:
       --obj <OBJ_FILE>                Path to .obj file
       --braille <BRAILLE>             Select a built-in Braille 3D model (cube, tetrahedron, octahedron) or provide a path to a custom .wrfm file
       --dark                          Exports the plot in Dark Mode
+      --rtt                           View RTT logs directly via a debug probe (bypasses UART)
+      --elf <ELF>                     The Path to the compiled .elf file (Requires --rtt)
+      --chip <CHIP>                   Target chip name for probe-rs (e.g., nRF52840_xxAA) (Requires --rtt)
   -h, --help                          Print help
   -V, --version                       Print version
 ```
@@ -134,6 +152,23 @@ comchan --port <port> --baud <baud_rate>
 ```bash
 comchan -p /dev/ttyUSB0 -r 9600
 
+```
+
+### RTT & Defmt Debug Probe Mode
+
+Bypass physical UART serial ports entirely! ComChan can stream zero-latency logs
+directly from your microcontroller's memory via SWD using `probe-rs` and
+`defmt`.
+
+It perfectly recreates standard `defmt` colored log output and seamlessly
+survives target board resets.
+
+```bash
+# Attach via RTT, specifying the compiled ELF and the target chip
+comchan --rtt --elf target/thumbv7em-none-eabi/release/my_firmware --chip nRF52840_xxAA
+
+# You can also pipe RTT directly into the 2D Plotter or 3D Dashboard!
+comchan --plot --rtt --elf path/to/elf --chip nRF52840_xxAA
 ```
 
 ### Hex Dump Mode
@@ -367,6 +402,9 @@ hex_mode = false
 hex_pretty = false
 obj_file = "custom_model.obj"
 braille = "cube" # Can also be "tetrahedron", "octahedron", or "path/to/model.wrfm"
+rtt = false
+elf = ""
+chip = ""
 ```
 
 ---
@@ -377,8 +415,12 @@ braille = "cube" # Can also be "tetrahedron", "octahedron", or "path/to/model.wr
 
 * **Read & Write Serial Data** - Monitor incoming data and send commands to your
 device.
+* **RTT & Defmt Support** - Stream zero-latency logs via SWD debug probes
+  (J-Link, DAPLink, etc.) without a physical UART connection. Includes instant
+  ELF-based attachment and colored `defmt` decoding.
 * **Auto-Recovery & Graceful Exit** - Automatically detects broken pipes and
-safely shuts down or reconnects when hardware is unplugged/replugged.
+safely shuts down or reconnects when hardware is unplugged/replugged or when
+target boards reset (fully supported in RTT mode).
 * **Terminal-Based Serial Plotter** - Visualize multiple sensor values in
 real-time with automatic legends using the `--plot` flag.
 * **3D Spatial Telemetry (IMU)** - Visualize Pitch, Yaw, and Roll data in a live
@@ -430,6 +472,12 @@ it.**
 rather have some AI generated tests than none at all.
 * **Micro-improvements:** I have used AI as an advisor to improve some bits of
 code here and there. Big refactors or new features are done by my hand though.
+
+<br>
+
+![img](https://brainmade.org/white-logo.svg)
+
+<br>
 
 Made with ❤️ by the ComChan Community
 
