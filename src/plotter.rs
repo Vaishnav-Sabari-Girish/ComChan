@@ -1,5 +1,6 @@
 use crate::config::MergedConfig;
 use crate::parser::{SensorData, get_color_for_index, parse_sensor_data};
+use crate::rtt_reader::RttDefmtReader;
 use crate::serial::{
     get_timestamp, parse_data_bits, parse_flow_control, parse_parity, parse_stop_bits,
 };
@@ -310,20 +311,14 @@ pub fn run_plotter_mode(
     config: MergedConfig,
     port_name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-
-    let data_bits = parse_data_bits(config.data_bits)?;
-    let stop_bits = parse_stop_bits(config.stop_bits)?;
-    let parity = parse_parity(&config.parity)?;
-    let flow_control = parse_flow_control(&config.flow_control)?;
-
-    let mut port = if config.simulate || config.replay_file.is_some() {
+    let mut port = if config.simulate || config.replay_file.is_some() || config.rtt {
         None
     } else {
+        let data_bits = parse_data_bits(config.data_bits)?;
+        let stop_bits = parse_stop_bits(config.stop_bits)?;
+        let parity = parse_parity(&config.parity)?;
+        let flow_control = parse_flow_control(&config.flow_control)?;
+
         Some(
             serialport::new(&port_name, config.baud)
                 .timeout(Duration::from_millis(config.timeout_ms))
@@ -334,6 +329,23 @@ pub fn run_plotter_mode(
                 .open()?,
         )
     };
+    let mut rtt_reader = if config.rtt {
+        let elf = config.elf.as_deref().unwrap_or("");
+
+        if elf.is_empty() {
+            return Err("RTT mode requires an ELF file. Use --elf <path>".into());
+        }
+        Some(RttDefmtReader::new(elf, config.chip.clone())?)
+    } else {
+        None
+    };
+
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
     let mut log_writer: Option<BufWriter<std::fs::File>> =
         if let Some(ref log_path) = config.log_file {
             let file = OpenOptions::new()
@@ -466,6 +478,36 @@ pub fn run_plotter_mode(
                 crate::replay::ReplayEvent::Waiting => {}
                 crate::replay::ReplayEvent::Eof => {
                     std::thread::sleep(Duration::from_millis(100));
+                }
+            }
+        } else if let Some(reader) = rtt_reader.as_mut() {
+            // Drain RTT/DEFMT buffer
+            match reader.poll_logs() {
+                Ok(logs) => {
+                    for line in logs {
+                        if let Some(ref mut writer) = log_writer {
+                            let _ =
+                                writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
+                            let _ = writer.flush();
+                        }
+                        state.ingest_line(&line, config.plot_points);
+                    }
+                }
+                Err(e) => {
+                    state.last_error = Some(format!("RTT lost: {}. Reconnecting...", e));
+
+                    let elf = config.elf.as_deref().unwrap_or("");
+                    match RttDefmtReader::new(elf, config.chip.clone()) {
+                        Ok(new_reader) => {
+                            *reader = new_reader;
+                            state.last_error = Some("RTT re-connected!".to_string());
+                        }
+                        Err(err) => {
+                            state.last_error = Some(format!("RTT re-connect failed: {}", err));
+
+                            std::thread::sleep(Duration::from_millis(500));
+                        }
+                    }
                 }
             }
         } else if let Some(p) = port.as_mut() {

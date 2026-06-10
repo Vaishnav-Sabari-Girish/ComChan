@@ -1,4 +1,5 @@
 use crate::config::MergedConfig;
+use crate::rtt_reader::RttDefmtReader;
 use crate::serial::{
     get_timestamp, parse_data_bits, parse_flow_control, parse_parity, parse_stop_bits,
 };
@@ -48,14 +49,17 @@ pub fn run_normal_mode(
     config: MergedConfig,
     port_name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let data_bits =
-        parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
-    let stop_bits =
-        parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?;
-    let parity = parse_parity(&config.parity).map_err(|e| format!("Configuration error: {}", e))?;
-    let flow_control = parse_flow_control(&config.flow_control)
-        .map_err(|e| format!("Configuration error: {}", e))?;
-
+    let serial_config = if config.simulate || config.replay_file.is_some() || config.rtt {
+        None
+    } else {
+        Some((
+            parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?,
+            parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?,
+            parse_parity(&config.parity).map_err(|e| format!("Configuration error: {}", e))?,
+            parse_flow_control(&config.flow_control)
+                .map_err(|e| format!("Configuration error: {}", e))?,
+        ))
+    };
     // 1. Setup logging ONCE
     let mut log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
@@ -147,10 +151,39 @@ pub fn run_normal_mode(
 
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
-        let mut port = if config.simulate || config.replay_file.is_some() {
+        // Initialize RTT reader
+        let mut rtt_reader = if config.rtt {
+            let elf = config.elf.as_deref().unwrap_or("");
+
+            match RttDefmtReader::new(elf, config.chip.clone()) {
+                Ok(reader) => Some(reader),
+                Err(e) => {
+                    let err_msg = e.to_string();
+
+                    if err_msg.contains("No such file")
+                        || err_msg.contains("No defmt table")
+                        || err_msg.contains("ChipNotFound")
+                        || err_msg.contains("requires an ELF file")
+                    {
+                        return Err(e);
+                    }
+                    // Otherwise, treat as a transient hardware/connection error and wait
+                    print!("\r{color_yellow}⏳ Waiting for RTT target...{color_reset}\x1b[K");
+                    io::stdout().flush().ok();
+                    thread::sleep(Duration::from_millis(1000));
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
+
+        // Serial Port
+        let mut port = if config.simulate || config.replay_file.is_some() || config.rtt {
             None
         } else {
             // Match handles the error instead of returning it
+            let (data_bits, stop_bits, parity, flow_control) = serial_config.unwrap();
             match serialport::new(&port_name, config.baud)
                 .timeout(Duration::from_millis(config.timeout_ms))
                 .data_bits(data_bits)
@@ -248,6 +281,58 @@ pub fn run_normal_mode(
                         println!("\n{color_yellow}Replay Finished.{color_reset}");
                         running.store(false, std::sync::atomic::Ordering::SeqCst);
                         break;
+                    }
+                }
+            } else if let Some(reader) = rtt_reader.as_mut() {
+                match reader.poll_logs() {
+                    Ok(logs) => {
+                        if logs.is_empty() {
+                            thread::sleep(Duration::from_millis(10));
+                        } else {
+                            for line in logs {
+                                let trimmed = line.trim_end();
+
+                                if trimmed.is_empty() {
+                                    continue;
+                                }
+
+                                if config.verbose {
+                                    print!("\r[{}] {}\r\n", get_timestamp(), trimmed);
+                                } else {
+                                    print!("\r{}\r\n", trimmed);
+                                }
+                                io::stdout().flush().ok();
+
+                                if let Some(ref mut writer) = log_writer {
+                                    writeln!(writer, "RX [{}]: {}", get_timestamp(), trimmed).ok();
+                                    let _ = writer.flush();
+                                }
+
+                                if let Some(ref mut streamer) = csv_streamer {
+                                    let readings = crate::parser::parse_sensor_data(trimmed);
+                                    let _ = streamer.write_row(&readings);
+                                }
+                            }
+                        }
+                    }
+
+                    Err(e) => {
+                        eprintln!(
+                            "\r\n{color_yellow}⚠️ RTT connection lost ({color_red}{}{color_yellow}). Attempting to reconnect...{color_reset}",
+                            e
+                        );
+
+                        if let Some(ref mut writer) = log_writer {
+                            writeln!(
+                                writer,
+                                "ERROR [{}]: RTT connection lost: {}",
+                                get_timestamp(),
+                                e
+                            )
+                            .ok();
+                            let _ = writer.flush();
+                        }
+                        is_connected = false;
                     }
                 }
             } else if let Some(p) = port.as_mut() {
@@ -433,6 +518,11 @@ pub fn run_normal_mode(
                             continue;
                         }
                         p.flush().ok();
+                    } else if config.rtt {
+                        eprintln!(
+                            "\r\n{color_yellow}Sending Input over RTT is not supported{color_reset}"
+                        );
+                        continue;
                     }
 
                     last_sent = Some(clean.to_string());

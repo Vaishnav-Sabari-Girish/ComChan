@@ -8,6 +8,7 @@ mod parser;
 mod plotter;
 mod port_finder;
 mod replay;
+mod rtt_reader;
 mod serial;
 
 use config::{
@@ -61,9 +62,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return list_available_ports();
     }
 
-    let port_name = if merged.simulate || merged.replay_file.is_some() {
-        println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
-        "SIMULATE_PORT".to_string()
+    let port_name = if merged.simulate || merged.replay_file.is_some() || merged.rtt {
+        if merged.rtt {
+            println!("{color_magenta}Starting in RTT/DEFMT debug probe mode....{color_reset}");
+            "RTT_DEBUG_PROBE".to_string()
+        } else {
+            println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
+            "SIMULATE_PORT".to_string()
+        }
     } else {
         match &merged.port {
             Some(p) if p.to_lowercase() == "auto" => match port_finder::find_usb_port()? {
