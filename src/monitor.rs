@@ -49,14 +49,17 @@ pub fn run_normal_mode(
     config: MergedConfig,
     port_name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let data_bits =
-        parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?;
-    let stop_bits =
-        parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?;
-    let parity = parse_parity(&config.parity).map_err(|e| format!("Configuration error: {}", e))?;
-    let flow_control = parse_flow_control(&config.flow_control)
-        .map_err(|e| format!("Configuration error: {}", e))?;
-
+    let serial_config = if config.simulate || config.replay_file.is_some() || config.rtt {
+        None
+    } else {
+        Some((
+            parse_data_bits(config.data_bits).map_err(|e| format!("Configuration error: {}", e))?,
+            parse_stop_bits(config.stop_bits).map_err(|e| format!("Configuration error: {}", e))?,
+            parse_parity(&config.parity).map_err(|e| format!("Configuration error: {}", e))?,
+            parse_flow_control(&config.flow_control)
+                .map_err(|e| format!("Configuration error: {}", e))?,
+        ))
+    };
     // 1. Setup logging ONCE
     let mut log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
@@ -155,7 +158,17 @@ pub fn run_normal_mode(
                 return Err("RTT mode requires an ELF file. Use --elf <path>".into());
             }
 
-            Some(RttDefmtReader::new(elf, config.chip.clone())?)
+            match RttDefmtReader::new(elf, config.chip.clone()) {
+                Ok(reader) => Some(reader),
+                Err(e) => {
+                    eprintln!(
+                        "\r\n{color_yellow}⏳ Waiting for RTT target ({color_red}{}{color_yellow})...{color_reset}",
+                        e
+                    );
+                    thread::sleep(Duration::from_millis(1000));
+                    continue;
+                }
+            }
         } else {
             None
         };
@@ -165,6 +178,7 @@ pub fn run_normal_mode(
             None
         } else {
             // Match handles the error instead of returning it
+            let (data_bits, stop_bits, parity, flow_control) = serial_config.unwrap();
             match serialport::new(&port_name, config.baud)
                 .timeout(Duration::from_millis(config.timeout_ms))
                 .data_bits(data_bits)

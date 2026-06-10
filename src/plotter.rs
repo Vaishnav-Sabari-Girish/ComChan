@@ -311,25 +311,14 @@ pub fn run_plotter_mode(
     config: MergedConfig,
     port_name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let data_bits = parse_data_bits(config.data_bits)?;
-    let stop_bits = parse_stop_bits(config.stop_bits)?;
-    let parity = parse_parity(&config.parity)?;
-    let flow_control = parse_flow_control(&config.flow_control)?;
-
-    let mut rtt_reader = if config.rtt {
-        let elf = config.elf.as_deref().unwrap_or("");
-
-        if elf.is_empty() {
-            return Err("RTT mode requires an ELF file. Use --elf <path>".into());
-        }
-        Some(RttDefmtReader::new(elf, config.chip.clone())?)
-    } else {
-        None
-    };
-
     let mut port = if config.simulate || config.replay_file.is_some() || config.rtt {
         None
     } else {
+        let data_bits = parse_data_bits(config.data_bits)?;
+        let stop_bits = parse_stop_bits(config.stop_bits)?;
+        let parity = parse_parity(&config.parity)?;
+        let flow_control = parse_flow_control(&config.flow_control)?;
+
         Some(
             serialport::new(&port_name, config.baud)
                 .timeout(Duration::from_millis(config.timeout_ms))
@@ -339,6 +328,16 @@ pub fn run_plotter_mode(
                 .flow_control(flow_control)
                 .open()?,
         )
+    };
+    let mut rtt_reader = if config.rtt {
+        let elf = config.elf.as_deref().unwrap_or("");
+
+        if elf.is_empty() {
+            return Err("RTT mode requires an ELF file. Use --elf <path>".into());
+        }
+        Some(RttDefmtReader::new(elf, config.chip.clone())?)
+    } else {
+        None
     };
 
     enable_raw_mode()?;

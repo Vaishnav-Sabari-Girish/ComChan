@@ -242,7 +242,6 @@ pub struct Args {
         long,
         default_value_t = false,
         requires = "elf",
-        requires = "chip",
         help = "View RTT logs"
     )]
     pub rtt: bool,
