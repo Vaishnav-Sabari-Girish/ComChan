@@ -43,16 +43,20 @@ For Arch Linux users, ComChan is available in the AUR (thanks to
 [orhun](https://github.com/orhun)!):
 
 ```bash
-# Using yay
+# ComChan with default features (No 3D)
+## Using yay
 yay -S comchan
 
-# Using paru
+## Using paru
 paru -S comchan
 
-```
+# ComChan with 3D features 
+## Using yay 
+yay -S comchan-ratty
 
-> [!WARNING]
-> The AUR version may be behind the source as it is not being maintained by me.
+# Using paru
+paru -S comchan-ratty
+```
 
 ### Using `elda`
 
