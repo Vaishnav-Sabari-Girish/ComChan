@@ -134,7 +134,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.9.1",
+    version = "0.10.0",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -254,6 +254,7 @@ pub struct Args {
 }
 
 /// The resolved, merged configuration used at runtime.
+#[derive(Clone)]
 pub struct MergedConfig {
     pub port: Option<String>,
     pub baud: u32,

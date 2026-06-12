@@ -310,8 +310,12 @@ impl PlotterState {
 pub fn run_plotter_mode(
     config: MergedConfig,
     port_name: String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut port = if config.simulate || config.replay_file.is_some() || config.rtt {
+    passed_port: Option<Box<dyn serialport::SerialPort>>,
+    passed_rtt: Option<crate::rtt_reader::RttDefmtReader>,
+) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
+    let mut port = if let Some(p) = passed_port {
+        Some(p)
+    } else if config.simulate || config.replay_file.is_some() || config.rtt {
         None
     } else {
         let data_bits = parse_data_bits(config.data_bits)?;
@@ -329,7 +333,9 @@ pub fn run_plotter_mode(
                 .open()?,
         )
     };
-    let mut rtt_reader = if config.rtt {
+    let mut rtt_reader = if let Some(r) = passed_rtt {
+        Some(r)
+    } else if config.rtt {
         let elf = config.elf.as_deref().unwrap_or("");
 
         if elf.is_empty() {
@@ -401,6 +407,12 @@ pub fn run_plotter_mode(
                 KeyCode::Char('q') | KeyCode::Esc => break,
                 KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
 
+                // Switch Modes
+                KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    disable_raw_mode().ok();
+                    execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
+                    return Ok(crate::AppExitState::SwitchToMonitor { port, rtt_reader });
+                }
                 // Space: pause / resume
                 KeyCode::Char(' ') => {
                     state.paused = !state.paused;
@@ -971,5 +983,5 @@ pub fn run_plotter_mode(
         );
     }
 
-    Ok(())
+    Ok(crate::AppExitState::Quit)
 }

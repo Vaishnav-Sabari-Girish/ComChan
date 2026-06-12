@@ -17,6 +17,12 @@ use crossterm::{
 
 use pretty_hex::*;
 
+enum MonitorCommand {
+    Repaint(u8),
+    SwitchMode,
+    Quit,
+}
+
 fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
 
@@ -45,10 +51,38 @@ fn strip_ansi(s: &str) -> String {
     out
 }
 
+macro_rules! poll_ctrl_rx_while_waiting {
+    ($ctrl_rx:expr, $running:expr) => {
+        let range = core::range::Range { start: 0, end: 20 };
+        for _ in range {
+            if let Ok(cmd) = $ctrl_rx.try_recv() {
+                match cmd {
+                    MonitorCommand::SwitchMode => {
+                        terminal::disable_raw_mode().ok();
+                        return Ok(crate::AppExitState::SwitchToPlotter {
+                            port: None,
+                            rtt_reader: None,
+                        });
+                    }
+                    MonitorCommand::Quit => {
+                        println!("\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}");
+                        $running.store(false, std::sync::atomic::Ordering::SeqCst);
+                        return Ok(crate::AppExitState::Quit);
+                    }
+                    _ => {}
+                }
+            }
+            thread::sleep(Duration::from_millis(50));
+        }
+    };
+}
+
 pub fn run_normal_mode(
     config: MergedConfig,
     port_name: String,
-) -> Result<(), Box<dyn std::error::Error>> {
+    passed_port: Option<Box<dyn serialport::SerialPort>>,
+    passed_rtt: Option<crate::rtt_reader::RttDefmtReader>,
+) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
     let serial_config = if config.simulate || config.replay_file.is_some() || config.rtt {
         None
     } else {
@@ -93,7 +127,7 @@ pub fn run_normal_mode(
 
     // 2. Setup channels and input thread ONCE
     let (input_tx, input_rx) = mpsc::channel::<String>();
-    let (ctrl_tx, ctrl_rx) = mpsc::channel::<u8>();
+    let (ctrl_tx, ctrl_rx) = mpsc::channel::<MonitorCommand>();
     thread::spawn(move || {
         terminal::enable_raw_mode().ok();
         let mut line_buf = String::new();
@@ -107,9 +141,16 @@ pub fn run_normal_mode(
                         (KeyCode::Char('l'), KeyModifiers::CONTROL) => {
                             print!("\x1bc\x1b[5 q");
                             io::stdout().flush().ok();
-                            ctrl_tx.send(b'\r').ok();
+                            ctrl_tx.send(MonitorCommand::Repaint(b'\r')).ok();
                         }
-                        (KeyCode::Char('c'), KeyModifiers::CONTROL) => break,
+                        (KeyCode::Char('p'), KeyModifiers::CONTROL) => {
+                            ctrl_tx.send(MonitorCommand::SwitchMode).ok();
+                            break;
+                        }
+                        (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                            ctrl_tx.send(MonitorCommand::Quit).ok();
+                            break;
+                        }
                         (KeyCode::Enter, _) => {
                             let _ = input_tx.send(line_buf.clone());
                             line_buf.clear();
@@ -136,11 +177,6 @@ pub fn run_normal_mode(
     });
 
     let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
-    let r = running.clone();
-    ctrlc::set_handler(move || {
-        println!("\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}");
-        r.store(false, std::sync::atomic::Ordering::SeqCst);
-    })?;
 
     let mut buffer = [0u8; 1024];
     let mut last_sent: Option<String> = None;
@@ -149,10 +185,14 @@ pub fn run_normal_mode(
     let mut lines_discarded = 0;
     const DISCARD_COUNT: usize = 5;
 
+    let mut active_port = passed_port;
+    let mut active_rtt = passed_rtt;
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         // Initialize RTT reader
-        let mut rtt_reader = if config.rtt {
+        let mut rtt_reader = if let Some(r) = active_rtt.take() {
+            Some(r)
+        } else if config.rtt {
             let elf = config.elf.as_deref().unwrap_or("");
 
             match RttDefmtReader::new(elf, config.chip.clone()) {
@@ -170,7 +210,9 @@ pub fn run_normal_mode(
                     // Otherwise, treat as a transient hardware/connection error and wait
                     print!("\r{color_yellow}⏳ Waiting for RTT target...{color_reset}\x1b[K");
                     io::stdout().flush().ok();
-                    thread::sleep(Duration::from_millis(1000));
+
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running);
+
                     continue;
                 }
             }
@@ -179,7 +221,9 @@ pub fn run_normal_mode(
         };
 
         // Serial Port
-        let mut port = if config.simulate || config.replay_file.is_some() || config.rtt {
+        let mut port = if let Some(p) = active_port.take() {
+            Some(p)
+        } else if config.simulate || config.replay_file.is_some() || config.rtt {
             None
         } else {
             // Match handles the error instead of returning it
@@ -227,7 +271,9 @@ pub fn run_normal_mode(
                         port_name
                     );
                     io::stdout().flush().ok();
-                    thread::sleep(Duration::from_millis(1000));
+
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running);
+
                     continue;
                 }
             }
@@ -542,11 +588,23 @@ pub fn run_normal_mode(
             }
 
             // ── Control bytes (e.g. Ctrl+L repaint) ─────────────────────────────
-            if let Ok(byte) = ctrl_rx.try_recv()
-                && let Some(p) = port.as_mut()
-            {
-                let _ = p.write_all(&[byte]);
-                let _ = p.flush();
+            if let Ok(cmd) = ctrl_rx.try_recv() {
+                match cmd {
+                    MonitorCommand::Repaint(byte) => {
+                        if let Some(p) = port.as_mut() {
+                            let _ = p.write_all(&[byte]);
+                            let _ = p.flush();
+                        }
+                    }
+                    MonitorCommand::SwitchMode => {
+                        terminal::disable_raw_mode().ok();
+                        return Ok(crate::AppExitState::SwitchToPlotter { port, rtt_reader });
+                    }
+                    MonitorCommand::Quit => {
+                        println!("\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}");
+                        running.store(false, std::sync::atomic::Ordering::SeqCst);
+                    }
+                }
             }
 
             thread::sleep(Duration::from_millis(10));
@@ -555,5 +613,5 @@ pub fn run_normal_mode(
 
     println!("\r\n{color_green} ComChan disconnected cleanly{color_reset}");
     terminal::disable_raw_mode().ok();
-    Ok(())
+    Ok(crate::AppExitState::Quit)
 }

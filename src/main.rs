@@ -17,6 +17,18 @@ use config::{
 use monitor::run_normal_mode;
 use plotter::run_plotter_mode;
 
+pub enum AppExitState {
+    Quit,
+    SwitchToPlotter {
+        port: Option<Box<dyn serialport::SerialPort>>,
+        rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
+    },
+    SwitchToMonitor {
+        port: Option<Box<dyn serialport::SerialPort>>,
+        rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
+    },
+}
+
 fn list_available_ports() -> Result<(), Box<dyn std::error::Error>> {
     println!("{color_cyan}󰅍 All Available Serial Ports:{color_reset}");
     let ports = serialport::available_ports()?;
@@ -99,9 +111,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    if merged.plot {
-        run_plotter_mode(merged, port_name)
-    } else {
-        run_normal_mode(merged, port_name)
+    let mut is_plot_mode = merged.plot;
+    let mut active_port: Option<Box<dyn serialport::SerialPort>> = None;
+    let mut active_rtt: Option<crate::rtt_reader::RttDefmtReader> = None;
+
+    loop {
+        let result = if is_plot_mode {
+            run_plotter_mode(merged.clone(), port_name.clone(), active_port, active_rtt)
+        } else {
+            run_normal_mode(merged.clone(), port_name.clone(), active_port, active_rtt)
+        };
+
+        match result {
+            Ok(AppExitState::Quit) => break,
+            Ok(AppExitState::SwitchToPlotter { port, rtt_reader }) => {
+                is_plot_mode = true;
+                active_port = port;
+                active_rtt = rtt_reader;
+            }
+            Ok(AppExitState::SwitchToMonitor { port, rtt_reader }) => {
+                is_plot_mode = false;
+                active_port = port;
+                active_rtt = rtt_reader;
+            }
+            Err(e) => return Err(e),
+        }
     }
+    Ok(())
 }
