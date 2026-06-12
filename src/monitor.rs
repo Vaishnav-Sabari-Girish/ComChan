@@ -51,6 +51,32 @@ fn strip_ansi(s: &str) -> String {
     out
 }
 
+macro_rules! poll_ctrl_rx_while_waiting {
+    ($ctrl_rx:expr, $running:expr) => {
+        let range = core::range::Range { start: 0, end: 20 };
+        for _ in range {
+            if let Ok(cmd) = $ctrl_rx.try_recv() {
+                match cmd {
+                    MonitorCommand::SwitchMode => {
+                        terminal::disable_raw_mode().ok();
+                        return Ok(crate::AppExitState::SwitchToPlotter {
+                            port: None,
+                            rtt_reader: None,
+                        });
+                    }
+                    MonitorCommand::Quit => {
+                        println!("\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}");
+                        $running.store(false, std::sync::atomic::Ordering::SeqCst);
+                        return Ok(crate::AppExitState::Quit);
+                    }
+                    _ => {}
+                }
+            }
+            thread::sleep(Duration::from_millis(50));
+        }
+    };
+}
+
 pub fn run_normal_mode(
     config: MergedConfig,
     port_name: String,
@@ -185,30 +211,8 @@ pub fn run_normal_mode(
                     print!("\r{color_yellow}⏳ Waiting for RTT target...{color_reset}\x1b[K");
                     io::stdout().flush().ok();
 
-                    let range = core::range::Range { start: 0, end: 20 };
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running);
 
-                    for _ in range {
-                        if let Ok(cmd) = ctrl_rx.try_recv() {
-                            match cmd {
-                                MonitorCommand::SwitchMode => {
-                                    terminal::disable_raw_mode().ok();
-                                    return Ok(crate::AppExitState::SwitchToPlotter {
-                                        port: None,
-                                        rtt_reader: None,
-                                    });
-                                }
-                                MonitorCommand::Quit => {
-                                    println!(
-                                        "\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}"
-                                    );
-                                    running.store(false, std::sync::atomic::Ordering::SeqCst);
-                                    return Ok(crate::AppExitState::Quit);
-                                }
-                                _ => {}
-                            }
-                        }
-                        thread::sleep(Duration::from_millis(50));
-                    }
                     continue;
                 }
             }
@@ -268,30 +272,8 @@ pub fn run_normal_mode(
                     );
                     io::stdout().flush().ok();
 
-                    let range = core::range::Range { start: 0, end: 20 };
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running);
 
-                    for _ in range {
-                        if let Ok(cmd) = ctrl_rx.try_recv() {
-                            match cmd {
-                                MonitorCommand::SwitchMode => {
-                                    terminal::disable_raw_mode().ok();
-                                    return Ok(crate::AppExitState::SwitchToPlotter {
-                                        port: None,
-                                        rtt_reader: None,
-                                    });
-                                }
-                                MonitorCommand::Quit => {
-                                    println!(
-                                        "\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}"
-                                    );
-                                    running.store(false, std::sync::atomic::Ordering::SeqCst);
-                                    return Ok(crate::AppExitState::Quit);
-                                }
-                                _ => {}
-                            }
-                        }
-                        thread::sleep(Duration::from_millis(50));
-                    }
                     continue;
                 }
             }
