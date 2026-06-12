@@ -77,7 +77,7 @@ Build from source for the latest development version:
 You can do either of the following
 
 ```bash
-cargo install --git [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
+cargo install --git https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 ```
 
@@ -85,7 +85,7 @@ OR
 
 ```bash
 # Clone from GitHub
-git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
+git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 # Build and run
 cd ComChan
@@ -238,6 +238,12 @@ Visualize sensor data in real-time, with optional SVG exports:
 comchan --port <port> --baud <baud_rate> --plot
 
 ```
+
+> [!TIP]
+> **Instant Hot-Swapping:** You don't need to restart ComChan to switch views!
+> Press `Ctrl+P` at any time while connected to seamlessly toggle back and forth
+> between the raw Serial Monitor and the Plotter/3D Dashboard without losing a
+> single frame of data.
 
 *Want to export the plot?*
 
@@ -419,6 +425,8 @@ chip = ""
 
 * **Read & Write Serial Data** - Monitor incoming data and send commands to your
 device.
+* **Instant Mode Hot-Swapping** - Seamlessly toggle between the raw Monitor and
+  visual Plotter on-the-fly using `Ctrl+P` without dropping your connection.
 * **RTT & Defmt Support** - Stream zero-latency logs via SWD debug probes
   (J-Link, DAPLink, etc.) without a physical UART connection. Includes instant
   ELF-based attachment and colored `defmt` decoding.
