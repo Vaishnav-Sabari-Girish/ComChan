@@ -1,4 +1,25 @@
 
+## Unreleased
+
+
+
+### :rocket: New features
+
+- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
+
+- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
+
+
+### :bug: Bug fixes
+
+- **(monitor)** Allow mode-switch and quit during reconnect delays
+
+
+### :recycle: Refactoring
+
+- **(monitor)** Extract reconnect polling loop into macro
+
+
 ## v0.9.1 - 2026-06-11
 
 
