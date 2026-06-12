@@ -184,7 +184,31 @@ pub fn run_normal_mode(
                     // Otherwise, treat as a transient hardware/connection error and wait
                     print!("\r{color_yellow}⏳ Waiting for RTT target...{color_reset}\x1b[K");
                     io::stdout().flush().ok();
-                    thread::sleep(Duration::from_millis(1000));
+
+                    let range = core::range::Range { start: 0, end: 20 };
+
+                    for _ in range {
+                        if let Ok(cmd) = ctrl_rx.try_recv() {
+                            match cmd {
+                                MonitorCommand::SwitchMode => {
+                                    terminal::disable_raw_mode().ok();
+                                    return Ok(crate::AppExitState::SwitchToPlotter {
+                                        port: None,
+                                        rtt_reader: None,
+                                    });
+                                }
+                                MonitorCommand::Quit => {
+                                    println!(
+                                        "\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}"
+                                    );
+                                    running.store(false, std::sync::atomic::Ordering::SeqCst);
+                                    return Ok(crate::AppExitState::Quit);
+                                }
+                                _ => {}
+                            }
+                        }
+                        thread::sleep(Duration::from_millis(50));
+                    }
                     continue;
                 }
             }
@@ -243,7 +267,31 @@ pub fn run_normal_mode(
                         port_name
                     );
                     io::stdout().flush().ok();
-                    thread::sleep(Duration::from_millis(1000));
+
+                    let range = core::range::Range { start: 0, end: 20 };
+
+                    for _ in range {
+                        if let Ok(cmd) = ctrl_rx.try_recv() {
+                            match cmd {
+                                MonitorCommand::SwitchMode => {
+                                    terminal::disable_raw_mode().ok();
+                                    return Ok(crate::AppExitState::SwitchToPlotter {
+                                        port: None,
+                                        rtt_reader: None,
+                                    });
+                                }
+                                MonitorCommand::Quit => {
+                                    println!(
+                                        "\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}"
+                                    );
+                                    running.store(false, std::sync::atomic::Ordering::SeqCst);
+                                    return Ok(crate::AppExitState::Quit);
+                                }
+                                _ => {}
+                            }
+                        }
+                        thread::sleep(Duration::from_millis(50));
+                    }
                     continue;
                 }
             }
