@@ -108,6 +108,15 @@ impl Model {
         edges.sort_unstable();
         edges.dedup();
 
+        if edges
+            .iter()
+            .any(|&(start, end)| start >= vertices.len() || end >= vertices.len())
+        {
+            use alloc::string::ToString;
+
+            return Err("OBJ references undefined vertex index".to_string());
+        }
+
         Ok(Self { vertices, edges })
     }
 

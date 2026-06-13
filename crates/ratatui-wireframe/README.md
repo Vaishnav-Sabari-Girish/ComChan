@@ -31,10 +31,10 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 ratatui = "0.26.0"
-ratatui-wireframe = "0.1.0"
+ratatui-wireframe = "0.7.0"
 
 # Or, to enable native .obj file parsing:
-# ratatui-wireframe = { version = "0.1.0", features = ["ratty"] }
+# ratatui-wireframe = { version = "0.7.0", features = ["ratty"] }
 ```
 
 ## Quick Start

@@ -400,7 +400,7 @@ pub fn run_plotter_mode(
                     Err(e) => state.last_error = Some(format!("Failed to read {}: {}", path, e)),
                 }
             }
-            #[cfg(feature = "ratty")]
+            #[cfg(not(feature = "ratty"))]
             {
                 state.last_error = Some(
                     "OBJ parsing requires the ratty feature. Recompile with --features ratty"
