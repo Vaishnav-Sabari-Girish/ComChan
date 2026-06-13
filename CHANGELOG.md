@@ -14,6 +14,8 @@
 
 ### :bug: Bug fixes
 
+- **(no_std)** Auto detect std and no_std via feature flags
+
 - **(edge)** Fixed some edge cases in the bounds checking
 
 - **(monitor)** Allow mode-switch and quit during reconnect delays
