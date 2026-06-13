@@ -5,12 +5,16 @@
 
 ### :rocket: New features
 
+- **(3d)** 3D obj file reading for `ratatui-wireframe`
+
 - **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
 
 - **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
 
 
 ### :bug: Bug fixes
+
+- **(edge)** Fixed some edge cases in the bounds checking
 
 - **(monitor)** Allow mode-switch and quit during reconnect delays
 
