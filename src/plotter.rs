@@ -387,13 +387,36 @@ pub fn run_plotter_mode(
     let mut serial_buf = [0u8; 1024];
 
     if let crate::config::BrailleModel::Custom(ref path) = config.braille {
-        match wrfm::WrfmModel::from_file(path) {
-            Ok(parsed_wrfm) => {
-                let render_model = ratatui_wireframe::model::Model::from_wrfm(parsed_wrfm);
-                state.custom_model = Some(render_model);
+        if path.to_lowercase().ends_with(".obj") {
+            #[cfg(feature = "ratty")]
+            {
+                match std::fs::read_to_string(path) {
+                    Ok(obj_data) => match ratatui_wireframe::model::Model::from_obj(&obj_data) {
+                        Ok(render_model) => state.custom_model = Some(render_model),
+                        Err(e) => {
+                            state.last_error = Some(format!("OBJ Parse Error in {}: {}", path, e))
+                        }
+                    },
+                    Err(e) => state.last_error = Some(format!("Failed to read {}: {}", path, e)),
+                }
             }
-            Err(e) => {
-                state.last_error = Some(format!("Failed to load {}: {}", path, e));
+            #[cfg(not(feature = "ratty"))]
+            {
+                state.last_error = Some(
+                    "OBJ parsing requires the ratty feature. Recompile with --features ratty"
+                        .to_string(),
+                );
+            }
+        } else {
+            // ── Route to the legacy .wrfm parser ──
+            match wrfm::WrfmModel::from_file(path) {
+                Ok(parsed_wrfm) => {
+                    let render_model = ratatui_wireframe::model::Model::from_wrfm(parsed_wrfm);
+                    state.custom_model = Some(render_model);
+                }
+                Err(e) => {
+                    state.last_error = Some(format!("Failed to load {}: {}", path, e));
+                }
             }
         }
     }
