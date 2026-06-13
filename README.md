@@ -13,6 +13,9 @@ Communication**
 [![License: MIT](https://img.shields.io/github/license/Vaishnav-Sabari-Girish/ComChan?color=blue)](LICENSE)
 ![Rust](https://img.shields.io/github/languages/top/Vaishnav-Sabari-Girish/ComChan?color=orange)
 
+For detailed instructions with images and videos, take a look at `comchan`'s
+wiki [wiki](https://github.com/Vaishnav-Sabari-Girish/ComChan/wiki)
+
 ## Installation
 
 Choose your preferred installation method:
