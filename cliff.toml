@@ -1,7 +1,6 @@
 # git-cliff ~ configuration file
 # https://git-cliff.org/docs/configuration
 
-
 [remote.github]
 owner = "Vaishnav-Sabari-Girish"
 repo = "ComChan"
@@ -22,13 +21,26 @@ body = """
 - {% if commit.scope %}**({{ commit.scope }})** {% endif %}{{ commit.message | upper_first | trim }}
 {% endfor %}
 {% endfor %}
+
+{%- if github -%}
+{% if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
+### :tada: New Contributors
+{%- endif %}\
+{% for contributor in github.contributors | filter(attribute="is_first_time", value=true) %}
+- @{{ contributor.username }} made their first contribution
+  {%- if contributor.pr_number %} in [#{{ contributor.pr_number }}]({{ self::remote_url() }}/pull/{{ contributor.pr_number }}){%- endif %}
+{%- endfor -%}
+{%- endif -%}
+
+{%- macro remote_url() -%}
+  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
+{%- endmacro -%}
 """
 # Remove leading and trailing whitespaces from the changelog's body.
 trim = true
 # A Tera template to be rendered as the changelog's footer.
 # See https://keats.github.io/tera/docs/#introduction
 footer = """
-<!-- ComChan -->
 """
 # An array of regex based postprocessors to modify the changelog.
 # Replace the placeholder `<REPO>` with a URL.
@@ -43,12 +55,12 @@ filter_unconventional = true
 # Split commits on newlines, treating each line as an individual commit.
 split_commits = false
 commit_parsers = [
-    { message = "^feat", group = "<!-- 0 -->:rocket: New features" },
-    { message = "^fix", group = "<!-- 1 -->:bug: Bug fixes" },
-    { message = "^perf", group = "<!-- 3 -->:zap: Performance" },
-    { message = "^refactor", group = "<!-- 5 -->:recycle: Refactoring" },
-    { message = "^style", group = "<!-- 6 -->:art: Styling" },
-    { message = "^build", group = "<!-- 9 -->:hammer: Build" },
+    { message = "^feat", group = ":rocket: New features" },
+    { message = "^fix", group = ":bug: Bug fixes" },
+    { message = "^perf", group = ":zap: Performance" },
+    { message = "^refactor", group = ":recycle: Refactoring" },
+    { message = "^style", group = ":art: Styling" },
+    { message = "^build", group = ":hammer: Build" },
     { message = ".*", skip = true },
 ]
 # An array of regex based parsers to modify commit messages prior to further processing.
