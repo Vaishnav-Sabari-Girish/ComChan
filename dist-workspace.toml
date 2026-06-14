@@ -20,3 +20,4 @@ features = ["ratty"]
 [dist.dependencies.apt]
 pkg-config = "*"
 libfontconfig1-dev = "*"
+libudev-dev = "*"
