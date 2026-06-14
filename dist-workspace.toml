@@ -1,0 +1,22 @@
+[workspace]
+members = ["cargo:."]
+
+[dist]
+cargo-dist-version = "0.32.0"
+ci = "github"
+create-release = false
+allow-dirty = ["ci"]
+installers = []
+
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+]
+
+# Tell the native cargo-dist builder to append `--features ratty`
+features = ["ratty"]
+
+[dist.dependencies.apt]
+pkg-config = "*"
+libfontconfig1-dev = "*"
