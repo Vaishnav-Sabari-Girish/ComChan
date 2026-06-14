@@ -3,15 +3,6 @@
 
 
 
-### :rocket: New features
-
-- **(3d)** 3D obj file reading for `ratatui-wireframe`
-
-- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
-
-- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
-
-
 ### :bug: Bug fixes
 
 - **(no_std)** Auto detect std and no_std via feature flags
@@ -24,6 +15,15 @@
 ### :recycle: Refactoring
 
 - **(monitor)** Extract reconnect polling loop into macro
+
+
+### :rocket: New features
+
+- **(3d)** 3D obj file reading for `ratatui-wireframe`
+
+- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
+
+- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
 
 
 ## v0.9.1 - 2026-06-11
@@ -39,13 +39,6 @@
 
 
 
-### :rocket: New features
-
-- **(rtt)** Add `rtt`/`defmt` log viewing
-
-- **(rtt)** Add `rtt`/`defmt` log viewing
-
-
 ### :bug: Bug fixes
 
 - **(error)** Better error propagation in case re-connect fails
@@ -57,8 +50,26 @@
 - **(cubic+reconnection)** Fixed stuff as per cubic and fixed reconnection
 
 
+### :rocket: New features
+
+- **(rtt)** Add `rtt`/`defmt` log viewing
+
+- **(rtt)** Add `rtt`/`defmt` log viewing
+
+
 ## v0.8.0 - 2026-06-03
 
+
+
+### :bug: Bug fixes
+
+- **(error)** Added proper error message for drain loop
+
+- **(trig)** Trigonometry issues
+
+- **(default)** Removed `ratatui` default features
+
+- **(features)** Add features
 
 
 ### :rocket: New features
@@ -76,17 +87,6 @@
 - **(rw_no_std)** Add no_std support for `ratatui-wireframe`
 
 
-### :bug: Bug fixes
-
-- **(error)** Added proper error message for drain loop
-
-- **(trig)** Trigonometry issues
-
-- **(default)** Removed `ratatui` default features
-
-- **(features)** Add features
-
-
 ### :zap: Performance
 
 - **(limit)** Limited the drain to prevent overloading of thread
@@ -96,17 +96,9 @@
 
 
 
-### :rocket: New features
+### :art: Styling
 
-- **(octahedron_plus_custom_file)** Add octahedron model
-
-- **(file)** Add wrfm file based braille models
-
-- **(tetrahedron)** Add tetrahedron braille model
-
-- **(custom_obj_file)** Ability to use a custom obj file
-
-- **(zephyr_logs)** Supports plotting from Zephyr Logs
+- **(parser)** Better coding standards
 
 
 ### :bug: Bug fixes
@@ -130,23 +122,38 @@
 - **(better parsing)** Better parsing for logs
 
 
-### :zap: Performance
-
-- **(render)** Stop cloning mesh data inside the 60fps loop
-
-
-### :art: Styling
-
-- **(parser)** Better coding standards
-
-
 ### :hammer: Build
 
 - **(version)** Add version for `ratatui-wireframe`
 
 
+### :rocket: New features
+
+- **(octahedron_plus_custom_file)** Add octahedron model
+
+- **(file)** Add wrfm file based braille models
+
+- **(tetrahedron)** Add tetrahedron braille model
+
+- **(custom_obj_file)** Ability to use a custom obj file
+
+- **(zephyr_logs)** Supports plotting from Zephyr Logs
+
+
+### :zap: Performance
+
+- **(render)** Stop cloning mesh data inside the 60fps loop
+
+
 ## v0.6.0 - 2026-05-23
 
+
+
+### :bug: Bug fixes
+
+- **(plotter)** Correct Ratty terminal rendering mode detection
+
+- **(ghosting)** Cube did not clear after changing tabs
 
 
 ### :rocket: New features
@@ -160,15 +167,13 @@
 - **(plotter)** Add zero-dependency 3D wireframe engine and tabbed UI
 
 
-### :bug: Bug fixes
-
-- **(plotter)** Correct Ratty terminal rendering mode detection
-
-- **(ghosting)** Cube did not clear after changing tabs
-
-
 ## v0.5.0-rc1 - 2026-05-17
 
+
+
+### :bug: Bug fixes
+
+- **(hex)** Resolve stale buffer, simulate logic, and config types
 
 
 ### :rocket: New features
@@ -178,23 +183,18 @@
 - **(hex mode)** Basic hex mode
 
 
-### :bug: Bug fixes
-
-- **(hex)** Resolve stale buffer, simulate logic, and config types
-
-
 ## v0.4.0 - 2026-05-15
 
-
-
-### :rocket: New features
-
-- **(session_replay)** Add Session Replay feature
 
 
 ### :art: Styling
 
 - **(clippy)** Fixed clippy warning about EOF
+
+
+### :rocket: New features
+
+- **(session_replay)** Add Session Replay feature
 
 
 ## v0.3.7-rc1 - 2026-05-12
@@ -255,6 +255,11 @@
 
 
 
+### :hammer: Build
+
+- **(pre-release)** Pre-release with custom plot title
+
+
 ### :rocket: New features
 
 - **(plot-title)** Add custom plot-title option
@@ -265,18 +270,8 @@
 - **(&str)** Change &String to &str for idiomatic rust
 
 
-### :hammer: Build
-
-- **(pre-release)** Pre-release with custom plot title
-
-
 ## v0.3.4 - 2026-04-30
 
-
-
-### :rocket: New features
-
-- **(export)** Export plot to SVG
 
 
 ### :bug: Bug fixes
@@ -288,15 +283,13 @@
 - **(zephyr)** Add seperate mode for Zephyr shell
 
 
-## v0.3.3 - 2026-04-21
-
-
-
 ### :rocket: New features
 
-- **(control code)** Add control codes (CTRL+L) to clear screen
+- **(export)** Export plot to SVG
 
-- **(timestamps)** Timestamps changed from EPOCH to local time
+
+## v0.3.3 - 2026-04-21
+
 
 
 ### :hammer: Build
@@ -304,6 +297,13 @@
 - **(bump)** Version bump from 0.3.2 to 0.3.3
 
 - **(bump)** Bumped up version [skip ci]
+
+
+### :rocket: New features
+
+- **(control code)** Add control codes (CTRL+L) to clear screen
+
+- **(timestamps)** Timestamps changed from EPOCH to local time
 
 
 ## v0.3.2 - 2026-04-19
@@ -326,23 +326,23 @@
 - **(bug)** Fixed copy issue for variable `self.x`
 
 
-### :zap: Performance
-
-- **(Optimization)** Use Cow to reduce string cloning
-
-
 ### :recycle: Refactoring
 
 - **(start)** Refactor start
 
 
+### :zap: Performance
+
+- **(Optimization)** Use Cow to reduce string cloning
+
+
+### :tada: New Contributors
+- @github-actions[bot] made their first contribution
+- @Adez017 made their first contribution
+- @ made their first contribution
+- @Nimit746 made their first contribution
 ## v0.2.5 - 2026-02-06
 
-
-
-### :rocket: New features
-
-- **(replaced emojis)** Replaced emojis with Nerd Font Characters
 
 
 ### :hammer: Build
@@ -352,7 +352,14 @@
 - **(bump ratatui)** Bump Ratatui version
 
 
+### :rocket: New features
+
+- **(replaced emojis)** Replaced emojis with Nerd Font Characters
+
+
 ## v0.1.0 - 2025-06-29
 
 
-<!-- ComChan -->
+
+### :tada: New Contributors
+- @Vaishnav-Sabari-Girish made their first contribution
