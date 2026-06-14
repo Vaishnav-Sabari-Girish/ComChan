@@ -40,7 +40,7 @@ comchan --version
 
 ```
 
-### From AUR (Can be behind)
+### From AUR
 
 For Arch Linux users, ComChan is available in the AUR (thanks to
 [orhun](https://github.com/orhun)!):
@@ -60,6 +60,27 @@ yay -S comchan-ratty
 # Using paru
 paru -S comchan-ratty
 ```
+
+### Install the binary
+
+You can install the binary `comchan-bin` from the AUR
+
+```bash
+yay -S comchan-bin
+# OR 
+paru -S comchan-bin
+```
+
+You can also use `cargo binstall`
+
+```bash
+cargo binstall comchan
+```
+
+> [!NOTE]
+> The binary is packaged with the `ratty` feature enabled, which means you can
+> install the binary if your machine is unable to compile `comchan` with the
+> `ratty` feature.
 
 ### Using `elda`
 
