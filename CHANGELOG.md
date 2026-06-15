@@ -1,6 +1,37 @@
 
-## v0.10.0 - 2026-06-13
+## v0.11.0 - 2026-06-15
 
+
+
+### :bug: Bug fixes
+
+- **(stream)** Resolve Cubic diagnostics for BLE lifecycle and UI stability
+
+
+### :hammer: Build
+
+- **(dist-workspace)** Add the BLE feature for compilation
+
+
+### :recycle: Refactoring
+
+- **(ble)** Use typed events for channel communication
+
+
+### :rocket: New features
+
+- **(ble)** Added BLE capabilities to `comchan`
+
+
+## v0.10.1 - 2026-06-14
+
+
+
+### :art: Styling
+
+- **(parser)** Better coding standards
+
+- **(clippy)** Fixed clippy warning about EOF
 
 
 ### :bug: Bug fixes
@@ -11,36 +42,6 @@
 
 - **(monitor)** Allow mode-switch and quit during reconnect delays
 
-
-### :recycle: Refactoring
-
-- **(monitor)** Extract reconnect polling loop into macro
-
-
-### :rocket: New features
-
-- **(3d)** 3D obj file reading for `ratatui-wireframe`
-
-- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
-
-- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
-
-
-## v0.9.1 - 2026-06-11
-
-
-
-### :hammer: Build
-
-- **(typos)** Fixed some typos
-
-
-## v0.9.0 - 2026-06-10
-
-
-
-### :bug: Bug fixes
-
 - **(error)** Better error propagation in case re-connect fails
 
 - **(error)** Better error propagation and re-connection
@@ -49,20 +50,6 @@
 
 - **(cubic+reconnection)** Fixed stuff as per cubic and fixed reconnection
 
-
-### :rocket: New features
-
-- **(rtt)** Add `rtt`/`defmt` log viewing
-
-- **(rtt)** Add `rtt`/`defmt` log viewing
-
-
-## v0.8.0 - 2026-06-03
-
-
-
-### :bug: Bug fixes
-
 - **(error)** Added proper error message for drain loop
 
 - **(trig)** Trigonometry issues
@@ -70,38 +57,6 @@
 - **(default)** Removed `ratatui` default features
 
 - **(features)** Add features
-
-
-### :rocket: New features
-
-- **(dark_mode)** Added Dark Mode for SVG exports
-
-- **(dark_mode)** Added Dark Mode for SVG exports
-
-- **(smooth)** Smoother 3D telemetry viewer.
-
-- **(smooth)** Smoother 3D telemetry viewer.
-
-- **(feature)** Added feature flags to terminal canvas
-
-- **(rw_no_std)** Add no_std support for `ratatui-wireframe`
-
-
-### :zap: Performance
-
-- **(limit)** Limited the drain to prevent overloading of thread
-
-
-## v0.7.0 - 2026-05-29
-
-
-
-### :art: Styling
-
-- **(parser)** Better coding standards
-
-
-### :bug: Bug fixes
 
 - **(zephyr)** Logged data was not plotting
 
@@ -121,13 +76,68 @@
 
 - **(better parsing)** Better parsing for logs
 
+- **(plotter)** Correct Ratty terminal rendering mode detection
+
+- **(ghosting)** Cube did not clear after changing tabs
+
+- **(hex)** Resolve stale buffer, simulate logic, and config types
+
+- **(graceful-exit)** Add a graceful exit during disconnection
+
+- **(export limit)** Add export limit to prevent RAM overusage
+
+- **(crash)** Fix crash due to less number of data points
+
+- **(zephyr)** Add seperate mode for Zephyr shell
+
+- **(clippy)** `libudev` error
+
+- **(bug)** Fixed copy issue for variable `self.x`
+
 
 ### :hammer: Build
 
+- **(typos)** Fixed some typos
+
 - **(version)** Add version for `ratatui-wireframe`
+
+- **(pre-release)** Pre-release with custom plot title
+
+- **(bump)** Version bump from 0.3.2 to 0.3.3
+
+- **(bump)** Bumped up version [skip ci]
+
+
+### :recycle: Refactoring
+
+- **(monitor)** Extract reconnect polling loop into macro
+
+- **(start)** Refactor start
 
 
 ### :rocket: New features
+
+- **(3d)** 3D obj file reading for `ratatui-wireframe`
+
+- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
+
+- **(switch_modes)** Switch between modes plotter -> monitor, vice-versa
+
+- **(rtt)** Add `rtt`/`defmt` log viewing
+
+- **(rtt)** Add `rtt`/`defmt` log viewing
+
+- **(dark_mode)** Added Dark Mode for SVG exports
+
+- **(dark_mode)** Added Dark Mode for SVG exports
+
+- **(smooth)** Smoother 3D telemetry viewer.
+
+- **(smooth)** Smoother 3D telemetry viewer.
+
+- **(feature)** Added feature flags to terminal canvas
+
+- **(rw_no_std)** Add no_std support for `ratatui-wireframe`
 
 - **(octahedron_plus_custom_file)** Add octahedron model
 
@@ -139,25 +149,6 @@
 
 - **(zephyr_logs)** Supports plotting from Zephyr Logs
 
-
-### :zap: Performance
-
-- **(render)** Stop cloning mesh data inside the 60fps loop
-
-
-## v0.6.0 - 2026-05-23
-
-
-
-### :bug: Bug fixes
-
-- **(plotter)** Correct Ratty terminal rendering mode detection
-
-- **(ghosting)** Cube did not clear after changing tabs
-
-
-### :rocket: New features
-
 - **(3D)** Cube is proper (kinda) with a gnomon
 
 - **(plotter)** Add hardware-accelerated 3D rendering with graceful fallback
@@ -166,172 +157,40 @@
 
 - **(plotter)** Add zero-dependency 3D wireframe engine and tabbed UI
 
-
-## v0.5.0-rc1 - 2026-05-17
-
-
-
-### :bug: Bug fixes
-
-- **(hex)** Resolve stale buffer, simulate logic, and config types
-
-
-### :rocket: New features
-
 - **(hex-pretty)** Add pretty print mode for hex dump
 
 - **(hex mode)** Basic hex mode
 
-
-## v0.4.0 - 2026-05-15
-
-
-
-### :art: Styling
-
-- **(clippy)** Fixed clippy warning about EOF
-
-
-### :rocket: New features
-
 - **(session_replay)** Add Session Replay feature
-
-
-## v0.3.7-rc1 - 2026-05-12
-
-
-
-### :rocket: New features
 
 - **(csv)** Add CSV file streaming
 
-
-## v0.3.6-rc4 - 2026-05-07
-
-
-
-### :rocket: New features
-
 - **(recovery)** Add recovery after re-connection
-
-
-## v0.3.6-rc3 - 2026-05-07
-
-
-
-### :bug: Bug fixes
-
-- **(graceful-exit)** Add a graceful exit during disconnection
-
-
-## v0.3.6-rc2 - 2026-05-07
-
-
-
-### :rocket: New features
 
 - **(nushell)** Add completions for nushell
 
-
-## v0.3.6-rc1 - 2026-05-07
-
-
-
-### :rocket: New features
-
 - **(completions)** Add completions
-
-
-## v0.3.5 - 2026-05-06
-
-
-
-### :rocket: New features
 
 - **(simulate)** Add simulate option to simulate without hardware
 
-
-## v0.3.5-beta - 2026-04-30
-
-
-
-### :hammer: Build
-
-- **(pre-release)** Pre-release with custom plot title
-
-
-### :rocket: New features
-
 - **(plot-title)** Add custom plot-title option
 
-
-### :zap: Performance
-
-- **(&str)** Change &String to &str for idiomatic rust
-
-
-## v0.3.4 - 2026-04-30
-
-
-
-### :bug: Bug fixes
-
-- **(export limit)** Add export limit to prevent RAM overusage
-
-- **(crash)** Fix crash due to less number of data points
-
-- **(zephyr)** Add seperate mode for Zephyr shell
-
-
-### :rocket: New features
-
 - **(export)** Export plot to SVG
-
-
-## v0.3.3 - 2026-04-21
-
-
-
-### :hammer: Build
-
-- **(bump)** Version bump from 0.3.2 to 0.3.3
-
-- **(bump)** Bumped up version [skip ci]
-
-
-### :rocket: New features
 
 - **(control code)** Add control codes (CTRL+L) to clear screen
 
 - **(timestamps)** Timestamps changed from EPOCH to local time
 
-
-## v0.3.2 - 2026-04-19
-
-
-
-### :rocket: New features
-
 - **(zephyr)** Zephyr Shell support
 
 
-## v0.3.0 - 2026-04-09
-
-
-
-### :bug: Bug fixes
-
-- **(clippy)** `libudev` error
-
-- **(bug)** Fixed copy issue for variable `self.x`
-
-
-### :recycle: Refactoring
-
-- **(start)** Refactor start
-
-
 ### :zap: Performance
+
+- **(limit)** Limited the drain to prevent overloading of thread
+
+- **(render)** Stop cloning mesh data inside the 60fps loop
+
+- **(&str)** Change &String to &str for idiomatic rust
 
 - **(Optimization)** Use Cow to reduce string cloning
 
