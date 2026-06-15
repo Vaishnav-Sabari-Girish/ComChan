@@ -571,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "comchan"
-version = "0.11.1"
+version = "0.11.0"
 dependencies = [
  "btleplug",
  "chrono",
