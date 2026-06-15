@@ -1,0 +1,20 @@
+build:
+    @west build -b nrf52840dk/nrf52840 .
+
+pristine:
+    @west build -p always -b nrf52840dk/nrf52840 .
+
+flash:
+    @west flash --runner openocd
+
+clean:
+    @rm -rf build compile_commands.json
+
+# Mass erases the Nordic chip to bypass the APPROTECT lock
+recover:
+    @/home/vaishnav/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/openocd \
+        -s /home/vaishnav/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts \
+        -c 'source [find interface/jlink.cfg]' \
+        -c 'transport select swd' \
+        -c 'source [find target/nrf52.cfg]' \
+        -c 'init' -c 'nrf52_recover' -c 'exit'

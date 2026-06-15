@@ -11,21 +11,26 @@ mod replay;
 mod rtt_reader;
 mod serial;
 
+#[cfg(feature = "ble")]
+mod ble;
+
 use config::{
     Args, generate_default_config, load_config, merge_config_and_args, print_completions,
 };
-use monitor::run_normal_mode;
-use plotter::run_plotter_mode;
 
 pub enum AppExitState {
     Quit,
     SwitchToPlotter {
         port: Option<Box<dyn serialport::SerialPort>>,
         rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
+        #[cfg(feature = "ble")]
+        ble_rx: Option<std::sync::mpsc::Receiver<String>>,
     },
     SwitchToMonitor {
         port: Option<Box<dyn serialport::SerialPort>>,
         rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
+        #[cfg(feature = "ble")]
+        ble_rx: Option<std::sync::mpsc::Receiver<String>>,
     },
 }
 
@@ -74,10 +79,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return list_available_ports();
     }
 
-    let port_name = if merged.simulate || merged.replay_file.is_some() || merged.rtt {
+    let port_name = if merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble {
         if merged.rtt {
             println!("{color_magenta}Starting in RTT/DEFMT debug probe mode....{color_reset}");
             "RTT_DEBUG_PROBE".to_string()
+        } else if merged.ble {
+            println!("{color_magenta}Starting in BLE stream mode....{color_reset}");
+            "BLE_STREAM".to_string()
         } else {
             println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
             "SIMULATE_PORT".to_string()
@@ -115,24 +123,88 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut active_port: Option<Box<dyn serialport::SerialPort>> = None;
     let mut active_rtt: Option<crate::rtt_reader::RttDefmtReader> = None;
 
+    #[cfg(feature = "ble")]
+    let mut active_ble_rx: Option<std::sync::mpsc::Receiver<String>> = None;
+
+    #[cfg(feature = "ble")]
+    let _ble_rt = if merged.ble {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let rt = ble::start_ble_stream(tx).unwrap_or_else(|e| {
+            eprintln!("{color_red}BLE Error: {}{color_reset}", e);
+            std::process::exit(1);
+        });
+        active_ble_rx = Some(rx);
+        Some(rt)
+    } else {
+        None
+    };
+
     loop {
         let result = if is_plot_mode {
-            run_plotter_mode(merged.clone(), port_name.clone(), active_port, active_rtt)
+            #[cfg(feature = "ble")]
+            let res = crate::plotter::run_plotter_mode(
+                merged.clone(),
+                port_name.clone(),
+                active_port,
+                active_rtt,
+                active_ble_rx,
+            );
+            #[cfg(not(feature = "ble"))]
+            let res = crate::plotter::run_plotter_mode(
+                merged.clone(),
+                port_name.clone(),
+                active_port,
+                active_rtt,
+            );
+            res
         } else {
-            run_normal_mode(merged.clone(), port_name.clone(), active_port, active_rtt)
+            #[cfg(feature = "ble")]
+            let res = crate::monitor::run_normal_mode(
+                merged.clone(),
+                port_name.clone(),
+                active_port,
+                active_rtt,
+                active_ble_rx,
+            );
+            #[cfg(not(feature = "ble"))]
+            let res = crate::monitor::run_normal_mode(
+                merged.clone(),
+                port_name.clone(),
+                active_port,
+                active_rtt,
+            );
+            res
         };
 
         match result {
             Ok(AppExitState::Quit) => break,
-            Ok(AppExitState::SwitchToPlotter { port, rtt_reader }) => {
+            Ok(AppExitState::SwitchToPlotter {
+                port,
+                rtt_reader,
+                #[cfg(feature = "ble")]
+                ble_rx,
+            }) => {
                 is_plot_mode = true;
                 active_port = port;
                 active_rtt = rtt_reader;
+                #[cfg(feature = "ble")]
+                {
+                    active_ble_rx = ble_rx;
+                }
             }
-            Ok(AppExitState::SwitchToMonitor { port, rtt_reader }) => {
+            Ok(AppExitState::SwitchToMonitor {
+                port,
+                rtt_reader,
+                #[cfg(feature = "ble")]
+                ble_rx,
+            }) => {
                 is_plot_mode = false;
                 active_port = port;
                 active_rtt = rtt_reader;
+                #[cfg(feature = "ble")]
+                {
+                    active_ble_rx = ble_rx;
+                }
             }
             Err(e) => return Err(e),
         }

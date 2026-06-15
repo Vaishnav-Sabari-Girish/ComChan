@@ -62,6 +62,8 @@ macro_rules! poll_ctrl_rx_while_waiting {
                         return Ok(crate::AppExitState::SwitchToPlotter {
                             port: None,
                             rtt_reader: None,
+                            #[cfg(feature = "ble")]
+                            ble_rx: None,
                         });
                     }
                     MonitorCommand::Quit => {
@@ -82,8 +84,12 @@ pub fn run_normal_mode(
     port_name: String,
     passed_port: Option<Box<dyn serialport::SerialPort>>,
     passed_rtt: Option<crate::rtt_reader::RttDefmtReader>,
+    #[cfg(feature = "ble")] active_ble_rx: Option<std::sync::mpsc::Receiver<String>>,
 ) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
-    let serial_config = if config.simulate || config.replay_file.is_some() || config.rtt {
+    let skip_serial =
+        config.simulate || config.replay_file.is_some() || config.rtt || port_name == "BLE_STREAM";
+
+    let serial_config = if skip_serial {
         None
     } else {
         Some((
@@ -94,6 +100,7 @@ pub fn run_normal_mode(
                 .map_err(|e| format!("Configuration error: {}", e))?,
         ))
     };
+
     // 1. Setup logging ONCE
     let mut log_writer = if let Some(log_path) = &config.log_file {
         let file = OpenOptions::new()
@@ -187,6 +194,7 @@ pub fn run_normal_mode(
 
     let mut active_port = passed_port;
     let mut active_rtt = passed_rtt;
+
     // Connection & Reconnection
     while running.load(std::sync::atomic::Ordering::SeqCst) {
         // Initialize RTT reader
@@ -223,7 +231,7 @@ pub fn run_normal_mode(
         // Serial Port
         let mut port = if let Some(p) = active_port.take() {
             Some(p)
-        } else if config.simulate || config.replay_file.is_some() || config.rtt {
+        } else if skip_serial {
             None
         } else {
             // Match handles the error instead of returning it
@@ -284,7 +292,6 @@ pub fn run_normal_mode(
 
         // Read / Write Data
         while running.load(std::sync::atomic::Ordering::SeqCst) && is_connected {
-            // ── Read from serial ─────────────────────────────────────────────────
             if config.simulate {
                 let t = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -314,7 +321,9 @@ pub fn run_normal_mode(
                 }
 
                 thread::sleep(Duration::from_millis(500));
-            } else if let Some(ref mut replayer) = session_replayer {
+            }
+
+            if let Some(ref mut replayer) = session_replayer {
                 match replayer.next_payload() {
                     crate::replay::ReplayEvent::Payload(payload) => {
                         let text = format!("{}\r\n", payload);
@@ -329,7 +338,9 @@ pub fn run_normal_mode(
                         break;
                     }
                 }
-            } else if let Some(reader) = rtt_reader.as_mut() {
+            }
+
+            if let Some(reader) = rtt_reader.as_mut() {
                 match reader.poll_logs() {
                     Ok(logs) => {
                         if logs.is_empty() {
@@ -381,7 +392,50 @@ pub fn run_normal_mode(
                         is_connected = false;
                     }
                 }
-            } else if let Some(p) = port.as_mut() {
+            }
+
+            #[cfg(feature = "ble")]
+            {
+                if let Some(rx) = active_ble_rx.as_ref() {
+                    while let Ok(text) = rx.try_recv() {
+                        rx_buf.push_str(&text);
+
+                        while let Some(pos) = rx_buf.find('\n') {
+                            let full_line = rx_buf.drain(..=pos).collect::<String>();
+                            let clean = strip_ansi(&full_line);
+                            let trimmed = clean.trim_end();
+
+                            if trimmed.is_empty() {
+                                continue;
+                            }
+
+                            if lines_discarded < DISCARD_COUNT {
+                                lines_discarded += 1;
+                                continue;
+                            }
+
+                            if config.verbose {
+                                print!("\r[{}] {}\r\n", get_timestamp(), trimmed);
+                            } else {
+                                print!("\r{}\r\n", trimmed);
+                            }
+                            io::stdout().flush().ok();
+
+                            if let Some(ref mut writer) = log_writer {
+                                writeln!(writer, "RX [{}]: {}", get_timestamp(), trimmed).ok();
+                                let _ = writer.flush();
+                            }
+
+                            if let Some(ref mut streamer) = csv_streamer {
+                                let readings = crate::parser::parse_sensor_data(trimmed);
+                                let _ = streamer.write_row(&readings);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(p) = port.as_mut() {
                 match p.read(&mut buffer) {
                     Ok(n) if n > 0 => {
                         let raw = &buffer[..n];
@@ -456,39 +510,6 @@ pub fn run_normal_mode(
                         io::stdout().flush().ok();
 
                         // ── Logging & CSV streaming ───────────────────────────────────────────────────
-                        /*if let Some(ref mut writer) = log_writer {
-                            let mut remaining = text.as_ref();
-                            while let Some(pos) = remaining.find('\n') {
-                                let chunk = &remaining[..=pos];
-                                let clean = strip_ansi(chunk);
-                                writeln!(writer, "RX [{}]: {}", get_timestamp(), clean.trim_end())
-                                    .ok();
-
-                                // Stream to CSV
-                                if let Some(ref mut streamer) = csv_streamer {
-                                    let readings = crate::parser::parse_sensor_data(clean.trim());
-                                    let _ = streamer.write_row(&readings);
-                                }
-
-                                remaining = &remaining[pos + 1..];
-                            }
-                            let _ = writer.flush();
-                        } else {
-                            if csv_streamer.is_some() {
-                                let mut remaining = text.as_ref();
-                                while let Some(pos) = remaining.find('\n') {
-                                    let chunk = &remaining[..=pos];
-                                    let clean = strip_ansi(chunk);
-
-                                    if let Some(ref mut streamer) = csv_streamer {
-                                        let readings = crate::parser::parse_sensor_data(clean.trim());
-                                        let _ = streamer.write_row(&readings);
-                                    }
-
-                                    remaining = &remaining[pos + 1..];
-                                }
-                            }
-                        }*/
                         rx_buf.push_str(&text);
 
                         while let Some(pos) = rx_buf.find('\n') {
@@ -598,7 +619,12 @@ pub fn run_normal_mode(
                     }
                     MonitorCommand::SwitchMode => {
                         terminal::disable_raw_mode().ok();
-                        return Ok(crate::AppExitState::SwitchToPlotter { port, rtt_reader });
+                        return Ok(crate::AppExitState::SwitchToPlotter {
+                            port,
+                            rtt_reader,
+                            #[cfg(feature = "ble")]
+                            ble_rx: active_ble_rx,
+                        });
                     }
                     MonitorCommand::Quit => {
                         println!("\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}");
