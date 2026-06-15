@@ -15,12 +15,22 @@ body = """
 ## Unreleased
 {% endif %}
 
-{% for group, commits in commits | group_by(attribute="group") %}
-### {{ group | striptags | trim | upper_first }}
-{% for commit in commits %}
+{% macro render_group(group_name, emoji) %}
+  {% set group_commits = commits | filter(attribute="group", value=emoji ~ " " ~ group_name) %}
+  {% if group_commits | length > 0 %}
+### {{ emoji }} {{ group_name }}
+    {% for commit in group_commits %}
 - {% if commit.scope %}**({{ commit.scope }})** {% endif %}{{ commit.message | upper_first | trim }}
-{% endfor %}
-{% endfor %}
+    {% endfor %}
+  {% endif %}
+{% endmacro %}
+
+{{ self::render_group(group_name="New features", emoji=":rocket:") }}
+{{ self::render_group(group_name="Bug fixes", emoji=":bug:") }}
+{{ self::render_group(group_name="Performance", emoji=":zap:") }}
+{{ self::render_group(group_name="Refactoring", emoji=":recycle:") }}
+{{ self::render_group(group_name="Styling", emoji=":art:") }}
+{{ self::render_group(group_name="Build", emoji=":hammer:") }}
 
 {%- if github -%}
 {% if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
@@ -39,11 +49,9 @@ body = """
 # Remove leading and trailing whitespaces from the changelog's body.
 trim = true
 # A Tera template to be rendered as the changelog's footer.
-# See https://keats.github.io/tera/docs/#introduction
 footer = """
 """
 # An array of regex based postprocessors to modify the changelog.
-# Replace the placeholder `<REPO>` with a URL.
 postprocessors = []
 
 [git]
