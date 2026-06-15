@@ -1,6 +1,6 @@
 [package]
 name = "comchan"
-version = "0.10.1"
+version = "0.11.0"
 edition = "2024"
 authors = ["Vaishnav Sabari Girish <vaishnav.sabari.girish@gmail.com>"]
 license = "MIT"
@@ -12,10 +12,12 @@ keywords = ["cli", "embedded-systems", "serial-communication"]
 categories = ["command-line-utilities", "embedded"]
 
 [features]
-default = []
+default = ["ble"]
 ratty = ["dep:ratatui-ratty"]
+ble = ["dep:btleplug", "dep:inquire", "dep:tokio", "dep:uuid", "dep:futures"]
 
 [dependencies]
+btleplug = { version = "0.12.0", optional = true }
 chrono = "0.4.44"
 clap = { version = "4.6", features = ["derive"] }
 clap_complete = "4.6.3"
@@ -24,7 +26,9 @@ crossterm = "0.29.0"
 ctrlc = "3.5"
 defmt-decoder = "1.1.0"
 dirs = "6.0.0"
+futures = { version = "0.3.32", optional = true }
 inline_colorization = "0.1.6"
+inquire = { version = "0.9.4", optional = true }
 object = "0.39.1"
 plotters = "0.3.7"
 pretty-hex = "0.4.2"
@@ -34,7 +38,9 @@ ratatui-ratty = { version = "0.3.0", optional = true }
 ratatui-wireframe = { version = "0.7.0", path = "crates/ratatui-wireframe", features = ["ratty"] }
 serde = { version = "1.0", features = ["derive"] }
 serialport = "4.9"
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "sync", "time"], optional = true }
 toml = "1.1.2"
+uuid = {version = "1.23.3", optional = true }
 wrfm = "0.4.0"
 
 [workspace]
@@ -45,3 +51,10 @@ members = [
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[profile.release]
+opt-level = "z"     # Optimize for size (use "s" if "z" is too slow)
+lto = true          # Enable Link Time Optimization (drops dead code across crates)
+codegen-units = 1   # Compile everything in one chunk for better LTO (slower compile time)
+strip = true        # Automatically strip symbols from the binary
+panic = "abort"     # Remove the stack-unwinding infrastructure

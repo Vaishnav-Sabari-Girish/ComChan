@@ -312,10 +312,15 @@ pub fn run_plotter_mode(
     port_name: String,
     passed_port: Option<Box<dyn serialport::SerialPort>>,
     passed_rtt: Option<crate::rtt_reader::RttDefmtReader>,
+    #[cfg(feature = "ble")] active_ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
 ) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
+    // The Fix: Prevent BLE from attempting to initialize a physical USB serial port
+    let skip_serial =
+        config.simulate || config.replay_file.is_some() || config.rtt || port_name == "BLE_STREAM";
+
     let mut port = if let Some(p) = passed_port {
         Some(p)
-    } else if config.simulate || config.replay_file.is_some() || config.rtt {
+    } else if skip_serial {
         None
     } else {
         let data_bits = parse_data_bits(config.data_bits)?;
@@ -434,7 +439,12 @@ pub fn run_plotter_mode(
                 KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     disable_raw_mode().ok();
                     execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
-                    return Ok(crate::AppExitState::SwitchToMonitor { port, rtt_reader });
+                    return Ok(crate::AppExitState::SwitchToMonitor {
+                        port,
+                        rtt_reader,
+                        #[cfg(feature = "ble")]
+                        ble_rx: active_ble_rx,
+                    });
                 }
                 // Space: pause / resume
                 KeyCode::Char(' ') => {
@@ -494,6 +504,9 @@ pub fn run_plotter_mode(
         }
 
         // ── Serial read ───────────────────────────────────────────────────────
+
+        // The Fix: Decoupling the input streams into separate IF blocks instead of chained ELSE-IF
+
         if config.simulate {
             let t = state.x * 0.1;
             let pitch = (t * 0.5).sin() * 45.0;
@@ -505,7 +518,9 @@ pub fn run_plotter_mode(
             state.ingest_line(&format!("Yaw: {:.2}", yaw), config.plot_points);
 
             std::thread::sleep(Duration::from_millis(50));
-        } else if let Some(ref mut replayer) = session_replayer {
+        }
+
+        if let Some(ref mut replayer) = session_replayer {
             match replayer.next_payload() {
                 crate::replay::ReplayEvent::Payload(payload) => {
                     state.ingest_line(&payload, config.plot_points);
@@ -515,7 +530,9 @@ pub fn run_plotter_mode(
                     std::thread::sleep(Duration::from_millis(100));
                 }
             }
-        } else if let Some(reader) = rtt_reader.as_mut() {
+        }
+
+        if let Some(reader) = rtt_reader.as_mut() {
             // Drain RTT/DEFMT buffer
             match reader.poll_logs() {
                 Ok(logs) => {
@@ -545,7 +562,52 @@ pub fn run_plotter_mode(
                     }
                 }
             }
-        } else if let Some(p) = port.as_mut() {
+        }
+
+        #[cfg(feature = "ble")]
+        {
+            if let Some(rx) = active_ble_rx.as_ref() {
+                // Fix #2: Limit the number of BLE messages processed per frame iteration to prevent UI lockups
+                let mut messages_processed = 0;
+                const MAX_MESSAGES_PER_FRAME: usize = 32;
+
+                while messages_processed < MAX_MESSAGES_PER_FRAME {
+                    if let Ok(event) = rx.try_recv() {
+                        // Fix #1 (Receiver): Catch the disconnect control string from ble.rs
+                        match event {
+                            crate::ble::BleEvent::Disconnected => {
+                                state.last_error = Some("❌ BLE Connection Lost.".to_string());
+                                break;
+                            }
+                            crate::ble::BleEvent::Payload(text) => {
+                                state.receive_buf.push_str(&text);
+                                messages_processed += 1;
+
+                                while let Some(pos) = state.receive_buf.find('\n') {
+                                    let line = state.receive_buf.drain(..=pos).collect::<String>();
+
+                                    if let Some(ref mut writer) = log_writer {
+                                        let _ = writeln!(
+                                            writer,
+                                            "RX [{}]: {}",
+                                            get_timestamp(),
+                                            line.trim_end()
+                                        );
+                                        let _ = writer.flush();
+                                    }
+
+                                    state.ingest_line(&line, config.plot_points);
+                                }
+                            }
+                        }
+                    } else {
+                        break; // Channel is empty, exit the drain loop
+                    }
+                }
+            }
+        }
+
+        if let Some(p) = port.as_mut() {
             // DRAIN LOOP: Pull all available data from the OS buffer before rendering
             let mut drain_iters = 0;
             const MAX_DRAIN_SIZE: usize = 10; // 10 iterations * 1024 byte = 10kB max per frame

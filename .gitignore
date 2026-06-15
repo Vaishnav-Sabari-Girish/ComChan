@@ -1,7 +1,6 @@
 /target
 /docs/book/*
-<<<<<<< HEAD
-.crush
-=======
-/.crush
->>>>>>> add_paper
+build/
+compile_commands.json
+.ccls-cache/
+.crush/

@@ -100,6 +100,7 @@ pub struct Config {
     pub hex_pretty: Option<bool>,
     pub obj_file: Option<String>,
     pub braille: Option<BrailleModel>,
+    pub ble: Option<bool>,
 }
 
 impl Default for Config {
@@ -127,6 +128,7 @@ impl Default for Config {
             hex_pretty: Some(false),
             obj_file: None,
             braille: Some(BrailleModel::Cube),
+            ble: Some(false),
         }
     }
 }
@@ -134,7 +136,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.10.1",
+    version = "0.11.0",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -251,6 +253,9 @@ pub struct Args {
 
     #[arg(long, requires = "rtt", help = "Chip name for probe-rs")]
     pub chip: Option<String>,
+
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Scan and connect to a BLE device for telemetry streaming")]
+    pub ble: bool,
 }
 
 /// The resolved, merged configuration used at runtime.
@@ -283,6 +288,7 @@ pub struct MergedConfig {
     pub rtt: bool,
     pub elf: Option<String>,
     pub chip: Option<String>,
+    pub ble: bool,
 }
 
 // Generate completions
@@ -477,5 +483,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         rtt: args.rtt,
         elf: args.elf,
         chip: args.chip,
+        ble: args.ble || config.ble.unwrap_or(false),
     }
 }
