@@ -564,24 +564,41 @@ pub fn run_plotter_mode(
             }
         }
 
-        // The Fix: Isolate conditional macro block to prevent parsing errors
         #[cfg(feature = "ble")]
         {
             if let Some(rx) = active_ble_rx.as_ref() {
-                // Drain the BLE channel and pass strings to the plotter state
-                while let Ok(text) = rx.try_recv() {
-                    state.receive_buf.push_str(&text);
+                // Fix #2: Limit the number of BLE messages processed per frame iteration to prevent UI lockups
+                let mut messages_processed = 0;
+                const MAX_MESSAGES_PER_FRAME: usize = 32;
 
-                    while let Some(pos) = state.receive_buf.find('\n') {
-                        let line = state.receive_buf.drain(..=pos).collect::<String>();
-
-                        if let Some(ref mut writer) = log_writer {
-                            let _ =
-                                writeln!(writer, "RX [{}]: {}", get_timestamp(), line.trim_end());
-                            let _ = writer.flush();
+                while messages_processed < MAX_MESSAGES_PER_FRAME {
+                    if let Ok(text) = rx.try_recv() {
+                        // Fix #1 (Receiver): Catch the disconnect control string from ble.rs
+                        if text == "<BLE_DISCONNECT>" {
+                            state.last_error = Some("❌ BLE Connection Lost.".to_string());
+                            break;
                         }
 
-                        state.ingest_line(&line, config.plot_points);
+                        state.receive_buf.push_str(&text);
+                        messages_processed += 1;
+
+                        while let Some(pos) = state.receive_buf.find('\n') {
+                            let line = state.receive_buf.drain(..=pos).collect::<String>();
+
+                            if let Some(ref mut writer) = log_writer {
+                                let _ = writeln!(
+                                    writer,
+                                    "RX [{}]: {}",
+                                    get_timestamp(),
+                                    line.trim_end()
+                                );
+                                let _ = writer.flush();
+                            }
+
+                            state.ingest_line(&line, config.plot_points);
+                        }
+                    } else {
+                        break; // Channel is empty, exit the drain loop
                     }
                 }
             }

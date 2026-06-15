@@ -51,6 +51,35 @@ fn strip_ansi(s: &str) -> String {
     out
 }
 
+#[cfg(feature = "ble")]
+macro_rules! poll_ctrl_rx_while_waiting {
+    ($ctrl_rx:expr, $running:expr, $ble_rx:expr) => {
+        let range = core::range::Range { start: 0, end: 20 };
+        for _ in range {
+            if let Ok(cmd) = $ctrl_rx.try_recv() {
+                match cmd {
+                    MonitorCommand::SwitchMode => {
+                        terminal::disable_raw_mode().ok();
+                        return Ok(crate::AppExitState::SwitchToPlotter {
+                            port: None,
+                            rtt_reader: None,
+                            ble_rx: $ble_rx.take(),
+                        });
+                    }
+                    MonitorCommand::Quit => {
+                        println!("\r\n{color_yellow}󰏃 Shutting down ComChan…{color_reset}");
+                        $running.store(false, std::sync::atomic::Ordering::SeqCst);
+                        return Ok(crate::AppExitState::Quit);
+                    }
+                    _ => {}
+                }
+            }
+            thread::sleep(Duration::from_millis(50));
+        }
+    };
+}
+
+#[cfg(not(feature = "ble"))]
 macro_rules! poll_ctrl_rx_while_waiting {
     ($ctrl_rx:expr, $running:expr) => {
         let range = core::range::Range { start: 0, end: 20 };
@@ -62,8 +91,6 @@ macro_rules! poll_ctrl_rx_while_waiting {
                         return Ok(crate::AppExitState::SwitchToPlotter {
                             port: None,
                             rtt_reader: None,
-                            #[cfg(feature = "ble")]
-                            ble_rx: None,
                         });
                     }
                     MonitorCommand::Quit => {
@@ -84,7 +111,7 @@ pub fn run_normal_mode(
     port_name: String,
     passed_port: Option<Box<dyn serialport::SerialPort>>,
     passed_rtt: Option<crate::rtt_reader::RttDefmtReader>,
-    #[cfg(feature = "ble")] active_ble_rx: Option<std::sync::mpsc::Receiver<String>>,
+    #[cfg(feature = "ble")] mut active_ble_rx: Option<std::sync::mpsc::Receiver<String>>,
 ) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
     let skip_serial =
         config.simulate || config.replay_file.is_some() || config.rtt || port_name == "BLE_STREAM";
@@ -219,6 +246,9 @@ pub fn run_normal_mode(
                     print!("\r{color_yellow}⏳ Waiting for RTT target...{color_reset}\x1b[K");
                     io::stdout().flush().ok();
 
+                    #[cfg(feature = "ble")]
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, active_ble_rx);
+                    #[cfg(not(feature = "ble"))]
                     poll_ctrl_rx_while_waiting!(ctrl_rx, running);
 
                     continue;
@@ -280,6 +310,9 @@ pub fn run_normal_mode(
                     );
                     io::stdout().flush().ok();
 
+                    #[cfg(feature = "ble")]
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, active_ble_rx);
+                    #[cfg(not(feature = "ble"))]
                     poll_ctrl_rx_while_waiting!(ctrl_rx, running);
 
                     continue;
@@ -398,6 +431,11 @@ pub fn run_normal_mode(
             {
                 if let Some(rx) = active_ble_rx.as_ref() {
                     while let Ok(text) = rx.try_recv() {
+                        if text == "<BLE_DISCONNECT>" {
+                            eprintln!("\r\n{color_red}❌ BLE Connection Lost.{color_reset}\r\n");
+                            is_connected = false;
+                            break;
+                        }
                         rx_buf.push_str(&text);
 
                         while let Some(pos) = rx_buf.find('\n') {

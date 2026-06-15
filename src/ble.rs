@@ -84,6 +84,9 @@ pub fn start_ble_stream(
                     }
                 }
             }
+
+            eprintln!("BLE notification stream disconnected unexpectedly.");
+            let _ = tx.send("<BLE_DISCONNECT>".to_string());
         });
 
         Ok::<(), Box<dyn Error>>(())

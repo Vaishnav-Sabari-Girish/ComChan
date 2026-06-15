@@ -12,7 +12,7 @@ keywords = ["cli", "embedded-systems", "serial-communication"]
 categories = ["command-line-utilities", "embedded"]
 
 [features]
-default = []
+default = ["ble"]
 ratty = ["dep:ratatui-ratty"]
 ble = ["dep:btleplug", "dep:inquire", "dep:tokio", "dep:uuid", "dep:futures"]
 
@@ -38,7 +38,7 @@ ratatui-ratty = { version = "0.3.0", optional = true }
 ratatui-wireframe = { version = "0.7.0", path = "crates/ratatui-wireframe", features = ["ratty"] }
 serde = { version = "1.0", features = ["derive"] }
 serialport = "4.9"
-tokio = { version = "1.52.3", features = ["rt-multi-thread", "sync"], optional = true }
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "sync", "time"], optional = true }
 toml = "1.1.2"
 uuid = {version = "1.23.3", optional = true }
 wrfm = "0.4.0"
