@@ -21,3 +21,4 @@ features = ["ratty", "ble"]
 pkg-config = "*"
 libfontconfig1-dev = "*"
 libudev-dev = "*"
+libdbus-1-dev = "*"  # <--- Add this line
