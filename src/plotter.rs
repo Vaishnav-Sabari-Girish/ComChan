@@ -312,7 +312,7 @@ pub fn run_plotter_mode(
     port_name: String,
     passed_port: Option<Box<dyn serialport::SerialPort>>,
     passed_rtt: Option<crate::rtt_reader::RttDefmtReader>,
-    #[cfg(feature = "ble")] active_ble_rx: Option<std::sync::mpsc::Receiver<String>>,
+    #[cfg(feature = "ble")] active_ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
 ) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
     // The Fix: Prevent BLE from attempting to initialize a physical USB serial port
     let skip_serial =
@@ -572,30 +572,33 @@ pub fn run_plotter_mode(
                 const MAX_MESSAGES_PER_FRAME: usize = 32;
 
                 while messages_processed < MAX_MESSAGES_PER_FRAME {
-                    if let Ok(text) = rx.try_recv() {
+                    if let Ok(event) = rx.try_recv() {
                         // Fix #1 (Receiver): Catch the disconnect control string from ble.rs
-                        if text == "<BLE_DISCONNECT>" {
-                            state.last_error = Some("❌ BLE Connection Lost.".to_string());
-                            break;
-                        }
-
-                        state.receive_buf.push_str(&text);
-                        messages_processed += 1;
-
-                        while let Some(pos) = state.receive_buf.find('\n') {
-                            let line = state.receive_buf.drain(..=pos).collect::<String>();
-
-                            if let Some(ref mut writer) = log_writer {
-                                let _ = writeln!(
-                                    writer,
-                                    "RX [{}]: {}",
-                                    get_timestamp(),
-                                    line.trim_end()
-                                );
-                                let _ = writer.flush();
+                        match event {
+                            crate::ble::BleEvent::Disconnected => {
+                                state.last_error = Some("❌ BLE Connection Lost.".to_string());
+                                break;
                             }
+                            crate::ble::BleEvent::Payload(text) => {
+                                state.receive_buf.push_str(&text);
+                                messages_processed += 1;
 
-                            state.ingest_line(&line, config.plot_points);
+                                while let Some(pos) = state.receive_buf.find('\n') {
+                                    let line = state.receive_buf.drain(..=pos).collect::<String>();
+
+                                    if let Some(ref mut writer) = log_writer {
+                                        let _ = writeln!(
+                                            writer,
+                                            "RX [{}]: {}",
+                                            get_timestamp(),
+                                            line.trim_end()
+                                        );
+                                        let _ = writer.flush();
+                                    }
+
+                                    state.ingest_line(&line, config.plot_points);
+                                }
+                            }
                         }
                     } else {
                         break; // Channel is empty, exit the drain loop

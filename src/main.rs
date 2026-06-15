@@ -24,13 +24,13 @@ pub enum AppExitState {
         port: Option<Box<dyn serialport::SerialPort>>,
         rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
         #[cfg(feature = "ble")]
-        ble_rx: Option<std::sync::mpsc::Receiver<String>>,
+        ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
     },
     SwitchToMonitor {
         port: Option<Box<dyn serialport::SerialPort>>,
         rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
         #[cfg(feature = "ble")]
-        ble_rx: Option<std::sync::mpsc::Receiver<String>>,
+        ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
     },
 }
 
@@ -124,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut active_rtt: Option<crate::rtt_reader::RttDefmtReader> = None;
 
     #[cfg(feature = "ble")]
-    let mut active_ble_rx: Option<std::sync::mpsc::Receiver<String>> = None;
+    let mut active_ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>> = None;
 
     #[cfg(feature = "ble")]
     let _ble_rt = if merged.ble {

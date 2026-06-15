@@ -12,10 +12,16 @@ use uuid::Uuid;
 //const NUS_SERVICE_UUID: Uuid = Uuid::from_u128(0x6e400001_b5a3_f393_e0a9_e50e24dcca9e);
 const NUS_TX_CHAR_UUID: Uuid = Uuid::from_u128(0x6e400003_b5a3_f393_e0a9_e50e24dcca9e);
 
+#[derive(Debug, Clone)]
+pub enum BleEvent {
+    Payload(String),
+    Disconnected,
+}
+
 /// Starts the BLE interactive menu and background streaming task.
 /// Returns the Tokio runtime so the caller can keep it alive for the duration of the app.
 pub fn start_ble_stream(
-    tx: mpsc::Sender<String>,
+    tx: mpsc::Sender<BleEvent>,
 ) -> Result<tokio::runtime::Runtime, Box<dyn Error>> {
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -79,14 +85,14 @@ pub fn start_ble_stream(
                 if data.uuid == NUS_TX_CHAR_UUID {
                     let text = String::from_utf8_lossy(&data.value).to_string();
 
-                    if tx.send(text).is_err() {
+                    if tx.send(BleEvent::Payload(text)).is_err() {
                         break;
                     }
                 }
             }
 
             eprintln!("BLE notification stream disconnected unexpectedly.");
-            let _ = tx.send("<BLE_DISCONNECT>".to_string());
+            let _ = tx.send(BleEvent::Disconnected);
         });
 
         Ok::<(), Box<dyn Error>>(())

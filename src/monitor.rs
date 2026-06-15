@@ -111,7 +111,9 @@ pub fn run_normal_mode(
     port_name: String,
     passed_port: Option<Box<dyn serialport::SerialPort>>,
     passed_rtt: Option<crate::rtt_reader::RttDefmtReader>,
-    #[cfg(feature = "ble")] mut active_ble_rx: Option<std::sync::mpsc::Receiver<String>>,
+    #[cfg(feature = "ble")] mut active_ble_rx: Option<
+        std::sync::mpsc::Receiver<crate::ble::BleEvent>,
+    >,
 ) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
     let skip_serial =
         config.simulate || config.replay_file.is_some() || config.rtt || port_name == "BLE_STREAM";
@@ -430,43 +432,50 @@ pub fn run_normal_mode(
             #[cfg(feature = "ble")]
             {
                 if let Some(rx) = active_ble_rx.as_ref() {
-                    while let Ok(text) = rx.try_recv() {
-                        if text == "<BLE_DISCONNECT>" {
-                            eprintln!("\r\n{color_red}❌ BLE Connection Lost.{color_reset}\r\n");
-                            is_connected = false;
-                            break;
-                        }
-                        rx_buf.push_str(&text);
-
-                        while let Some(pos) = rx_buf.find('\n') {
-                            let full_line = rx_buf.drain(..=pos).collect::<String>();
-                            let clean = strip_ansi(&full_line);
-                            let trimmed = clean.trim_end();
-
-                            if trimmed.is_empty() {
-                                continue;
+                    while let Ok(event) = rx.try_recv() {
+                        match event {
+                            crate::ble::BleEvent::Disconnected => {
+                                eprintln!(
+                                    "\r\n{color_red}❌ BLE Connection Lost.{color_reset}\r\n"
+                                );
+                                is_connected = false;
+                                break;
                             }
+                            crate::ble::BleEvent::Payload(text) => {
+                                rx_buf.push_str(&text);
 
-                            if lines_discarded < DISCARD_COUNT {
-                                lines_discarded += 1;
-                                continue;
-                            }
+                                while let Some(pos) = rx_buf.find('\n') {
+                                    let full_line = rx_buf.drain(..=pos).collect::<String>();
+                                    let clean = strip_ansi(&full_line);
+                                    let trimmed = clean.trim_end();
 
-                            if config.verbose {
-                                print!("\r[{}] {}\r\n", get_timestamp(), trimmed);
-                            } else {
-                                print!("\r{}\r\n", trimmed);
-                            }
-                            io::stdout().flush().ok();
+                                    if trimmed.is_empty() {
+                                        continue;
+                                    }
 
-                            if let Some(ref mut writer) = log_writer {
-                                writeln!(writer, "RX [{}]: {}", get_timestamp(), trimmed).ok();
-                                let _ = writer.flush();
-                            }
+                                    if lines_discarded < DISCARD_COUNT {
+                                        lines_discarded += 1;
+                                        continue;
+                                    }
 
-                            if let Some(ref mut streamer) = csv_streamer {
-                                let readings = crate::parser::parse_sensor_data(trimmed);
-                                let _ = streamer.write_row(&readings);
+                                    if config.verbose {
+                                        print!("\r[{}] {}\r\n", get_timestamp(), trimmed);
+                                    } else {
+                                        print!("\r{}\r\n", trimmed);
+                                    }
+                                    io::stdout().flush().ok();
+
+                                    if let Some(ref mut writer) = log_writer {
+                                        writeln!(writer, "RX [{}]: {}", get_timestamp(), trimmed)
+                                            .ok();
+                                        let _ = writer.flush();
+                                    }
+
+                                    if let Some(ref mut streamer) = csv_streamer {
+                                        let readings = crate::parser::parse_sensor_data(trimmed);
+                                        let _ = streamer.write_row(&readings);
+                                    }
+                                }
                             }
                         }
                     }
