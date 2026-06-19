@@ -190,6 +190,8 @@ pub fn run_normal_mode(
                         (KeyCode::Enter, _) => {
                             let _ = input_tx.send(line_buf.clone());
                             line_buf.clear();
+                            print!("\r\n");
+                            io::stdout().flush().ok();
                         }
                         (KeyCode::Backspace, _) => {
                             line_buf.pop();
@@ -283,10 +285,18 @@ pub fn run_normal_mode(
                     let _ = p.flush();
 
                     if config.zephyr {
-                        thread::sleep(Duration::from_millis(100));
-                        let _ = p.write_all(b"shell echo off\r");
-                        let _ = p.flush();
-                        thread::sleep(Duration::from_millis(100));
+                        let mut suppress = false;
+                        if let Some(ref sent) = last_sent {
+                            let clean_acc = strip_ansi(&line_acc).trim().to_string();
+                            if clean_acc == *sent {
+                                suppress = true;
+                                last_sent = None;
+                                line_acc.clear();
+                            }
+                        }
+                        if suppress {
+                            continue;
+                        }
                     }
 
                     println!(
@@ -520,20 +530,7 @@ pub fn run_normal_mode(
 
                         let text = String::from_utf8_lossy(raw);
 
-                        // ── Echo suppression ─────────────────────────────────────────
                         line_acc.push_str(&text);
-                        let mut suppress = false;
-                        if let Some(ref sent) = last_sent {
-                            let clean_acc = strip_ansi(&line_acc).trim().to_string();
-                            if clean_acc == *sent {
-                                suppress = true;
-                                last_sent = None;
-                                line_acc.clear();
-                            }
-                        }
-                        if suppress {
-                            continue;
-                        }
 
                         // ── Verbose timestamp prefix ─────────────────────────────────
                         if config.verbose {
