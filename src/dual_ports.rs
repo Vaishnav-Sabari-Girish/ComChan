@@ -113,13 +113,17 @@ fn spawn_serial_thread(
                 thread::sleep(Duration::from_millis(500));
             }
         } else {
-            let _data_bits = parse_data_bits(cfg.data_bits).unwrap();
-            let _stop_bits = parse_stop_bits(cfg.stop_bits).unwrap();
-            let _parity = parse_parity(&cfg.parity).unwrap();
-            let _flow_control = parse_flow_control(&cfg.flow_control).unwrap();
+            let data_bits = parse_data_bits(cfg.data_bits).unwrap();
+            let stop_bits = parse_stop_bits(cfg.stop_bits).unwrap();
+            let parity = parse_parity(&cfg.parity).unwrap();
+            let flow_control = parse_flow_control(&cfg.flow_control).unwrap();
 
             match serialport::new(&port_name, cfg.baud)
-                // ... [chain your config] ...
+                .timeout(Duration::from_millis(cfg.timeout_ms))
+                .data_bits(data_bits)
+                .stop_bits(stop_bits)
+                .parity(parity)
+                .flow_control(flow_control)
                 .open()
             {
                 Ok(mut port) => {
