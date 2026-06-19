@@ -2,6 +2,7 @@ use clap::Parser;
 use inline_colorization::*;
 
 mod config;
+mod dual_ports;
 mod export;
 mod monitor;
 mod parser;
@@ -79,6 +80,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return list_available_ports();
     }
 
+    // ── CHECK FOR DUAL PORT MODE FIRST ────────────────────────────────────────
+    // Allow dual UI for standard serial and simulate modes. We disable it for
+    // Replay, RTT, and BLE as those use specialized single-stream setups.
+    if merged.replay_file.is_none()
+        && !merged.rtt
+        && !merged.ble
+        && let Some(ports) = &merged.port
+        && ports.len() == 2
+    {
+        crate::dual_ports::run_dual_mode(merged.clone(), ports.clone())?;
+        return Ok(());
+    }
+
     let port_name = if merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble {
         if merged.rtt {
             println!("{color_magenta}Starting in RTT/DEFMT debug probe mode....{color_reset}");
@@ -91,31 +105,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "SIMULATE_PORT".to_string()
         }
     } else {
-        match &merged.port {
-            Some(p) if p.to_lowercase() == "auto" => match port_finder::find_usb_port()? {
+        let first_port = merged
+            .port
+            .as_ref()
+            .and_then(|v| v.first())
+            .cloned()
+            .unwrap_or_else(|| "auto".to_string());
+
+        if first_port.to_lowercase() == "auto" {
+            match port_finder::find_usb_port()? {
                 Some(detected) => {
                     println!(
-                        "{color_green} Auto-detected USB port: {}{color_reset}",
+                        "{color_green} Auto-detected USB Port: {}{color_reset}",
                         detected
                     );
                     detected
                 }
                 None => {
+                    eprintln!("{color_red} No USB serial ports found{color_reset}");
                     eprintln!(
-                        "{color_red}No USB serial ports found for auto-detection{color_reset}"
+                        "{color_yellow} Try --list-ports to see available ports{color_reset}"
                     );
-                    eprintln!("{color_yellow}Try --list-ports to see available ports{color_reset}");
                     std::process::exit(1);
                 }
-            },
-            Some(p) => p.clone(),
-            None => {
-                eprintln!(
-                    "{color_red}❌ No port specified. Use --port <PORT>, --auto, or set port in config{color_reset}"
-                );
-                eprintln!("{color_yellow}󰌵 Try --list-ports or --generate-config{color_reset}");
-                std::process::exit(1);
             }
+        } else {
+            first_port
         }
     };
 

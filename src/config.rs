@@ -136,7 +136,7 @@ impl Default for Config {
 #[derive(Parser)]
 #[command(
     name = "comchan",
-    version = "0.11.0",
+    version = "0.12.0",
     author = "Vaishnav-Sabari-Girish",
     about = "Blazingly Fast Minimal Serial Monitor with Plotting"
 )]
@@ -144,8 +144,8 @@ pub struct Args {
     #[arg(long = "completions", value_enum, help = "Generate Shell completions")]
     pub completions: Option<GenShell>,
 
-    #[arg(short = 'p', long = "port", help = "Serial port to connect to")]
-    pub port: Option<String>,
+    #[arg(short = 'p', long = "port", help = "Serial port(s) to connect to", num_args = 1..=2)]
+    pub port: Option<Vec<String>>,
 
     #[arg(short = 'r', long = "baud", help = "Baud Rate of the Serial Monitor")]
     pub baud: Option<u32>,
@@ -261,7 +261,7 @@ pub struct Args {
 /// The resolved, merged configuration used at runtime.
 #[derive(Clone)]
 pub struct MergedConfig {
-    pub port: Option<String>,
+    pub port: Option<Vec<String>>,
     pub baud: u32,
     pub data_bits: u8,
     pub stop_bits: u8,
@@ -438,7 +438,7 @@ pub fn generate_default_config(path: Option<PathBuf>) -> Result<(), Box<dyn std:
 
 pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
     MergedConfig {
-        port: args.port.or(config.port),
+        port: args.port.or_else(|| config.port.map(|p| vec![p])),
         baud: args.baud.or(config.baud).unwrap_or(9600),
         data_bits: args.data_bits.or(config.data_bits).unwrap_or(8),
         stop_bits: args.stop_bits.or(config.stop_bits).unwrap_or(1),

@@ -13,7 +13,7 @@ use inline_colorization::*;
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     prelude::*,
     style::{Color, Modifier, Style},
     symbols,
@@ -65,6 +65,27 @@ fn detect_terminal() -> String {
     "Standard TTY (Braille)".to_string()
 }
 
+/// Helper to create a centered rectangle for modals
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
+}
+
 // ── Plotter state ─────────────────────────────────────────────────────────────
 struct PlotterState {
     sensors: HashMap<String, SensorData>,
@@ -102,6 +123,8 @@ struct PlotterState {
 
     #[cfg(feature = "ratty")]
     ratty_engines: Option<RattyGraphic<'static>>,
+
+    show_help: bool,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
@@ -189,6 +212,8 @@ impl PlotterState {
 
             #[cfg(feature = "ratty")]
             ratty_engines,
+
+            show_help: false,
         }
     }
 
@@ -431,7 +456,13 @@ pub fn run_plotter_mode(
         if event::poll(Duration::from_millis(5))?
             && let event::Event::Key(key) = event::read()?
         {
+            if state.show_help {
+                state.show_help = false;
+                continue;
+            }
+
             match key.code {
+                KeyCode::Char('?') => state.show_help = true,
                 KeyCode::Char('q') | KeyCode::Esc => break,
                 KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
 
@@ -1026,7 +1057,7 @@ pub fn run_plotter_mode(
                         .add_modifier(Modifier::BOLD),
                 ),
                 Span::styled(
-                    "  [Space] pause  [c] clear  [1/2/Tab] views  [q/Esc] quit [Ctrl + s] Export",
+                    "  Press '?' for help ",
                     Style::default().fg(Color::DarkGray),
                 ),
             ]);
@@ -1040,6 +1071,39 @@ pub fn run_plotter_mode(
                 .style(Style::default().bg(status_bg));
 
             f.render_widget(status_bar, outer[1]);
+
+            // ── Render Help Modal (Draw last so it stays on top) ──
+            if state.show_help {
+                let area = centered_rect(50, 50, f.area());
+
+                let help_text = vec![
+                    Line::from(""),
+                    Line::from(" [?]          : Show / Hide this menu"),
+                    Line::from(" [1] / [2]    : Switch between 2D Chart / 3D Wireframe"),
+                    Line::from(" [Tab]        : Toggle views"),
+                    Line::from(" [Space]      : Pause / Resume data flow"),
+                    Line::from(" [c]          : Clear all plotter data"),
+                    Line::from(" [Ctrl+S]     : Export 2D Chart to SVG"),
+                    Line::from(" [Ctrl+P]     : Switch back to standard CLI Monitor"),
+                    Line::from(" [q] or [Esc] : Quit Plotter"),
+                    Line::from(" [Ctrl+C]     : Force Quit"),
+                    Line::from(""),
+                    Line::from(" Press any key to close... ")
+                        .style(Style::default().fg(Color::DarkGray)),
+                ];
+
+                // Clear background
+                f.render_widget(Clear, area);
+
+                let help_block = Paragraph::new(help_text).block(
+                    Block::default()
+                        .title(" Plotter Shortcuts ")
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Cyan)),
+                );
+
+                f.render_widget(help_block, area);
+            }
         })?;
     }
 
