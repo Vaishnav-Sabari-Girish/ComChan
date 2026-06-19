@@ -32,12 +32,14 @@ cargo install comchan
 # Install with Hardware-Accelerated 3D support (Ratty Terminal) and BLE
 cargo install comchan --features ratty,ble
 
+
 ```
 
 Verify the installation:
 
 ```bash
 comchan --version
+
 
 ```
 
@@ -59,6 +61,7 @@ yay -S comchan-ratty
 ## Using paru
 paru -S comchan-ratty
 
+
 ```
 
 ### The Binary
@@ -70,6 +73,7 @@ cargo binstall comchan
 # AUR 
 yay -S comchan-bin
 paru -S comchan-bin
+
 ```
 
 > [!NOTE]
@@ -83,11 +87,12 @@ paru -S comchan-bin
 [`elda`](https://github.com/Mjoyufull/Elda)
 
 ```bash
-elda i https://github.com/Vaishnav-Sabari-Girish/ComChan
+elda i [https://github.com/Vaishnav-Sabari-Girish/ComChan](https://github.com/Vaishnav-Sabari-Girish/ComChan)
+
 ```
 
 > [!NOTE]
-> Credits for `elda` go to [**Rikona**](https://github.com/Mjoyufull)
+> Credits for `elda` go to **[Rikona](https://github.com/Mjoyufull)**
 
 ### From source
 
@@ -95,11 +100,12 @@ Build from source for the latest development version:
 
 ```bash
 # Clone from GitHub
-git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
+git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
 
 # Build and run with all features
 cd ComChan
 cargo run --release --features ble,ratty -- --version
+
 
 ```
 
@@ -124,6 +130,7 @@ Options:
   -V, --version                       Print version
   # ... (and many more)
 
+
 ```
 
 ---
@@ -139,6 +146,7 @@ ComChan supports streaming data wirelessly from BLE-enabled embedded devices
 # Start ComChan in BLE mode to scan and connect to a peripheral
 comchan --ble
 
+
 ```
 
 ComChan will scan for devices, prompt you to select your target, and
@@ -151,7 +159,28 @@ stream is active.
 ```bash
 comchan -p /dev/ttyUSB0 -r 115200
 
+
 ```
+
+### Dual Monitor Side-by-Side View
+
+Monitor two serial ports simultaneously in a split-pane TUI. Perfect for
+debugging UART/CAN bridges or inter-microcontroller communication.
+
+```bash
+comchan -p /dev/ttyUSB0 /dev/ttyUSB1 -r 115200
+
+# Test it out using the built-in simulator!
+comchan --simulate -p mock1 mock2
+
+```
+
+> [!TIP]
+> The dual monitor features independent pane auto-scrolling. Press `?` at any
+> time to open the interactive help modal for shortcuts to switch active panes,
+> scroll through history, and more. Logging (`--log`) and CSV streaming
+> (`--csv`) will also automatically split into two separate files to prevent
+> data mixing!
 
 ### RTT & Defmt Debug Probe Mode
 
@@ -160,6 +189,7 @@ directly from your microcontroller's memory via SWD.
 
 ```bash
 comchan --rtt --elf path/to/firmware.elf --chip nRF52840_xxAA
+
 
 ```
 
@@ -171,6 +201,7 @@ Line Chart and the 3D Telemetry Dashboard.
 ```bash
 comchan --port /dev/ttyUSB0 --baud 115200 --plot
 
+
 ```
 
 ---
@@ -180,22 +211,24 @@ comchan --port /dev/ttyUSB0 --baud 115200 --plot
 ### Current Features ✅
 
 * **BLE Support** - Stream data wirelessly via Nordic UART Service (NUS).
+* **Dual Monitor Side-by-Side View** - View two serial ports simultaneously in a
+  split-pane TUI with independent scrollbars and auto-split logging.
 * **Read & Write Serial Data** - Monitor incoming data and send commands.
 * **Instant Mode Hot-Swapping** - Seamlessly toggle between Monitor and Plotter
-  via `Ctrl+P`.
+via `Ctrl+P`.
 * **RTT & Defmt Support** - Stream logs via SWD/J-Link directly from memory.
 * **Auto-Recovery & Graceful Exit** - Robust handling of connection drops and
-  hardware resets.
+hardware resets.
 * **Terminal-Based Serial Plotter** - Visualize sensor values with auto-scaling.
 * **3D Spatial Telemetry (IMU)** - Real-time 3D rotation dashboard.
 * **Real-Time Session Replay** - Replay previously recorded `.log` or `.csv`
-  files.
+files.
 * **Continuous CSV Streaming** - Stream parsed numeric data to CSV on-the-fly.
 * **Hex Dump View** - Inspect raw binary payloads with `--hex` or
-  `--hex-pretty`.
+`--hex-pretty`.
 * **Export Plot to SVG** - Save visualizations as high-quality SVGs.
 * **Hardware Simulation** - Generate mock sensor data for testing without
-  hardware.
+hardware.
 
 ## Stargazers over time (Graph)
 

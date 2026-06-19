@@ -1056,10 +1056,7 @@ pub fn run_plotter_mode(
                         .fg(Color::Magenta)
                         .add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(
-                    "  Press '?' for help ",
-                    Style::default().fg(Color::DarkGray),
-                ),
+                Span::styled("  Press '?' for help ", Style::default().fg(Color::Cyan)),
             ]);
 
             let status_bar = Paragraph::new(status_line)
