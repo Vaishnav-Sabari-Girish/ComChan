@@ -6,6 +6,7 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::layout::{Alignment, Rect};
+use ratatui::text::Span;
 use ratatui::widgets::Clear;
 use ratatui::{
     Terminal,
@@ -47,6 +48,9 @@ struct DualMonitorState {
     auto_scroll1: bool,
     auto_scroll2: bool,
     show_help: bool,
+    input_mode: bool,
+    input1: String,
+    input2: String,
 }
 
 impl DualMonitorState {
@@ -60,6 +64,9 @@ impl DualMonitorState {
             auto_scroll1: true,
             auto_scroll2: true,
             show_help: false,
+            input_mode: false,
+            input1: String::new(),
+            input2: String::new(),
         }
     }
 }
@@ -82,6 +89,7 @@ fn spawn_serial_thread(
     port_name: String,
     cfg: MergedConfig,
     tx: mpsc::Sender<DualEvent>,
+    rx_cmd: mpsc::Receiver<String>,
     is_port1: bool,
 ) {
     thread::spawn(move || {
@@ -103,6 +111,9 @@ fn spawn_serial_thread(
         if cfg.simulate {
             let mut counter = 0;
             loop {
+                while let Ok(cmd) = rx_cmd.try_recv() {
+                    let _ = tx.send(wrap_event(format!("TX: {}\n", cmd)));
+                }
                 let text = format!(
                     "SIM [Port {}]: Packet {}\n",
                     if is_port1 { 1 } else { 2 },
@@ -151,8 +162,22 @@ fn spawn_serial_thread(
                 .open()
             {
                 Ok(mut port) => {
+                    let _ = port.write_data_terminal_ready(true);
                     let mut buffer = [0; 1024];
                     loop {
+                        // Drain commands
+                        while let Ok(cmd) = rx_cmd.try_recv() {
+                            let payload = format!("{}\r\n", cmd);
+                            if let Err(e) = port
+                                .write_all(payload.as_bytes())
+                                .and_then(|_| port.flush())
+                            {
+                                let _ = tx.send(wrap_event(format!("Write Error: {}", e)));
+                            } else {
+                                let _ = tx.send(wrap_event(format!("TX: {}\n", cmd)));
+                            }
+                        }
+
                         match port.read(&mut buffer) {
                             Ok(n) if n > 0 => {
                                 let _ = tx.send(wrap_event(
@@ -179,6 +204,9 @@ pub fn run_dual_mode(
     config: MergedConfig,
     ports: Vec<String>,
 ) -> Result<crate::AppExitState, Box<dyn std::error::Error>> {
+    let (tx_cmd1, rx_cmd1) = mpsc::channel::<String>();
+    let (tx_cmd2, rx_cmd2) = mpsc::channel::<String>();
+
     let port1_name = ports[0].clone();
     let port2_name = ports[1].clone();
 
@@ -216,14 +244,14 @@ pub fn run_dual_mode(
     let p1_name = port1_name.clone();
     let cfg1 = config.clone();
 
-    spawn_serial_thread(p1_name, cfg1, tx1, true);
+    spawn_serial_thread(p1_name, cfg1, tx1, rx_cmd1, true);
 
     // Serial port 2 thread
     let tx2 = tx.clone();
     let p2_name = port2_name.clone();
     let cfg2 = config.clone();
 
-    spawn_serial_thread(p2_name, cfg2, tx2, false);
+    spawn_serial_thread(p2_name, cfg2, tx2, rx_cmd2, false);
 
     // TUI
     enable_raw_mode()?;
@@ -303,9 +331,47 @@ pub fn run_dual_mode(
                 continue;
             }
 
+            if app_state.input_mode {
+                match key.code {
+                    KeyCode::Esc => app_state.input_mode = false, // Visual Mode (No typing)
+                    KeyCode::Enter => {
+                        let cmd = if app_state.active_pane == 0 {
+                            app_state.input1.drain(..).collect::<String>()
+                        } else {
+                            app_state.input2.drain(..).collect::<String>()
+                        };
+
+                        if !cmd.is_empty() {
+                            if app_state.active_pane == 0 {
+                                let _ = tx_cmd1.send(cmd);
+                            } else {
+                                let _ = tx_cmd2.send(cmd);
+                            }
+                        }
+                    }
+                    KeyCode::Char(c) => {
+                        if app_state.active_pane == 0 {
+                            app_state.input1.push(c);
+                        } else {
+                            app_state.input2.push(c);
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        if app_state.active_pane == 0 {
+                            app_state.input1.pop();
+                        } else {
+                            app_state.input2.pop();
+                        }
+                    }
+                    _ => {}
+                }
+                continue;
+            }
+
             match key.code {
+                KeyCode::Char('i') => app_state.input_mode = true,
                 KeyCode::Char('?') => app_state.show_help = true,
-                KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Char('q') => break,
                 KeyCode::Char('c') if key.modifiers.contains(event::KeyModifiers::CONTROL) => break,
                 KeyCode::Left => app_state.active_pane = 0,
                 KeyCode::Right => app_state.active_pane = 1,
@@ -358,6 +424,16 @@ pub fn run_dual_mode(
                 .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                 .split(root_layout[0]);
 
+            let pane1_layout = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(0), Constraint::Length(3)])
+                .split(chunks[0]);
+
+            let pane2_layout = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(0), Constraint::Length(3)])
+                .split(chunks[1]);
+
             let active_style = Style::default()
                 .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD);
@@ -375,7 +451,6 @@ pub fn run_dual_mode(
             };
 
             // Pane 1 render
-            let content1 = app_state.port1_logs.join("\n");
             let lines1 = app_state.port1_logs.len();
 
             // Auto-scroll
@@ -394,22 +469,54 @@ pub fn run_dual_mode(
                 .borders(Borders::ALL)
                 .border_style(p1_style);
 
-            let paragraph1 = Paragraph::new(content1)
+            let lines1: Vec<Line> = app_state
+                .port1_logs
+                .iter()
+                .map(|log| {
+                    if log.starts_with("TX:") {
+                        Line::from(Span::styled(log, Style::default().fg(Color::Cyan)))
+                    } else if log.starts_with("ERROR:") {
+                        Line::from(Span::styled(log, Style::default().fg(Color::Red)))
+                    } else {
+                        Line::from(log.as_str())
+                    }
+                })
+                .collect();
+
+            let paragraph1 = Paragraph::new(lines1)
                 .block(block1)
                 .scroll((app_state.scroll1 as u16, 0));
 
-            f.render_widget(paragraph1, chunks[0]);
+            f.render_widget(paragraph1, pane1_layout[0]);
             f.render_stateful_widget(
                 Scrollbar::default()
                     .orientation(ScrollbarOrientation::VerticalRight)
                     .begin_symbol(Some("↑"))
                     .end_symbol(Some("↓")),
-                chunks[0],
+                pane1_layout[0],
                 &mut scrollbar_state1,
             );
 
+            // Input box
+            let mut disp1 = app_state.input1.clone();
+            let input_style1 = if app_state.active_pane == 0 && app_state.input_mode {
+                disp1.push('█');
+                Style::default().fg(Color::Cyan)
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+
+            f.render_widget(
+                Paragraph::new(disp1).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(" TX (Press 'i' to type) ")
+                        .border_style(input_style1),
+                ),
+                pane1_layout[1],
+            );
+
             // Pane 2 render
-            let content2 = app_state.port2_logs.join("\n");
             let lines2 = app_state.port2_logs.len();
 
             // Auto-scroll
@@ -428,18 +535,51 @@ pub fn run_dual_mode(
                 .borders(Borders::ALL)
                 .border_style(p2_style);
 
-            let paragraph2 = Paragraph::new(content2)
+            let lines2: Vec<Line> = app_state
+                .port2_logs
+                .iter()
+                .map(|log| {
+                    if log.starts_with("TX:") {
+                        Line::from(Span::styled(log, Style::default().fg(Color::Cyan)))
+                    } else if log.starts_with("ERROR:") {
+                        Line::from(Span::styled(log, Style::default().fg(Color::Red)))
+                    } else {
+                        Line::from(log.as_str())
+                    }
+                })
+                .collect();
+
+            let paragraph2 = Paragraph::new(lines2)
                 .block(block2)
                 .scroll((app_state.scroll2 as u16, 0));
 
-            f.render_widget(paragraph2, chunks[1]);
+            f.render_widget(paragraph2, pane2_layout[0]);
             f.render_stateful_widget(
                 Scrollbar::default()
                     .orientation(ScrollbarOrientation::VerticalRight)
                     .begin_symbol(Some("↑"))
                     .end_symbol(Some("↓")),
-                chunks[1],
+                pane2_layout[0],
                 &mut scrollbar_state2,
+            );
+
+            // Input box
+            let mut disp2 = app_state.input2.clone();
+            let input_style2 = if app_state.active_pane == 1 && app_state.input_mode {
+                disp2.push('█');
+                Style::default().fg(Color::Cyan)
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+
+            f.render_widget(
+                Paragraph::new(disp2).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(" TX (Press 'i' to type) ")
+                        .border_style(input_style2),
+                ),
+                pane2_layout[1],
             );
 
             let hint_text = Line::from(" Press '?' for help ")
@@ -457,8 +597,10 @@ pub fn run_dual_mode(
                     Line::from(" [Tab]        : Toggle active pane (Left/Right)"),
                     Line::from(" [←] / [→]    : Select active pane"),
                     Line::from(" [↑] / [↓]    : Scroll active pane & pause auto-scroll"),
+                    Line::from(" [i]          : Enter typing mode"),
+                    Line::from(" [Esc]        : Exit typing mode"),
                     Line::from(" [Enter]      : Jump to bottom & resume auto-scroll"),
-                    Line::from(" [q] or [Esc] : Quit Dual Monitor"),
+                    Line::from(" [q]          : Quit Dual Monitor"),
                     Line::from(" [Ctrl+C]     : Force Quit"),
                     Line::from(""),
                     Line::from(" Press any key to close... ")
