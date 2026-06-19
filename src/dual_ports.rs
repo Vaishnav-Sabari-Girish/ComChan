@@ -172,7 +172,7 @@ fn spawn_serial_thread(
                                 .write_all(payload.as_bytes())
                                 .and_then(|_| port.flush())
                             {
-                                let _ = tx.send(wrap_event(format!("Write Error: {}", e)));
+                                let _ = tx.send(wrap_error(format!("Write Error: {}", e)));
                             } else {
                                 let _ = tx.send(wrap_event(format!("TX: {}\n", cmd)));
                             }
@@ -348,6 +348,9 @@ pub fn run_dual_mode(
                                 let _ = tx_cmd2.send(cmd);
                             }
                         }
+                    }
+                    KeyCode::Char('c') if key.modifiers.contains(event::KeyModifiers::CONTROL) => {
+                        break;
                     }
                     KeyCode::Char(c) => {
                         if app_state.active_pane == 0 {
