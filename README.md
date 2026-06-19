@@ -87,7 +87,7 @@ paru -S comchan-bin
 [`elda`](https://github.com/Mjoyufull/Elda)
 
 ```bash
-elda i [https://github.com/Vaishnav-Sabari-Girish/ComChan](https://github.com/Vaishnav-Sabari-Girish/ComChan)
+elda i https://github.com/Vaishnav-Sabari-Girish/ComChan
 
 ```
 
@@ -100,7 +100,7 @@ Build from source for the latest development version:
 
 ```bash
 # Clone from GitHub
-git clone [https://github.com/Vaishnav-Sabari-Girish/ComChan.git](https://github.com/Vaishnav-Sabari-Girish/ComChan.git)
+git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 
 # Build and run with all features
 cd ComChan

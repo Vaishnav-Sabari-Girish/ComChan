@@ -22,10 +22,20 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+struct TerminalCleanup;
+
+impl Drop for TerminalCleanup {
+    fn drop(&mut self) {
+        let _ = disable_raw_mode();
+        let _ = execute!(io::stdout(), LeaveAlternateScreen);
+    }
+}
+
 pub enum DualEvent {
     Port1(String),
     Port2(String),
-    Error(String),
+    Error1(String),
+    Error2(String),
 }
 
 struct DualMonitorState {
@@ -66,6 +76,75 @@ fn split_filename(base_path: &Option<String>, suffix: &str) -> Option<String> {
             format!("{}_{}.{}", stem, suffix, ext)
         }
     })
+}
+
+fn spawn_serial_thread(
+    port_name: String,
+    cfg: MergedConfig,
+    tx: mpsc::Sender<DualEvent>,
+    is_port1: bool,
+) {
+    thread::spawn(move || {
+        let wrap_event = |text: String| {
+            if is_port1 {
+                DualEvent::Port1(text)
+            } else {
+                DualEvent::Port2(text)
+            }
+        };
+        let wrap_error = |err: String| {
+            if is_port1 {
+                DualEvent::Error1(err)
+            } else {
+                DualEvent::Error2(err)
+            }
+        };
+
+        if cfg.simulate {
+            let mut counter = 0;
+            loop {
+                let text = format!(
+                    "SIM [Port {}]: Packet {}\n",
+                    if is_port1 { 1 } else { 2 },
+                    counter
+                );
+                let _ = tx.send(wrap_event(text));
+                counter += 1;
+                thread::sleep(Duration::from_millis(500));
+            }
+        } else {
+            let _data_bits = parse_data_bits(cfg.data_bits).unwrap();
+            let _stop_bits = parse_stop_bits(cfg.stop_bits).unwrap();
+            let _parity = parse_parity(&cfg.parity).unwrap();
+            let _flow_control = parse_flow_control(&cfg.flow_control).unwrap();
+
+            match serialport::new(&port_name, cfg.baud)
+                // ... [chain your config] ...
+                .open()
+            {
+                Ok(mut port) => {
+                    let mut buffer = [0; 1024];
+                    loop {
+                        match port.read(&mut buffer) {
+                            Ok(n) if n > 0 => {
+                                let _ = tx.send(wrap_event(
+                                    String::from_utf8_lossy(&buffer[..n]).into_owned(),
+                                ));
+                            }
+                            Err(e) if e.kind() != io::ErrorKind::TimedOut => {
+                                let _ = tx.send(wrap_error(format!("Read Error: {}", e)));
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                Err(e) => {
+                    let _ = tx.send(wrap_error(format!("Failed to open {}: {}", port_name, e)));
+                }
+            }
+        }
+    });
 }
 
 pub fn run_dual_mode(
@@ -109,118 +188,14 @@ pub fn run_dual_mode(
     let p1_name = port1_name.clone();
     let cfg1 = config.clone();
 
-    thread::spawn(move || {
-        if cfg1.simulate {
-            let mut counter = 0;
-            loop {
-                let simulated_text = format!(
-                    "SIM [Port 1]: Temp: {:.2} C, Hum: {}\n",
-                    25.0 + (counter as f32 * 0.1),
-                    40 + (counter % 20)
-                );
-                let _ = tx1.send(DualEvent::Port1(simulated_text));
-                counter += 1;
-                thread::sleep(Duration::from_millis(500));
-            }
-        } else {
-            let data_bits = parse_data_bits(cfg1.data_bits).unwrap();
-            let stop_bits = parse_stop_bits(cfg1.stop_bits).unwrap();
-            let parity = parse_parity(&cfg1.parity).unwrap();
-            let flow_control = parse_flow_control(&cfg1.flow_control).unwrap();
-
-            match serialport::new(&p1_name, cfg1.baud)
-                .timeout(Duration::from_millis(cfg1.timeout_ms))
-                .data_bits(data_bits)
-                .stop_bits(stop_bits)
-                .parity(parity)
-                .flow_control(flow_control)
-                .open()
-            {
-                Ok(mut port) => {
-                    let mut buffer = [0; 1024];
-                    loop {
-                        match port.read(&mut buffer) {
-                            Ok(n) if n > 0 => {
-                                let text = String::from_utf8_lossy(&buffer[..n]).to_string();
-                                let _ = tx1.send(DualEvent::Port1(text));
-                            }
-                            Ok(_) => {}
-                            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
-                            Err(e) => {
-                                let _ = tx1.send(DualEvent::Error(format!("Port 1 Error: {}", e)));
-                                break;
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    let _ = tx1.send(DualEvent::Error(format!(
-                        "Failed to open {}: {}",
-                        p1_name, e
-                    )));
-                }
-            }
-        }
-    });
+    spawn_serial_thread(p1_name, cfg1, tx1, true);
 
     // Serial port 2 thread
     let tx2 = tx.clone();
     let p2_name = port2_name.clone();
     let cfg2 = config.clone();
 
-    thread::spawn(move || {
-        if cfg2.simulate {
-            let mut counter = 0;
-            loop {
-                let simulated_text = format!(
-                    "SIM [Port 2]: Temp: {:.2} C, Hum: {}\n",
-                    25.0 + (counter as f32 * 0.1),
-                    40 + (counter % 20)
-                );
-                let _ = tx2.send(DualEvent::Port2(simulated_text));
-                counter += 1;
-                thread::sleep(Duration::from_millis(500));
-            }
-        } else {
-            let data_bits = parse_data_bits(cfg2.data_bits).unwrap();
-            let stop_bits = parse_stop_bits(cfg2.stop_bits).unwrap();
-            let parity = parse_parity(&cfg2.parity).unwrap();
-            let flow_control = parse_flow_control(&cfg2.flow_control).unwrap();
-
-            match serialport::new(&p2_name, cfg2.baud)
-                .timeout(Duration::from_millis(cfg2.timeout_ms))
-                .data_bits(data_bits)
-                .stop_bits(stop_bits)
-                .parity(parity)
-                .flow_control(flow_control)
-                .open()
-            {
-                Ok(mut port) => {
-                    let mut buffer = [0; 1024];
-                    loop {
-                        match port.read(&mut buffer) {
-                            Ok(n) if n > 0 => {
-                                let text = String::from_utf8_lossy(&buffer[..n]).to_string();
-                                let _ = tx2.send(DualEvent::Port2(text));
-                            }
-                            Ok(_) => {}
-                            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {}
-                            Err(e) => {
-                                let _ = tx2.send(DualEvent::Error(format!("Port 2 Error: {}", e)));
-                                break;
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    let _ = tx2.send(DualEvent::Error(format!(
-                        "Failed to open {}: {}",
-                        p2_name, e
-                    )));
-                }
-            }
-        }
-    });
+    spawn_serial_thread(p2_name, cfg2, tx2, false);
 
     // TUI
     enable_raw_mode()?;
@@ -228,6 +203,7 @@ pub fn run_dual_mode(
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
+    let _cleanup = TerminalCleanup;
     let mut terminal = Terminal::new(backend)?;
 
     let mut app_state = DualMonitorState::new();
@@ -274,19 +250,19 @@ pub fn run_dual_mode(
                     }
                 }
 
-                DualEvent::Error(err) => {
-                    app_state.port1_logs.push(format!("ERROR: {}", err));
-                    app_state.port2_logs.push(format!("ERROR: {}", err));
-                }
+                DualEvent::Error1(err) => app_state.port1_logs.push(format!("ERROR: {}", err)),
+                DualEvent::Error2(err) => app_state.port2_logs.push(format!("ERROR: {}", err)),
             }
         }
 
         // Limit memory to prevent RAM exhaustion
         if app_state.port1_logs.len() > 2000 {
             app_state.port1_logs.drain(0..500);
+            app_state.scroll1 = app_state.scroll1.saturating_sub(500);
         }
         if app_state.port2_logs.len() > 2000 {
             app_state.port2_logs.drain(0..500);
+            app_state.scroll2 = app_state.scroll2.saturating_sub(500);
         }
 
         // Handle Input
@@ -475,8 +451,6 @@ pub fn run_dual_mode(
     }
 
     // Cleanup
-    disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     Ok(crate::AppExitState::Quit)
 }
 

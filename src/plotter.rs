@@ -1092,12 +1092,14 @@ pub fn run_plotter_mode(
                 // Clear background
                 f.render_widget(Clear, area);
 
-                let help_block = Paragraph::new(help_text).block(
-                    Block::default()
-                        .title(" Plotter Shortcuts ")
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::Cyan)),
-                );
+                let help_block = Paragraph::new(help_text)
+                    .block(
+                        Block::default()
+                            .title(" Plotter Shortcuts ")
+                            .borders(Borders::ALL)
+                            .border_style(Style::default().fg(Color::Cyan)),
+                    )
+                    .wrap(ratatui::widgets::Wrap { trim: false });
 
                 f.render_widget(help_block, area);
             }
