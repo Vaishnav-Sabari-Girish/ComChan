@@ -113,10 +113,34 @@ fn spawn_serial_thread(
                 thread::sleep(Duration::from_millis(500));
             }
         } else {
-            let data_bits = parse_data_bits(cfg.data_bits).unwrap();
-            let stop_bits = parse_stop_bits(cfg.stop_bits).unwrap();
-            let parity = parse_parity(&cfg.parity).unwrap();
-            let flow_control = parse_flow_control(&cfg.flow_control).unwrap();
+            let data_bits = match parse_data_bits(cfg.data_bits) {
+                Ok(v) => v,
+                Err(e) => {
+                    let _ = tx.send(wrap_error(format!("Config error: {}", e)));
+                    return;
+                }
+            };
+            let stop_bits = match parse_stop_bits(cfg.stop_bits) {
+                Ok(v) => v,
+                Err(e) => {
+                    let _ = tx.send(wrap_error(format!("Config error: {}", e)));
+                    return;
+                }
+            };
+            let parity = match parse_parity(&cfg.parity) {
+                Ok(v) => v,
+                Err(e) => {
+                    let _ = tx.send(wrap_error(format!("Config error: {}", e)));
+                    return;
+                }
+            };
+            let flow_control = match parse_flow_control(&cfg.flow_control) {
+                Ok(v) => v,
+                Err(e) => {
+                    let _ = tx.send(wrap_error(format!("Config error: {}", e)));
+                    return;
+                }
+            };
 
             match serialport::new(&port_name, cfg.baud)
                 .timeout(Duration::from_millis(cfg.timeout_ms))
