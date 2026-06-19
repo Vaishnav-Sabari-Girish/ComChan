@@ -1,4 +1,54 @@
 
+## v0.12.0 - 2026-06-19
+
+
+
+
+
+
+
+### :rocket: New features
+
+- Add interactive TX input to dual monitor and fix hardware routing
+
+- **(dual_monitor)** Add side-by-side dual monitor TUI and help modals
+
+
+
+
+
+
+### :bug: Bug fixes
+
+- **(keycode)** Fixed keycode edge case
+
+- **(dual_ports)** Report serial config parse errors instead of panicking
+
+- **(port_settings)** Added the port settings before opening port
+
+
+
+
+
+
+### :zap: Performance
+
+- **(cubic)** Edge cases were handled
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## v0.11.0 - 2026-06-15
 
 
