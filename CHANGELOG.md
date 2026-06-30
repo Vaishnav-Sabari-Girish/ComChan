@@ -1,4 +1,45 @@
 
+## v0.13.0 - 2026-06-30
+
+
+
+
+
+
+
+### :rocket: New features
+
+- **(plotter)** Add scrollable sensor legend and strip defmt metadata
+
+
+
+
+
+
+### :bug: Bug fixes
+
+- **(monitor, parser, plotter)** Fix UTF-8 panics, parser greediness, and scrollbar math
+
+- **(monitor)** Implement local readline and preserve remote prompts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## v0.12.0 - 2026-06-19
 
 
