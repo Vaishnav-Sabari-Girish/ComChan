@@ -11,8 +11,9 @@ use std::thread;
 use std::time::Duration;
 
 use crossterm::{
+    cursor,
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
-    terminal,
+    execute, terminal,
 };
 
 use pretty_hex::*;
@@ -164,47 +165,144 @@ pub fn run_normal_mode(
     // 2. Setup channels and input thread ONCE
     let (input_tx, input_rx) = mpsc::channel::<String>();
     let (ctrl_tx, ctrl_rx) = mpsc::channel::<MonitorCommand>();
+
     thread::spawn(move || {
         terminal::enable_raw_mode().ok();
+
+        // ── Line editing state ──
         let mut line_buf = String::new();
+        let mut cursor_pos: usize = 0;
+        let mut history: Vec<String> = Vec::new();
+        let mut history_idx: usize = 0;
 
         loop {
             if event::poll(Duration::from_millis(10)).unwrap_or(false) {
                 match event::read() {
                     Ok(Event::Key(KeyEvent {
                         code, modifiers, ..
-                    })) => match (code, modifiers) {
-                        (KeyCode::Char('l'), KeyModifiers::CONTROL) => {
-                            print!("\x1bc\x1b[5 q");
+                    })) => {
+                        let mut needs_redraw = false;
+
+                        let old_cursor_pos = cursor_pos;
+                        let old_len = line_buf.len();
+
+                        match (code, modifiers) {
+                            (KeyCode::Char('l'), KeyModifiers::CONTROL) => {
+                                print!("\x1bc\x1b[5 q");
+                                io::stdout().flush().ok();
+                                ctrl_tx.send(MonitorCommand::Repaint(b'\r')).ok();
+                            }
+                            (KeyCode::Char('p'), KeyModifiers::CONTROL) => {
+                                ctrl_tx.send(MonitorCommand::SwitchMode).ok();
+                                break;
+                            }
+                            (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                                ctrl_tx.send(MonitorCommand::Quit).ok();
+                                break;
+                            }
+                            (KeyCode::Enter, _) => {
+                                let _ = input_tx.send(line_buf.clone());
+
+                                if !line_buf.trim().is_empty() {
+                                    history.push(line_buf.clone());
+                                }
+                                history_idx = history.len();
+
+                                line_buf.clear();
+                                cursor_pos = 0;
+                                print!("\r\n");
+                                io::stdout().flush().ok();
+                            }
+                            (KeyCode::Backspace, _) => {
+                                if cursor_pos > 0 {
+                                    let byte_offset = line_buf
+                                        .char_indices()
+                                        .nth(cursor_pos - 1)
+                                        .map(|(i, _)| i)
+                                        .unwrap();
+                                    line_buf.remove(byte_offset);
+                                    cursor_pos -= 1;
+                                    needs_redraw = true;
+                                }
+                            }
+                            (KeyCode::Delete, _) => {
+                                if cursor_pos < line_buf.len() {
+                                    line_buf.remove(cursor_pos);
+                                    needs_redraw = true;
+                                }
+                            }
+                            (KeyCode::Left, _) => {
+                                if cursor_pos > 0 {
+                                    cursor_pos -= 1;
+                                    needs_redraw = true;
+                                }
+                            }
+                            (KeyCode::Right, _) => {
+                                if cursor_pos < line_buf.len() {
+                                    cursor_pos += 1;
+                                    needs_redraw = true;
+                                }
+                            }
+                            (KeyCode::Up, _) => {
+                                if history_idx > 0 {
+                                    history_idx -= 1;
+                                    line_buf = history[history_idx].clone();
+                                    cursor_pos = line_buf.len();
+                                    needs_redraw = true;
+                                }
+                            }
+                            (KeyCode::Down, _) => {
+                                if history_idx < history.len() {
+                                    history_idx += 1;
+                                    if history_idx == history.len() {
+                                        line_buf.clear();
+                                    } else {
+                                        line_buf = history[history_idx].clone();
+                                    }
+                                    cursor_pos = line_buf.len();
+                                    needs_redraw = true;
+                                }
+                            }
+                            (KeyCode::Char(c), _) => {
+                                let byte_offset = line_buf
+                                    .char_indices()
+                                    .nth(cursor_pos)
+                                    .map(|(i, _)| i)
+                                    .unwrap_or(line_buf.len());
+                                line_buf.insert(byte_offset, c);
+                                cursor_pos += 1;
+                                needs_redraw = true;
+                            }
+                            _ => {}
+                        }
+
+                        // ── Dynamic Line Redrawing (Preserves Remote Prompts) ──
+                        if needs_redraw {
+                            // 1. Move cursor back to the start of our local typed input
+                            if old_cursor_pos > 0 {
+                                execute!(io::stdout(), cursor::MoveLeft(old_cursor_pos as u16))
+                                    .ok();
+                            }
+
+                            // 2. Overwrite ONLY the old typed text with spaces
+                            if old_len > 0 {
+                                print!("{:width$}", "", width = old_len);
+                                // Move back to the start of the local input again
+                                execute!(io::stdout(), cursor::MoveLeft(old_len as u16)).ok();
+                            }
+
+                            // 3. Print the newly updated buffer
+                            print!("{}", line_buf);
+
+                            // 4. Move the cursor back to the correct visual insertion point
+                            let offset = line_buf.len() - cursor_pos;
+                            if offset > 0 {
+                                execute!(io::stdout(), cursor::MoveLeft(offset as u16)).ok();
+                            }
+
                             io::stdout().flush().ok();
-                            ctrl_tx.send(MonitorCommand::Repaint(b'\r')).ok();
                         }
-                        (KeyCode::Char('p'), KeyModifiers::CONTROL) => {
-                            ctrl_tx.send(MonitorCommand::SwitchMode).ok();
-                            break;
-                        }
-                        (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                            ctrl_tx.send(MonitorCommand::Quit).ok();
-                            break;
-                        }
-                        (KeyCode::Enter, _) => {
-                            let _ = input_tx.send(line_buf.clone());
-                            line_buf.clear();
-                            print!("\r\n");
-                            io::stdout().flush().ok();
-                        }
-                        (KeyCode::Backspace, _) => {
-                            line_buf.pop();
-                            print!("\x08 \x08");
-                            io::stdout().flush().ok();
-                        }
-                        (KeyCode::Char(c), _) => {
-                            line_buf.push(c);
-                            print!("{}", c);
-                            io::stdout().flush().ok();
-                        }
-                        _ => {}
-                    },
+                    }
                     Err(_) => break,
                     _ => {}
                 }
