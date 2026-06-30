@@ -32,14 +32,12 @@ cargo install comchan
 # Install with Hardware-Accelerated 3D support (Ratty Terminal) and BLE
 cargo install comchan --features ratty,ble
 
-
 ```
 
 Verify the installation:
 
 ```bash
 comchan --version
-
 
 ```
 
@@ -60,7 +58,6 @@ paru -S comchan
 yay -S comchan-ratty
 ## Using paru
 paru -S comchan-ratty
-
 
 ```
 
@@ -106,7 +103,6 @@ git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 cd ComChan
 cargo run --release --features ble,ratty -- --version
 
-
 ```
 
 ## CLI Usage
@@ -117,19 +113,18 @@ Blazingly Fast Minimal Serial Monitor with Plotting
 Usage: comchan [OPTIONS]
 
 Options:
-      --completions <COMPLETIONS>     Generate Shell completions
-  -p, --port <PORT>                   Serial port to connect to (or 'BLE_STREAM' for Bluetooth)
-      --ble                           Start ComChan in Bluetooth Low Energy (BLE) stream mode
-  -r, --baud <BAUD>                   Baud Rate of the Serial Monitor
-  -l, --log <LOG_FILE>                Log data into a file
-  -v, --verbose                       Enable verbose output
-      --plot                          Launch the serial plotter
-  -c, --config <CONFIG_FILE>          Path to config file
-  -x, --hex                           Display incoming data in hex dump format
-  -h, --help                          Print help
-  -V, --version                       Print version
+      --completions <COMPLETIONS>      Generate Shell completions
+  -p, --port <PORT>                    Serial port to connect to (or 'BLE_STREAM' for Bluetooth)
+      --ble                            Start ComChan in Bluetooth Low Energy (BLE) stream mode
+  -r, --baud <BAUD>                    Baud Rate of the Serial Monitor
+  -l, --log <LOG_FILE>                 Log data into a file
+  -v, --verbose                        Enable verbose output
+      --plot                           Launch the serial plotter
+  -c, --config <CONFIG_FILE>           Path to config file
+  -x, --hex                            Display incoming data in hex dump format
+  -h, --help                           Print help
+  -V, --version                        Print version
   # ... (and many more)
-
 
 ```
 
@@ -146,7 +141,6 @@ ComChan supports streaming data wirelessly from BLE-enabled embedded devices
 # Start ComChan in BLE mode to scan and connect to a peripheral
 comchan --ble
 
-
 ```
 
 ComChan will scan for devices, prompt you to select your target, and
@@ -158,7 +152,6 @@ stream is active.
 
 ```bash
 comchan -p /dev/ttyUSB0 -r 115200
-
 
 ```
 
@@ -190,7 +183,6 @@ directly from your microcontroller's memory via SWD.
 ```bash
 comchan --rtt --elf path/to/firmware.elf --chip nRF52840_xxAA
 
-
 ```
 
 ### Plotter & 3D Spatial Telemetry
@@ -200,7 +192,6 @@ Line Chart and the 3D Telemetry Dashboard.
 
 ```bash
 comchan --port /dev/ttyUSB0 --baud 115200 --plot
-
 
 ```
 
@@ -212,7 +203,7 @@ comchan --port /dev/ttyUSB0 --baud 115200 --plot
 
 * **BLE Support** - Stream data wirelessly via Nordic UART Service (NUS).
 * **Dual Monitor Side-by-Side View** - View two serial ports simultaneously in a
-  split-pane TUI with independent scrollbars and auto-split logging.
+split-pane TUI with independent scrollbars and auto-split logging.
 * **Read & Write Serial Data** - Monitor incoming data and send commands.
 * **Instant Mode Hot-Swapping** - Seamlessly toggle between Monitor and Plotter
 via `Ctrl+P`.
@@ -232,6 +223,8 @@ hardware.
 
 ## Stargazers over time (Graph)
 
+[![Star History Chart](https://api.star-history.com/chart?repos=Vaishnav-Sabari-Girish/ComChan&type=timeline&theme=dark&legend=bottom-right)](https://www.star-history.com/?repos=Vaishnav-Sabari-Girish%2FComChan&type=timeline&legend=bottom-right)
+
 ## 🧠 (mostly) Brain made
 
 **This project was NOT vibe-coded BUT AI is still involved in some parts of
@@ -245,7 +238,5 @@ code here and there. Big refactors or new features are done by my hand though.
 <br>
 
 ![img](https://brainmade.org/white-logo.svg)
-
-<br>
 
 [⬆ Back to Top](https://www.google.com/search?q=%23comchan-communication-channel)
