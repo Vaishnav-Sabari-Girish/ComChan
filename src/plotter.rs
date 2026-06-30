@@ -1034,7 +1034,7 @@ pub fn run_plotter_mode(
                 state.sensor_scroll = state.sensor_scroll.min(max_scroll);
 
                 let mut scrollbar_state = ScrollbarState::default()
-                    .content_length(lines.len().saturating_sub(inner.height as usize))
+                    .content_length(max_scroll)
                     .position(state.sensor_scroll);
 
                 let para = Paragraph::new(lines).scroll((state.sensor_scroll as u16, 0));

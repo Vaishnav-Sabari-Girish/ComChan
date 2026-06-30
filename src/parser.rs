@@ -82,10 +82,15 @@ fn strip_log_prefixes(mut line: &str) -> &str {
                     line = line[lvl_end + 1..].trim_start();
                 }
 
-                if let Some(colon_idx) = line.find(": ")
-                    && !line[..colon_idx].contains(' ')
-                {
-                    line = line[colon_idx + 2..].trim_start();
+                if let Some(colon_idx) = line.find(": ") {
+                    let module_segment = &line[..colon_idx];
+                    if !module_segment.contains(' ')
+                        && module_segment
+                            .chars()
+                            .all(|c| c.is_alphanumeric() || c == '_')
+                    {
+                        line = line[colon_idx + 2..].trim_start();
+                    }
                 }
             }
         }

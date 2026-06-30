@@ -215,8 +215,13 @@ pub fn run_normal_mode(
                             }
                             (KeyCode::Backspace, _) => {
                                 if cursor_pos > 0 {
+                                    let byte_offset = line_buf
+                                        .char_indices()
+                                        .nth(cursor_pos - 1)
+                                        .map(|(i, _)| i)
+                                        .unwrap();
+                                    line_buf.remove(byte_offset);
                                     cursor_pos -= 1;
-                                    line_buf.remove(cursor_pos);
                                     needs_redraw = true;
                                 }
                             }
@@ -259,7 +264,12 @@ pub fn run_normal_mode(
                                 }
                             }
                             (KeyCode::Char(c), _) => {
-                                line_buf.insert(cursor_pos, c);
+                                let byte_offset = line_buf
+                                    .char_indices()
+                                    .nth(cursor_pos)
+                                    .map(|(i, _)| i)
+                                    .unwrap_or(line_buf.len());
+                                line_buf.insert(byte_offset, c);
                                 cursor_pos += 1;
                                 needs_redraw = true;
                             }
