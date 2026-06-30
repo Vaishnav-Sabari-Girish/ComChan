@@ -125,6 +125,7 @@ struct PlotterState {
     ratty_engines: Option<RattyGraphic<'static>>,
 
     show_help: bool,
+    sensor_scroll: usize,
 }
 
 const DISCARD_FIRST_LINES: usize = 3;
@@ -214,6 +215,7 @@ impl PlotterState {
             ratty_engines,
 
             show_help: false,
+            sensor_scroll: 0,
         }
     }
 
@@ -528,6 +530,13 @@ pub fn run_plotter_mode(
                             state.last_error = Some(format!("❌ Export failed: {}", e));
                         }
                     }
+                }
+
+                KeyCode::Up => {
+                    state.sensor_scroll = state.sensor_scroll.saturating_sub(1);
+                }
+                KeyCode::Down => {
+                    state.sensor_scroll = state.sensor_scroll.saturating_add(1);
                 }
 
                 _ => {}
@@ -1019,8 +1028,23 @@ pub fn run_plotter_mode(
                         Style::default().fg(Color::DarkGray),
                     )]));
                 }
-                let para = Paragraph::new(lines).wrap(Wrap { trim: false });
+
+                // Scrollbar state
+                let max_scroll = lines.len().saturating_sub(inner.height as usize);
+                state.sensor_scroll = state.sensor_scroll.min(max_scroll);
+
+                let mut scrollbar_state = ScrollbarState::default()
+                    .content_length(lines.len().saturating_sub(inner.height as usize))
+                    .position(state.sensor_scroll);
+
+                let para = Paragraph::new(lines).scroll((state.sensor_scroll as u16, 0));
                 f.render_widget(para, inner);
+
+                f.render_stateful_widget(
+                    Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight),
+                    inner,
+                    &mut scrollbar_state,
+                );
             }
 
             // ── Status bar ────────────────────────────────────────────────────

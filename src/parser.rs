@@ -63,11 +63,85 @@ impl SensorData {
     }
 }
 
+fn strip_log_prefixes(mut line: &str) -> &str {
+    line = line.trim();
+
+    if line.starts_with('[') {
+        if let Some(end_idx) = line.find(']') {
+            let inside = &line[1..end_idx];
+
+            if inside
+                .chars()
+                .all(|c| c.is_ascii_digit() || c == ':' || c == '.' || c == ',')
+            {
+                line = line[end_idx + 1..].trim_start();
+
+                if line.starts_with('<')
+                    && let Some(lvl_end) = line.find('>')
+                {
+                    line = line[lvl_end + 1..].trim_start();
+                }
+
+                if let Some(colon_idx) = line.find(": ")
+                    && !line[..colon_idx].contains(' ')
+                {
+                    line = line[colon_idx + 2..].trim_start();
+                }
+            }
+        }
+    } else {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            let looks_like_time = parts[0].parse::<f64>().is_ok();
+
+            let clean_level =
+                parts[1].trim_matches(|c| c == '[' || c == ']' || c == '<' || c == '>');
+
+            let is_level = matches!(
+                clean_level,
+                "INFO"
+                    | "WARN"
+                    | "ERROR"
+                    | "DEBUG"
+                    | "TRACE"
+                    | "info"
+                    | "warn"
+                    | "error"
+                    | "debug"
+                    | "trace"
+            );
+
+            if looks_like_time
+                && is_level
+                && let Some(level_idx) = line.find(parts[1])
+            {
+                line = line[level_idx + parts[1].len()..].trim_start();
+
+                // 2. Strip defmt module paths and separators (`]`, `└─`, `├─`)
+                if let Some(bracket_idx) = line.find(']') {
+                    if !line[..bracket_idx].trim().contains(' ') {
+                        line = line[bracket_idx + 1..].trim_start();
+                    }
+                } else if let Some(tree_idx) = line.find("└─") {
+                    line = line[tree_idx + "└─".len()..].trim_start();
+                } else if let Some(tree_idx) = line.find("├─") {
+                    line = line[tree_idx + "├─".len()..].trim_start();
+                }
+            }
+        }
+    }
+
+    line
+}
+
 /// Entry point to parse a raw serial line into zero or more (sensor_name, value) pairs.
 pub fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
     // 1. Strip ANSI escape sequences (Colors) entirely from the line
     let clean_line = strip_ansi(line);
     let mut working_line = clean_line.trim();
+
+    // ── NEW: Strip defmt/RTOS timestamps before any parsing happens ──
+    working_line = strip_log_prefixes(working_line);
 
     // 2. Preprocess and strip metadata if it originates from a Zephyr logger
     working_line = strip_zephyr_headers(working_line);
@@ -76,6 +150,11 @@ pub fn parse_sensor_data(line: &str) -> Vec<(String, f64)> {
     if working_line.contains(',')
         && let Some(results) = parse_comma_separated(working_line)
     {
+        return results;
+    }
+
+    // 3.5 Try parsing space-separated key-value pairs
+    if let Some(results) = parse_space_separated_kv(working_line) {
         return results;
     }
 
@@ -178,6 +257,25 @@ fn parse_space_separated_numbers(line: &str) -> Option<Vec<(String, f64)>> {
             .enumerate()
             .map(|(i, v)| (format!("Channel {}", i), v))
             .collect();
+        Some(results)
+    } else {
+        None
+    }
+}
+
+/// Strategy 3.5: Handles space-separated Key:Value pairs (e.g., "ax:1.2 ay:3.4")
+fn parse_space_separated_kv(line: &str) -> Option<Vec<(String, f64)>> {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+    let mut results = Vec::new();
+
+    for part in parts {
+        if let Some((name, val)) = parse_kv_split(part, ':').or_else(|| parse_kv_split(part, '=')) {
+            results.push((name.to_string(), val));
+        }
+    }
+
+    // Only return success if we actually found multiple valid key-value pairs
+    if results.len() > 1 {
         Some(results)
     } else {
         None
