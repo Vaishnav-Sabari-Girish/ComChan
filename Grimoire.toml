@@ -11,7 +11,7 @@ silent = true
 description = "Run ComChan"
 language = "shell"
 depends = ["hello"]
-run = "cargo run --features {{features}}"
+run = "cargo run --features {{features}} --"
 
 [sigil.run.args.features]
 type = "select"
@@ -44,7 +44,7 @@ silent = true
 description = "Run ComChan in release mode"
 language = "shell"
 depends = ["hello"]
-run = "cargo run --release --features {{features}}"
+run = "cargo run --release --features {{features}} --"
 
 [sigil.run_release.args.features]
 type = "select"
