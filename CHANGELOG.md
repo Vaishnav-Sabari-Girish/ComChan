@@ -1,4 +1,49 @@
 
+## v0.13.1 - 2026-07-06
+
+
+
+
+
+
+
+
+
+
+
+### :bug: Bug fixes
+
+- **(monitor)** Correct initial log indentation in raw mode
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### :hammer: Build
+
+- **(grimoire)** Integrate Grimoire task runner and update documentation
+
+- Drastically reduce binary size via dependency trimming and LTO
+
+- **(Grimoire.toml)** Fix interactive building issue with `grimoire`
+
+- **(Grimoire)** Adding a Grimoire.toml
+
+
+
 ## v0.13.0 - 2026-06-30
 
 
