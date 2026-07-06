@@ -6,28 +6,11 @@ description = "Welcome message"
 language = "shell"
 run = "echo 'Thank you for installing ComChan'"
 
-[sigil.run]
-silent = true
-description = "Run ComChan"
-language = "shell"
-depends = ["hello"]
-run = "cargo run --features {{features}} --"
-
-[sigil.run.args.features]
-type = "select"
-choices = [
-  "default",
-  "ratty",
-  "ble",
-  "ratty,ble"
-]
-default = "default"
-
 [sigil.build]
 silent = true
-description = "Build ComChan"
+description = "Build ComChan in release mode"
 language = "shell"
-run = "cargo build --features {{features}}"
+run = "cargo build --release --features {{features}}"
 
 [sigil.build.args.features]
 type = "select"
@@ -39,14 +22,13 @@ choices = [
 ]
 default = "default"
 
-[sigil.run_release]
+[sigil.run]
 silent = true
-description = "Run ComChan in release mode"
+description = "Run ComChan (Add the flags you require like --simulate)"
 language = "shell"
-depends = ["hello"]
 run = "cargo run --release --features {{features}} --"
 
-[sigil.run_release.args.features]
+[sigil.run.args.features]
 type = "select"
 choices = [
   "default",
@@ -56,13 +38,14 @@ choices = [
 ]
 default = "default"
 
-[sigil.build_release]
+[sigil.install]
 silent = true
-description = "Build ComChan in release mode"
+description = "Install ComChan to ~/.cargo/bin/"
 language = "shell"
-run = "cargo build --release --features {{features}}"
+depends = ["hello"]
+run = "cargo install --path . --features {{features}}"
 
-[sigil.build_release.args.features]
+[sigil.install.args.features]
 type = "select"
 choices = [
   "default",
@@ -71,6 +54,7 @@ choices = [
   "ratty,ble"
 ]
 default = "default"
+
 
 [sigil.clean]
 description = "Clean build artifacts"
