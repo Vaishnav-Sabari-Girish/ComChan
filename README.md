@@ -128,8 +128,7 @@ If you have Grimoire installed (`cargo install grim`), you can cast these spells
 grim cast build     # You can also use grim run (cast and run are the same commands)
 
 # Run the project locally 
-# (Use the '--' separator to seamlessly pass flags like --simulate to ComChan)
-grim cast run -- --simulate
+grim cast run --simulate
 
 # Install the binary directly to ~/.cargo/bin/ (Interactive feature prompt)
 grim cast install
