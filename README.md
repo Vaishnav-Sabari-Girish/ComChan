@@ -32,12 +32,14 @@ cargo install comchan
 # Install with Hardware-Accelerated 3D support (Ratty Terminal) and BLE
 cargo install comchan --features ratty,ble
 
+
 ```
 
 Verify the installation:
 
 ```bash
 comchan --version
+
 
 ```
 
@@ -59,6 +61,7 @@ yay -S comchan-ratty
 ## Using paru
 paru -S comchan-ratty
 
+
 ```
 
 ### The Binary
@@ -70,6 +73,7 @@ cargo binstall comchan
 # AUR 
 yay -S comchan-bin
 paru -S comchan-bin
+
 
 ```
 
@@ -85,6 +89,7 @@ paru -S comchan-bin
 
 ```bash
 elda i https://github.com/Vaishnav-Sabari-Girish/ComChan
+
 
 ```
 
@@ -103,7 +108,44 @@ git clone https://github.com/Vaishnav-Sabari-Girish/ComChan.git
 cd ComChan
 cargo run --release --features ble,ratty -- --version
 
+
 ```
+
+---
+
+## 🪄 Magic Workflow (Powered by Grimoire)
+
+ComChan uses [Grimoire](https://github.com/Vaishnav-Sabari-Girish/grimoire) as
+its official task runner to make building, running, and installing completely
+effortless. Grimoire provides interactive Terminal UI menus so you never have to
+memorize Cargo feature flags again!
+
+If you have Grimoire installed (`cargo install grim`), you can cast these spells
+(tasks) directly in the cloned repository:
+
+```bash
+# Compile the project (Interactive prompt for 'ratty' / 'ble' features)
+grim cast build     # You can also use grim run (cast and run are the same commands)
+
+# Run the project locally 
+grim cast run --simulate
+
+# Install the binary directly to ~/.cargo/bin/ (Interactive feature prompt)
+grim cast install
+
+# Clean all build artifacts
+grim cast clean
+
+```
+
+To view all the commands, refer to the [`Grimoire.toml`](./Grimoire.toml) or
+just run
+
+```bash
+grim sigils   # Or grim list
+```
+
+---
 
 ## CLI Usage
 
@@ -126,6 +168,7 @@ Options:
   -V, --version                        Print version
   # ... (and many more)
 
+
 ```
 
 ---
@@ -141,6 +184,7 @@ ComChan supports streaming data wirelessly from BLE-enabled embedded devices
 # Start ComChan in BLE mode to scan and connect to a peripheral
 comchan --ble
 
+
 ```
 
 ComChan will scan for devices, prompt you to select your target, and
@@ -152,6 +196,7 @@ stream is active.
 
 ```bash
 comchan -p /dev/ttyUSB0 -r 115200
+
 
 ```
 
@@ -165,6 +210,7 @@ comchan -p /dev/ttyUSB0 /dev/ttyUSB1 -r 115200
 
 # Test it out using the built-in simulator!
 comchan --simulate -p mock1 mock2
+
 
 ```
 
@@ -183,6 +229,7 @@ directly from your microcontroller's memory via SWD.
 ```bash
 comchan --rtt --elf path/to/firmware.elf --chip nRF52840_xxAA
 
+
 ```
 
 ### Plotter & 3D Spatial Telemetry
@@ -192,6 +239,7 @@ Line Chart and the 3D Telemetry Dashboard.
 
 ```bash
 comchan --port /dev/ttyUSB0 --baud 115200 --plot
+
 
 ```
 
