@@ -1,6 +1,6 @@
 [package]
 name = "comchan"
-version = "0.13.0"
+version = "0.14.0"
 edition = "2024"
 authors = ["Vaishnav Sabari Girish <vaishnav.sabari.girish@gmail.com>"]
 license = "MIT"
@@ -30,11 +30,11 @@ futures = { version = "0.3.32", optional = true }
 inline_colorization = "0.1.6"
 inquire = { version = "0.9.4", optional = true }
 object = "0.39.1"
-plotters = "0.3.7"
+plotters = { version = "0.3.7", default-features = false, features = ["line_series", "svg_backend", "ttf"] }
 pretty-hex = "0.4.2"
 probe-rs = "0.31.0"
 ratatui = "0.30.1"
-ratatui-ratty = { version = "0.3.0", optional = true }
+ratatui-ratty = { version = "0.4.0", optional = true }
 ratatui-wireframe = { version = "0.7.0", path = "crates/ratatui-wireframe", features = ["ratty"] }
 serde = { version = "1.0", features = ["derive"] }
 serialport = "4.9"
@@ -50,7 +50,7 @@ members = [
 
 [profile.dist]
 inherits = "release"
-lto = "thin"
+lto = true
 
 [profile.release]
 opt-level = "z"     # Optimize for size (use "s" if "z" is too slow)
