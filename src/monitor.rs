@@ -397,19 +397,21 @@ pub fn run_normal_mode(
                         }
                     }
 
-                    println!(
-                        "\r\n{color_green}🔌 Connected to {} at {} baud{color_reset}",
+                    print!(
+                        "\r\n{color_green}🔌 Connected to {} at {} baud{color_reset}\r\n",
                         port_name, config.baud
                     );
                     if config.verbose {
-                        println!(
-                            "\r{color_blue}⚙️  Config: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}",
+                        print!(
+                            "{color_blue}⚙️  Config: {} data bits, {} stop bits, {} parity, {} flow control{color_reset}\r\n",
                             config.data_bits, config.stop_bits, config.parity, config.flow_control
                         );
                         if let Some(log_path) = &config.log_file {
-                            println!("\r{color_blue} Logging to: {}{color_reset}", log_path);
+                            print!("{color_blue} Logging to: {}{color_reset}\r\n", log_path);
                         }
                     }
+
+                    io::stdout().flush().ok();
                     Some(p)
                 }
                 Err(_) => {
