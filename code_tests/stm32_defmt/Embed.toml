@@ -1,0 +1,11 @@
+[default.general]
+chip = "STM32F103C8"
+
+[default.reset]
+halt_afterwards = false
+
+[default.rtt]
+enabled = true
+
+[default.gdb]
+enabled = false
