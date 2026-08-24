@@ -74,7 +74,7 @@ pub fn export_to_svg(
         }
     }
 
-    if !min_x.is_finite() || !max_x.is_finite() || min_y.is_finite() || !max_y.is_finite() {
+    if !min_x.is_finite() || !max_x.is_finite() || !min_y.is_finite() || !max_y.is_finite() {
         return Err("No finite data points to export".into());
     }
 
