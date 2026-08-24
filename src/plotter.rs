@@ -835,9 +835,9 @@ pub fn run_plotter_mode(
         };
 
         let marker = match config.chart {
-            ChartType::Line => symbols::Marker::Dot,
+            ChartType::Line => symbols::Marker::Braille,
             ChartType::Bar | ChartType::Hist => symbols::Marker::Block,
-            ChartType::Scatter => symbols::Marker::Braille,
+            ChartType::Scatter => symbols::Marker::Dot,
         };
 
         let datasets: Vec<Dataset> = if matches!(config.chart, ChartType::Hist) {
