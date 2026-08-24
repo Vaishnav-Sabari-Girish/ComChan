@@ -49,6 +49,70 @@ impl FromStr for BrailleModel {
     }
 }
 
+// ChartType
+/// 2D chart type used by the serial plotter
+#[derive(Clone, Debug, PartialEq, Default)]
+pub enum ChartType {
+    #[default]
+    Line,
+    Bar,
+    Scatter,
+    Hist,
+}
+
+impl FromStr for ChartType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "line" => Ok(ChartType::Line),
+            "bar" => Ok(ChartType::Bar),
+            "scatter" | "dot" | "points" => Ok(ChartType::Scatter),
+            "hist" | "histogram" => Ok(ChartType::Hist),
+            _ => Err(format!(
+                "Invalid Chart Type '{}'. Must be one of 'line', 'bar', 'scatter', 'hist'",
+                s
+            )),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ChartType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        ChartType::from_str(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+impl Serialize for ChartType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            ChartType::Line => "line",
+            ChartType::Bar => "bar",
+            ChartType::Scatter => "scatter",
+            ChartType::Hist => "hist",
+        };
+        serializer.serialize_str(s)
+    }
+}
+
+impl std::fmt::Display for ChartType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ChartType::Line => write!(f, "line"),
+            ChartType::Bar => write!(f, "bar"),
+            ChartType::Scatter => write!(f, "scatter"),
+            ChartType::Hist => write!(f, "hist"),
+        }
+    }
+}
+
 // Teach Serde how to read it from config.toml
 impl<'de> Deserialize<'de> for BrailleModel {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -101,6 +165,7 @@ pub struct Config {
     pub obj_file: Option<String>,
     pub braille: Option<BrailleModel>,
     pub ble: Option<bool>,
+    pub chart: Option<ChartType>,
 }
 
 impl Default for Config {
@@ -129,6 +194,7 @@ impl Default for Config {
             obj_file: None,
             braille: Some(BrailleModel::Cube),
             ble: Some(false),
+            chart: Some(ChartType::default()),
         }
     }
 }
@@ -237,6 +303,13 @@ pub struct Args {
     )]
     pub braille: Option<BrailleModel>,
 
+    #[arg(
+        long = "chart",
+        value_name = "TYPE",
+        help = "2D chart type for the plotter: line (default), bar, scatter, hist"
+    )]
+    pub chart: Option<ChartType>,
+
     #[arg(long, default_value_t = false, help = "Exports the plot in Dark Mode")]
     pub dark: bool,
 
@@ -289,6 +362,7 @@ pub struct MergedConfig {
     pub elf: Option<String>,
     pub chip: Option<String>,
     pub ble: bool,
+    pub chart: ChartType,
 }
 
 // Generate completions
@@ -484,5 +558,6 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         elf: args.elf,
         chip: args.chip,
         ble: args.ble || config.ble.unwrap_or(false),
+        chart: args.chart.or(config.chart).unwrap_or(ChartType::Line),
     }
 }
