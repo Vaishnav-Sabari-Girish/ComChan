@@ -336,9 +336,9 @@ pub fn run_dual_mode(
                     KeyCode::Esc => app_state.input_mode = false, // Visual Mode (No typing)
                     KeyCode::Enter => {
                         let cmd = if app_state.active_pane == 0 {
-                            app_state.input1.drain(..).collect::<String>()
+                            std::mem::take(&mut app_state.input1)
                         } else {
-                            app_state.input2.drain(..).collect::<String>()
+                            std::mem::take(&mut app_state.input2)
                         };
 
                         if !cmd.is_empty() {

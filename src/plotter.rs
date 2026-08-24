@@ -1,4 +1,4 @@
-use crate::config::MergedConfig;
+use crate::config::{ChartType, MergedConfig};
 use crate::parser::{SensorData, get_color_for_index, parse_sensor_data};
 use crate::rtt_reader::RttDefmtReader;
 use crate::serial::{
@@ -29,6 +29,10 @@ use ratatui_wireframe::WireframeWidget;
 
 #[cfg(feature = "ratty")]
 use ratatui_ratty::{ObjectFormat, RattyGraphic, RattyGraphicSettings};
+
+const HIST_BINS: usize = 24;
+
+type HistSeries = (String, Color, Vec<(f64, f64)>);
 
 #[derive(PartialEq)]
 enum ActiveTab {
@@ -329,6 +333,50 @@ impl PlotterState {
             (secs % 3600) / 60,
             secs % 60
         )
+    }
+
+    fn histogram_datasets(&self) -> Vec<HistSeries> {
+        let (ymin, ymax) = if self.global_y_min.is_finite() && self.global_y_max.is_finite() {
+            if (self.global_y_max - self.global_y_min).abs() < f64::EPSILON {
+                (self.global_y_min - 1.0, self.global_y_max + 1.0)
+            } else {
+                (self.global_y_min, self.global_y_max)
+            }
+        } else {
+            (-1.0, 1.0)
+        };
+
+        let range = (ymax - ymin).max(f64::EPSILON);
+        let bin_width = range / HIST_BINS as f64;
+
+        self.sensor_order
+            .iter()
+            .filter_map(|name| {
+                let sensor = self.sensors.get(name)?;
+                if !sensor.has_data() {
+                    return None;
+                }
+
+                let mut counts = [0u32; HIST_BINS];
+
+                for &(_, y) in &sensor.data {
+                    let idx = ((y - ymin) / bin_width).floor() as isize;
+                    let idx = idx.clamp(0, (HIST_BINS as isize) - 1) as usize;
+                    counts[idx] += 1;
+                }
+
+                let points: Vec<(f64, f64)> = counts
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &c)| {
+                        let center = ymin + (i as f64 + 0.5) * bin_width;
+                        (center, c as f64)
+                    })
+                    .collect();
+
+                Some((sensor.name.clone(), sensor.color, points))
+            })
+            .collect()
     }
 }
 
@@ -719,20 +767,20 @@ pub fn run_plotter_mode(
         state.display_roll = (state.display_roll + roll_diff * amount).rem_euclid(360.0);
 
         // ── Render ────────────────────────────────────────────────────────────
-        let x_bounds = state.x_bounds();
-        let y_bounds = state.y_bounds();
-
-        // Pre-compute labels before the closure borrows state
-        let x_labels = [
-            format!("{:.0}", x_bounds[0]),
-            format!("{:.0}", (x_bounds[0] + x_bounds[1]) / 2.0),
-            format!("{:.0}", x_bounds[1]),
-        ];
-        let y_labels = [
-            format!("{:.2}", y_bounds[0]),
-            format!("{:.2}", (y_bounds[0] + y_bounds[1]) / 2.0),
-            format!("{:.2}", y_bounds[1]),
-        ];
+        // let x_bounds = state.x_bounds();
+        // let y_bounds = state.y_bounds();
+        //
+        // // Pre-compute labels before the closure borrows state
+        // let x_labels = [
+        //     format!("{:.0}", x_bounds[0]),
+        //     format!("{:.0}", (x_bounds[0] + x_bounds[1]) / 2.0),
+        //     format!("{:.0}", x_bounds[1]),
+        // ];
+        // let y_labels = [
+        //     format!("{:.2}", y_bounds[0]),
+        //     format!("{:.2}", (y_bounds[0] + y_bounds[1]) / 2.0),
+        //     format!("{:.2}", y_bounds[1]),
+        // ];
 
         let pause_indicator = if state.paused { " ⏸ PAUSED" } else { "" };
         let uptime = state.uptime_str();
@@ -761,19 +809,91 @@ pub fn run_plotter_mode(
             .collect();
 
         // Build datasets
-        let datasets: Vec<Dataset> = state
-            .sensor_order
-            .iter()
-            .filter_map(|name| state.sensors.get(name))
-            .filter(|s| s.has_data())
-            .map(|sensor| {
-                Dataset::default()
-                    .marker(symbols::Marker::Braille)
-                    .graph_type(GraphType::Line)
-                    .style(Style::default().fg(sensor.color))
-                    .data(&sensor.data)
-            })
-            .collect();
+        // let datasets: Vec<Dataset> = state
+        //     .sensor_order
+        //     .iter()
+        //     .filter_map(|name| state.sensors.get(name))
+        //     .filter(|s| s.has_data())
+        //     .map(|sensor| {
+        //         Dataset::default()
+        //             .marker(symbols::Marker::Braille)
+        //             .graph_type(GraphType::Line)
+        //             .style(Style::default().fg(sensor.color))
+        //             .data(&sensor.data)
+        //     })
+        //     .collect();
+        let hist_owned: Vec<HistSeries> = if matches!(config.chart, ChartType::Hist) {
+            state.histogram_datasets()
+        } else {
+            Vec::new()
+        };
+
+        let graph_type = match config.chart {
+            ChartType::Line => GraphType::Line,
+            ChartType::Bar | ChartType::Hist => GraphType::Bar,
+            ChartType::Scatter => GraphType::Scatter,
+        };
+
+        let marker = match config.chart {
+            ChartType::Line => symbols::Marker::Dot,
+            ChartType::Bar | ChartType::Hist => symbols::Marker::Block,
+            ChartType::Scatter => symbols::Marker::Braille,
+        };
+
+        let datasets: Vec<Dataset> = if matches!(config.chart, ChartType::Hist) {
+            hist_owned
+                .iter()
+                .map(|(_, color, points)| {
+                    Dataset::default()
+                        .marker(marker)
+                        .graph_type(graph_type)
+                        .style(Style::default().fg(*color))
+                        .data(points)
+                })
+                .collect()
+        } else {
+            state
+                .sensor_order
+                .iter()
+                .filter_map(|name| state.sensors.get(name))
+                .filter(|s| s.has_data())
+                .map(|sensor| {
+                    Dataset::default()
+                        .marker(marker)
+                        .graph_type(graph_type)
+                        .style(Style::default().fg(sensor.color))
+                        .data(&sensor.data)
+                })
+                .collect()
+        };
+
+        let (x_bounds, y_bounds, x_title, y_title) = if matches!(config.chart, ChartType::Hist) {
+            let mut max_count = 1.0_f64;
+            for (_, _, pts) in &hist_owned {
+                for &(_, c) in pts {
+                    if c > max_count {
+                        max_count = c;
+                    }
+                }
+            }
+
+            let [y_min, y_max] = state.y_bounds();
+            ([y_min, y_max], [0.0, max_count * 1.1], "Value", "Count")
+        } else {
+            (state.x_bounds(), state.y_bounds(), "Sample", "Value")
+        };
+
+        let x_labels = [
+            format!("{:.2}", x_bounds[0]),
+            format!("{:.2}", (x_bounds[0] + x_bounds[1]) / 2.0),
+            format!("{:.2}", x_bounds[1]),
+        ];
+
+        let y_labels = [
+            format!("{:.2}", y_bounds[0]),
+            format!("{:.2}", (y_bounds[0] + y_bounds[1]) / 2.0),
+            format!("{:.2}", y_bounds[1]),
+        ];
 
         terminal.draw(|f| {
             let outer = Layout::default()
@@ -789,8 +909,8 @@ pub fn run_plotter_mode(
             match state.active_tab {
                 ActiveTab::Chart2D => {
                     let chart_title = format!(
-                        " 󰕾 ComChan Plotter  {}  {}  {} sensors{}",
-                        port_name_disp, baud, sensor_count, pause_indicator
+                        " 󰕾 ComChan Plotter  [{}]  {}  {}  {} sensors{}",
+                        config.chart, port_name_disp, baud, sensor_count, pause_indicator
                     );
 
                     let chart = Chart::new(datasets)
@@ -807,7 +927,7 @@ pub fn run_plotter_mode(
                         )
                         .x_axis(
                             Axis::default()
-                                .title(Span::styled("Sample", Style::default().fg(Color::Gray)))
+                                .title(Span::styled(x_title, Style::default().fg(Color::Gray)))
                                 .style(Style::default().fg(Color::DarkGray))
                                 .bounds(x_bounds)
                                 .labels(vec![
@@ -818,7 +938,7 @@ pub fn run_plotter_mode(
                         )
                         .y_axis(
                             Axis::default()
-                                .title(Span::styled("Value", Style::default().fg(Color::Gray)))
+                                .title(Span::styled(y_title, Style::default().fg(Color::Gray)))
                                 .style(Style::default().fg(Color::DarkGray))
                                 .bounds(y_bounds)
                                 .labels(vec![
@@ -1109,6 +1229,10 @@ pub fn run_plotter_mode(
                     Line::from(" [q] or [Esc] : Quit Plotter"),
                     Line::from(" [Ctrl+C]     : Force Quit"),
                     Line::from(""),
+                    Line::from(format!(
+                        " Chart type    : {}  (set with --chart line|bar|scatter|hist)",
+                        config.chart
+                    )),
                     Line::from(" Press any key to close... ")
                         .style(Style::default().fg(Color::DarkGray)),
                 ];
