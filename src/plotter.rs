@@ -570,6 +570,7 @@ pub fn run_plotter_mode(
                         &state.sensor_order,
                         &config.plot_title,
                         config.dark_mode,
+                        config.chart.clone(),
                     ) {
                         Ok(_) => {
                             state.last_error = Some(format!("✅ Exported to {}", filename));

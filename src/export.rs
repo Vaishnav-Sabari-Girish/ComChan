@@ -1,3 +1,4 @@
+use crate::config::ChartType;
 use crate::serial::get_timestamp;
 use plotters::prelude::*;
 use std::collections::HashMap;
@@ -8,17 +9,31 @@ use std::io::{BufWriter, Write};
 // A soft dark grey looks better than blindingly pure black for backgrounds
 const DARK_BG: RGBColor = RGBColor(30, 30, 30);
 const DARK_GRID: RGBColor = RGBColor(80, 80, 80);
+const HIST_BINS: usize = 24;
 
 pub fn export_to_svg(
     data: &HashMap<String, Vec<(f64, f64)>>,
     filename: &str,
     sensor_order: &[String],
     plot_title: &str,
-    is_dark_mode: bool, // The new toggle!
+    is_dark_mode: bool,
+    chart_type: ChartType,
 ) -> Result<(), Box<dyn Error>> {
     if data.is_empty() {
         return Err("No data to export".into());
     }
+
+    let hist_data: HashMap<String, Vec<(f64, f64)>> = if matches!(chart_type, ChartType::Hist) {
+        build_histogram_data(data, sensor_order)
+    } else {
+        HashMap::new()
+    };
+
+    let plot_data: &HashMap<String, Vec<(f64, f64)>> = if matches!(chart_type, ChartType::Hist) {
+        &hist_data
+    } else {
+        data
+    };
 
     let root = SVGBackend::new(filename, (1280, 720)).into_drawing_area();
 
@@ -34,7 +49,7 @@ pub fn export_to_svg(
     let mut min_y = f64::INFINITY;
     let mut max_y = f64::NEG_INFINITY;
 
-    for series in data.values() {
+    for series in plot_data.values() {
         for &(x, y) in series {
             if x < min_x {
                 min_x = x;
@@ -49,6 +64,10 @@ pub fn export_to_svg(
                 max_y = y;
             }
         }
+    }
+
+    if matches!(chart_type, ChartType::Hist) {
+        min_y = 0.0;
     }
 
     // Padding in Y-axis
@@ -72,8 +91,10 @@ pub fn export_to_svg(
         WHITE.mix(0.8)
     };
 
+    let caption = format!("{} [{}]", plot_title, chart_type);
+
     let mut chart = ChartBuilder::on(&root)
-        .caption(plot_title, ("sans-serif", 40).into_font().color(text_color))
+        .caption(caption, ("sans-serif", 40).into_font().color(text_color))
         .margin(20)
         .x_label_area_size(40)
         .y_label_area_size(50)
@@ -81,13 +102,22 @@ pub fn export_to_svg(
 
     chart
         .configure_mesh()
-        .label_style(("sans-serif", 18).into_font().color(text_color))
+        .x_desc(if matches!(chart_type, ChartType::Hist) {
+            "Value"
+        } else {
+            "Sample"
+        })
+        .y_desc(if matches!(chart_type, ChartType::Hist) {
+            "Count"
+        } else {
+            "Value"
+        })
+        .label_style(("sans-serif", 15).into_font().color(text_color))
         .axis_style(text_color)
         .bold_line_style(grid_color)
         .light_line_style(grid_color.mix(0.5))
         .draw()?;
 
-    // 3. Setup Trace Colors (Swap dark blue for bright cyan in dark mode for visibility)
     // 3. Setup Trace Colors (Swap dark blue for bright cyan in dark mode for visibility)
     let trace_colors: Vec<RGBColor> = if is_dark_mode {
         vec![CYAN, RED, GREEN, MAGENTA, YELLOW, WHITE]
@@ -95,14 +125,50 @@ pub fn export_to_svg(
         vec![BLUE, RED, GREEN, MAGENTA, CYAN, BLACK]
     };
 
+    let bar_half = {
+        let span = (max_x - min_x).abs().max(1.0);
+        let n = plot_data
+            .values()
+            .map(|s| s.len())
+            .max()
+            .unwrap_or(1)
+            .max(1);
+        (span / (n as f64 * 2.5)).max(span * 0.002)
+    };
+
     for (i, name) in sensor_order.iter().enumerate() {
-        if let Some(series_data) = data.get(name) {
+        if let Some(series_data) = plot_data.get(name) {
             let color = trace_colors[i % trace_colors.len()];
 
-            chart
-                .draw_series(LineSeries::new(series_data.iter().copied(), color))?
-                .label(name)
-                .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
+            match chart_type {
+                ChartType::Line => {
+                    chart
+                        .draw_series(LineSeries::new(series_data.iter().copied(), color))?
+                        .label(name)
+                        .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
+                }
+                ChartType::Scatter => {
+                    chart
+                        .draw_series(PointSeries::of_element(
+                            series_data.iter().copied(),
+                            3,
+                            color,
+                            &|c, s, st| EmptyElement::at(c) + Circle::new((0, 0), s, st.filled()),
+                        ))?
+                        .label(name)
+                        .legend(move |(x, y)| Circle::new((x + 10, y), 4, color.filled()));
+                }
+                ChartType::Bar | ChartType::Hist => {
+                    chart
+                        .draw_series(series_data.iter().map(|&(x, y)| {
+                            Rectangle::new([(x - bar_half, 0.0), (x + bar_half, y)], color.filled())
+                        }))?
+                        .label(name)
+                        .legend(move |(x, y)| {
+                            Rectangle::new([(x, y - 5), (x + 20, y + 5)], color.filled())
+                        });
+                }
+            }
         }
     }
 
@@ -116,6 +182,68 @@ pub fn export_to_svg(
 
     root.present()?;
     Ok(())
+}
+
+fn build_histogram_data(
+    data: &HashMap<String, Vec<(f64, f64)>>,
+    sensor_order: &[String],
+) -> HashMap<String, Vec<(f64, f64)>> {
+    let mut ymin = f64::INFINITY;
+    let mut ymax = f64::NEG_INFINITY;
+    for series in data.values() {
+        for &(_, y) in series {
+            if y < ymin {
+                ymin = y;
+            }
+            if y > ymax {
+                ymax = y;
+            }
+        }
+    }
+
+    if !ymin.is_finite() || !ymax.is_finite() {
+        return HashMap::new();
+    }
+
+    if (ymax - ymin).abs() < f64::EPSILON {
+        ymin -= 1.0;
+        ymax += 1.0;
+    }
+
+    let range = (ymax - ymin).max(f64::EPSILON);
+    let bin_width = range / HIST_BINS as f64;
+
+    let mut out = HashMap::new();
+
+    for name in sensor_order {
+        let Some(series) = data.get(name) else {
+            continue;
+        };
+
+        if series.is_empty() {
+            continue;
+        }
+
+        let mut counts = [0u32; HIST_BINS];
+        for &(_, y) in series {
+            let idx = ((y - ymin) / bin_width).floor() as isize;
+            let idx = idx.clamp(0, (HIST_BINS as isize) - 1) as usize;
+            counts[idx] += 1;
+        }
+
+        let points: Vec<(f64, f64)> = counts
+            .iter()
+            .enumerate()
+            .map(|(i, &c)| {
+                let center = ymin + (i as f64 + 0.5) * bin_width;
+                (center, c as f64)
+            })
+            .collect();
+
+        out.insert(name.clone(), points);
+    }
+
+    out
 }
 
 pub struct CsvStreamer {
