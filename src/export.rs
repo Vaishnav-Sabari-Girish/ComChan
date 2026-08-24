@@ -35,6 +35,10 @@ pub fn export_to_svg(
         data
     };
 
+    if plot_data.is_empty() || plot_data.values().all(|s| s.is_empty()) {
+        return Err("No data to export".into());
+    }
+
     let root = SVGBackend::new(filename, (1280, 720)).into_drawing_area();
 
     // 1. Set Background Color
@@ -51,6 +55,10 @@ pub fn export_to_svg(
 
     for series in plot_data.values() {
         for &(x, y) in series {
+            if !x.is_finite() || !y.is_finite() {
+                continue;
+            }
+
             if x < min_x {
                 min_x = x;
             }
@@ -66,18 +74,44 @@ pub fn export_to_svg(
         }
     }
 
-    if matches!(chart_type, ChartType::Hist) {
-        min_y = 0.0;
+    if !min_x.is_finite() || !max_x.is_finite() || min_y.is_finite() || !max_y.is_finite() {
+        return Err("No finite data points to export".into());
+    }
+
+    if matches!(chart_type, ChartType::Bar | ChartType::Hist) {
+        min_y = min_y.min(0.0);
+        max_y = max_y.max(0.0);
     }
 
     // Padding in Y-axis
     let y_padding = (max_y - min_y).abs() * 0.1;
-    let min_y = min_y - y_padding;
+    let min_y = if matches!(chart_type, ChartType::Bar | ChartType::Hist) && min_y >= 0.0 {
+        0.0
+    } else {
+        min_y - y_padding
+    };
     let max_y = max_y + y_padding;
 
     let x_range = max_x - min_x;
     let (min_x, max_x) = if x_range == 0.0 {
         (min_x - 1.0, max_x + 1.0)
+    } else {
+        (min_x, max_x)
+    };
+
+    let bar_half = {
+        let span = (max_x - min_x).abs().max(1.0);
+        let n = plot_data
+            .values()
+            .map(|s| s.len())
+            .max()
+            .unwrap_or(1)
+            .max(1);
+        (span / (n as f64 * 2.5)).max(span * 0.002)
+    };
+
+    let (min_x, max_x) = if matches!(chart_type, ChartType::Bar | ChartType::Hist) {
+        (min_x - bar_half, max_x + bar_half)
     } else {
         (min_x, max_x)
     };
@@ -123,17 +157,6 @@ pub fn export_to_svg(
         vec![CYAN, RED, GREEN, MAGENTA, YELLOW, WHITE]
     } else {
         vec![BLUE, RED, GREEN, MAGENTA, CYAN, BLACK]
-    };
-
-    let bar_half = {
-        let span = (max_x - min_x).abs().max(1.0);
-        let n = plot_data
-            .values()
-            .map(|s| s.len())
-            .max()
-            .unwrap_or(1)
-            .max(1);
-        (span / (n as f64 * 2.5)).max(span * 0.002)
     };
 
     for (i, name) in sensor_order.iter().enumerate() {
