@@ -86,6 +86,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(args.config_file.clone())?;
     let merged = merge_config_and_args(config, args);
 
+    let used_auto_port = merged
+        .port
+        .as_ref()
+        .map(|ports| ports.iter().any(|p| p == "auto"))
+        .unwrap_or(false);
+
     if merged.list_ports {
         return list_available_ports();
     }
@@ -242,30 +248,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 port_name: detach_port_name,
             }) => {
                 is_plot_mode = resume_plotter;
+
+                drop(port);
+                drop(rtt_reader);
+                #[cfg(feature = "ble")]
+                drop(ble_rx);
+
+                active_port = None;
+                active_rtt = None;
+
                 #[cfg(feature = "ble")]
                 {
-                    active_ble_rx = ble_rx;
+                    active_ble_rx = None;
                 }
 
-                active_rtt = rtt_reader;
+                crate::detach::run_detached_shell()?;
 
-                let (returned_port, buffered) = crate::detach::run_detached_shell(port)?;
+                let skip_serial =
+                    merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble;
 
-                active_port = returned_port;
-                port_name = detach_port_name;
-
-                if !buffered.is_empty() {
-                    println!(
-                        "{color_cyan}--- {} line(s) received while detached ---{color_reset}",
-                        buffered.len()
-                    );
-
-                    for line in &buffered {
-                        println!("{line}");
-                    }
-
-                    println!("{color_cyan}------------------------------------------{color_reset}");
-                }
+                port_name = crate::port_finder::resolve_port_after_detach(
+                    &detach_port_name,
+                    used_auto_port,
+                    skip_serial,
+                )?;
             }
             Err(e) => return Err(e),
         }

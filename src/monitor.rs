@@ -800,10 +800,10 @@ pub fn run_normal_mode(
                     MonitorCommand::Detach => {
                         terminal::disable_raw_mode().ok();
                         return Ok(crate::AppExitState::Detach {
-                            port,
-                            rtt_reader,
+                            port: None,
+                            rtt_reader: None,
                             #[cfg(feature = "ble")]
-                            ble_rx: active_ble_rx,
+                            ble_rx: None,
 
                             resume_plotter: false,
                             port_name: port_name.clone(),

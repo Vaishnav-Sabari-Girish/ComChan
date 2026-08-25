@@ -1,10 +1,9 @@
 use std::io::{self, Write};
 use std::process::Command;
 
-type SerialPortBox = Box<dyn serialport::SerialPort>;
-type DetachResult = Result<(Option<SerialPortBox>, Vec<String>), Box<dyn std::error::Error>>;
+type DetachResult = Result<(), Box<dyn std::error::Error>>;
 
-pub fn run_detached_shell(port: Option<SerialPortBox>) -> DetachResult {
+pub fn run_detached_shell() -> DetachResult {
     let _ = crossterm::terminal::disable_raw_mode();
     let mut stdout = io::stdout();
     let _ = crossterm::execute!(
@@ -13,8 +12,6 @@ pub fn run_detached_shell(port: Option<SerialPortBox>) -> DetachResult {
         crossterm::cursor::Show,
     );
     let _ = stdout.flush();
-
-    drop(port);
 
     println!();
     println!("-------------------------------------------------");
@@ -45,7 +42,7 @@ pub fn run_detached_shell(port: Option<SerialPortBox>) -> DetachResult {
     println!("-------------------------------------------------");
     println!();
 
-    Ok((None, Vec::new()))
+    Ok(())
 }
 
 fn default_shell() -> String {

@@ -1,4 +1,6 @@
 /// Find the first available USB serial port
+use std::path::Path;
+
 pub fn find_usb_port() -> Result<Option<String>, Box<dyn std::error::Error>> {
     let ports = serialport::available_ports()?;
     for port in ports {
@@ -7,6 +9,38 @@ pub fn find_usb_port() -> Result<Option<String>, Box<dyn std::error::Error>> {
         }
     }
     Ok(None)
+}
+
+pub fn resolve_port_after_detach(
+    previous: &str,
+    used_auto: bool,
+    skip_serial: bool,
+) -> Result<String, Box<dyn std::error::Error>> {
+    if skip_serial || previous == "BLE_STREAM" {
+        return Ok(previous.to_string());
+    }
+
+    let path_gone = !Path::new(previous).exists();
+
+    if used_auto || path_gone {
+        match find_usb_port()? {
+            Some(p) if p != previous => {
+                println!("[ComChan] port re-enumerated: {previous} -> {p}");
+                Ok(p)
+            }
+            Some(p) => Ok(p),
+            None => {
+                if path_gone {
+                    println!(
+                        "[ComChan] no USB serial yet (old path {previous} is gone); will retry on open"
+                    );
+                }
+                Ok(previous.to_string())
+            }
+        }
+    } else {
+        Ok(previous.to_string())
+    }
 }
 
 /// Display detailed USB port information

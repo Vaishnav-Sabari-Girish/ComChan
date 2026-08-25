@@ -405,7 +405,7 @@ pub fn run_plotter_mode(
         let flow_control = parse_flow_control(&config.flow_control)?;
 
         let mut opened = None;
-        for attempt in 0..40 {
+        for attempt in 0..100 {
             match serialport::new(&port_name, config.baud)
                 .timeout(Duration::from_millis(config.timeout_ms))
                 .data_bits(data_bits)
@@ -418,10 +418,12 @@ pub fn run_plotter_mode(
                     opened = Some(p);
                     break;
                 }
-                Err(_) if attempt + 1 < 40 => {
+                Err(_) if attempt + 1 < 100 => {
                     std::thread::sleep(Duration::from_millis(50));
                 }
-                Err(e) => return Err(e.into()),
+                Err(_) => {
+                    break;
+                }
             }
         }
 
@@ -458,7 +460,7 @@ pub fn run_plotter_mode(
         };
 
     if !has_passed_port && !skip_serial {
-        let delay = config.reset_delay_ms.min(50);
+        let delay = config.reset_delay_ms;
         if delay > 0 {
             std::thread::sleep(Duration::from_millis(delay));
         }
@@ -544,11 +546,15 @@ pub fn run_plotter_mode(
                 KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     disable_raw_mode().ok();
                     execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
+                    drop(port);
+                    drop(rtt_reader);
+                    #[cfg(feature = "ble")]
+                    drop(active_ble_rx);
                     return Ok(crate::AppExitState::SwitchToMonitor {
-                        port,
-                        rtt_reader,
+                        port: None,
+                        rtt_reader: None,
                         #[cfg(feature = "ble")]
-                        ble_rx: active_ble_rx,
+                        ble_rx: None,
                     });
                 }
 
@@ -557,10 +563,10 @@ pub fn run_plotter_mode(
                     disable_raw_mode().ok();
                     execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
                     return Ok(crate::AppExitState::Detach {
-                        port,
-                        rtt_reader,
+                        port: None,
+                        rtt_reader: None,
                         #[cfg(feature = "ble")]
-                        ble_rx: active_ble_rx,
+                        ble_rx: None,
 
                         resume_plotter: true,
                         port_name: port_name.clone(),
