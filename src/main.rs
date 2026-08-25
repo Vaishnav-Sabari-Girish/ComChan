@@ -2,6 +2,7 @@ use clap::Parser;
 use inline_colorization::*;
 
 mod config;
+mod detach;
 mod dual_ports;
 mod export;
 mod monitor;
@@ -32,6 +33,15 @@ pub enum AppExitState {
         rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
         #[cfg(feature = "ble")]
         ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
+    },
+    Detach {
+        port: Option<Box<dyn serialport::SerialPort>>,
+        rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
+        #[cfg(feature = "ble")]
+        ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
+
+        resume_plotter: bool,
+        port_name: String,
     },
 }
 
@@ -93,46 +103,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let port_name = if merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble {
-        if merged.rtt {
-            println!("{color_magenta}Starting in RTT/DEFMT debug probe mode....{color_reset}");
-            "RTT_DEBUG_PROBE".to_string()
-        } else if merged.ble {
-            println!("{color_magenta}Starting in BLE stream mode....{color_reset}");
-            "BLE_STREAM".to_string()
-        } else {
-            println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
-            "SIMULATE_PORT".to_string()
-        }
-    } else {
-        let first_port = merged
-            .port
-            .as_ref()
-            .and_then(|v| v.first())
-            .cloned()
-            .unwrap_or_else(|| "auto".to_string());
-
-        if first_port.to_lowercase() == "auto" {
-            match port_finder::find_usb_port()? {
-                Some(detected) => {
-                    println!(
-                        "{color_green} Auto-detected USB Port: {}{color_reset}",
-                        detected
-                    );
-                    detected
-                }
-                None => {
-                    eprintln!("{color_red} No USB serial ports found{color_reset}");
-                    eprintln!(
-                        "{color_yellow} Try --list-ports to see available ports{color_reset}"
-                    );
-                    std::process::exit(1);
-                }
+    let mut port_name =
+        if merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble {
+            if merged.rtt {
+                println!("{color_magenta}Starting in RTT/DEFMT debug probe mode....{color_reset}");
+                "RTT_DEBUG_PROBE".to_string()
+            } else if merged.ble {
+                println!("{color_magenta}Starting in BLE stream mode....{color_reset}");
+                "BLE_STREAM".to_string()
+            } else {
+                println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
+                "SIMULATE_PORT".to_string()
             }
         } else {
-            first_port
-        }
-    };
+            let first_port = merged
+                .port
+                .as_ref()
+                .and_then(|v| v.first())
+                .cloned()
+                .unwrap_or_else(|| "auto".to_string());
+
+            if first_port.to_lowercase() == "auto" {
+                match port_finder::find_usb_port()? {
+                    Some(detected) => {
+                        println!(
+                            "{color_green} Auto-detected USB Port: {}{color_reset}",
+                            detected
+                        );
+                        detected
+                    }
+                    None => {
+                        eprintln!("{color_red} No USB serial ports found{color_reset}");
+                        eprintln!(
+                            "{color_yellow} Try --list-ports to see available ports{color_reset}"
+                        );
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                first_port
+            }
+        };
 
     let mut is_plot_mode = merged.plot;
     let mut active_port: Option<Box<dyn serialport::SerialPort>> = None;
@@ -219,6 +230,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 #[cfg(feature = "ble")]
                 {
                     active_ble_rx = ble_rx;
+                }
+            }
+            Ok(AppExitState::Detach {
+                port,
+                rtt_reader,
+                #[cfg(feature = "ble")]
+                ble_rx,
+
+                resume_plotter,
+                port_name: detach_port_name,
+            }) => {
+                is_plot_mode = resume_plotter;
+                #[cfg(feature = "ble")]
+                {
+                    active_ble_rx = ble_rx;
+                }
+
+                active_rtt = rtt_reader;
+
+                let (returned_port, buffered) = crate::detach::run_detached_shell(port)?;
+
+                active_port = returned_port;
+                port_name = detach_port_name;
+
+                if !buffered.is_empty() {
+                    println!(
+                        "{color_cyan}--- {} line(s) received while detached ---{color_reset}",
+                        buffered.len()
+                    );
+
+                    for line in &buffered {
+                        println!("{line}");
+                    }
+
+                    println!("{color_cyan}------------------------------------------{color_reset}");
                 }
             }
             Err(e) => return Err(e),

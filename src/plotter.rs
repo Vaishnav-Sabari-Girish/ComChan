@@ -527,6 +527,21 @@ pub fn run_plotter_mode(
                         ble_rx: active_ble_rx,
                     });
                 }
+
+                // Detach
+                KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    disable_raw_mode().ok();
+                    execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
+                    return Ok(crate::AppExitState::Detach {
+                        port,
+                        rtt_reader,
+                        #[cfg(feature = "ble")]
+                        ble_rx: active_ble_rx,
+
+                        resume_plotter: true,
+                        port_name: port_name.clone(),
+                    });
+                }
                 // Space: pause / resume
                 KeyCode::Char(' ') => {
                     state.paused = !state.paused;
