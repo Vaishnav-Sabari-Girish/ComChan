@@ -302,10 +302,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         stop.store(true, std::sync::atomic::Ordering::Relaxed);
                         match handle.join() {
                             Ok((rx, true)) => {
-                                eprintln!("[ComChan] BLE disconnected during detach; stream ended");
-
-                                drop(rx);
-                                None
+                                let (tx2, rx2) = std::sync::mpsc::channel();
+                                std::thread::spawn(move || {
+                                    let _ = tx2.send(crate::ble::BleEvent::Disconnected);
+                                    while let Ok(ev) = rx.recv() {
+                                        if tx2.send(ev).is_err() {
+                                            break;
+                                        }
+                                    }
+                                });
+                                Some(rx2)
                             }
                             Ok((rx, false)) => Some(rx),
                             Err(_) => None,
