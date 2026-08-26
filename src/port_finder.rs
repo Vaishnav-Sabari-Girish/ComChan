@@ -22,7 +22,7 @@ pub fn resolve_port_after_detach(
 
     let path_gone = !Path::new(previous).exists();
 
-    if used_auto || path_gone {
+    if used_auto {
         match find_usb_port()? {
             Some(p) if p != previous => {
                 println!("[ComChan] port re-enumerated: {previous} -> {p}");
@@ -30,17 +30,32 @@ pub fn resolve_port_after_detach(
             }
             Some(p) => Ok(p),
             None => {
-                if path_gone {
-                    println!(
-                        "[ComChan] no USB serial yet (old path {previous} is gone); will retry on open"
-                    );
-                }
+                println!(
+                    "[ComChan] no USB serial yet (old path {previous} is gone); will retry on open"
+                );
                 Ok(previous.to_string())
             }
+        }
+    } else if path_gone {
+        if let Some(p) = find_port_matching_previous(previous)? {
+            if p != previous {
+                println!("[ComChan] recovered device at new path: {previous} -> {p}");
+            }
+            Ok(p)
+        } else {
+            println!("[ComChan] waiting for {previous} (not attaching to a different USB serial)");
+            Ok(previous.to_string())
         }
     } else {
         Ok(previous.to_string())
     }
+}
+
+fn find_port_matching_previous(
+    previous: &str,
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    let _ = previous;
+    Ok(None)
 }
 
 /// Display detailed USB port information

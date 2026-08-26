@@ -405,7 +405,7 @@ pub fn run_plotter_mode(
         let flow_control = parse_flow_control(&config.flow_control)?;
 
         let mut opened = None;
-        for attempt in 0..100 {
+        for _ in 0..20 {
             match serialport::new(&port_name, config.baud)
                 .timeout(Duration::from_millis(config.timeout_ms))
                 .data_bits(data_bits)
@@ -418,12 +418,7 @@ pub fn run_plotter_mode(
                     opened = Some(p);
                     break;
                 }
-                Err(_) if attempt + 1 < 100 => {
-                    std::thread::sleep(Duration::from_millis(50));
-                }
-                Err(_) => {
-                    break;
-                }
+                Err(_) => std::thread::sleep(Duration::from_millis(50)),
             }
         }
 
@@ -546,15 +541,11 @@ pub fn run_plotter_mode(
                 KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     disable_raw_mode().ok();
                     execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
-                    drop(port);
-                    drop(rtt_reader);
-                    #[cfg(feature = "ble")]
-                    drop(active_ble_rx);
                     return Ok(crate::AppExitState::SwitchToMonitor {
-                        port: None,
-                        rtt_reader: None,
+                        port,
+                        rtt_reader,
                         #[cfg(feature = "ble")]
-                        ble_rx: None,
+                        ble_rx: active_ble_rx,
                     });
                 }
 
@@ -566,7 +557,7 @@ pub fn run_plotter_mode(
                         port: None,
                         rtt_reader: None,
                         #[cfg(feature = "ble")]
-                        ble_rx: None,
+                        ble_rx: active_ble_rx,
 
                         resume_plotter: true,
                         port_name: port_name.clone(),
@@ -640,6 +631,28 @@ pub fn run_plotter_mode(
         // ── Serial read ───────────────────────────────────────────────────────
 
         let samples_before = state.total_samples;
+
+        if port.is_none() && !skip_serial {
+            match serialport::new(&port_name, config.baud)
+                .timeout(Duration::from_millis(config.timeout_ms))
+                .data_bits(parse_data_bits(config.data_bits)?)
+                .stop_bits(parse_stop_bits(config.stop_bits)?)
+                .parity(parse_parity(&config.parity)?)
+                .flow_control(parse_flow_control(&config.flow_control)?)
+                .open()
+            {
+                Ok(p) => {
+                    port = Some(p);
+                    state.last_error = Some(format!("Reconnected to {port_name}"));
+                    needs_draw = true;
+                }
+                Err(_) => {
+                    state.last_error = Some(format!("Waiting for {port_name}..."));
+                    needs_draw = true;
+                    std::thread::sleep(Duration::from_millis(200));
+                }
+            }
+        }
 
         if config.simulate {
             let t = state.x * 0.1;

@@ -803,7 +803,7 @@ pub fn run_normal_mode(
                             port: None,
                             rtt_reader: None,
                             #[cfg(feature = "ble")]
-                            ble_rx: None,
+                            ble_rx: active_ble_rx,
 
                             resume_plotter: false,
                             port_name: port_name.clone(),

@@ -86,11 +86,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(args.config_file.clone())?;
     let merged = merge_config_and_args(config, args);
 
-    let used_auto_port = merged
-        .port
-        .as_ref()
-        .map(|ports| ports.iter().any(|p| p == "auto"))
-        .unwrap_or(false);
+    let used_auto_port = {
+        let first = merged
+            .port
+            .as_ref()
+            .and_then(|v| v.first())
+            .map(|s| s.as_str())
+            .unwrap_or("auto");
+
+        first.eq_ignore_ascii_case("auto")
+    };
 
     if merged.list_ports {
         return list_available_ports();
@@ -251,18 +256,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 drop(port);
                 drop(rtt_reader);
-                #[cfg(feature = "ble")]
-                drop(ble_rx);
 
                 active_port = None;
                 active_rtt = None;
 
                 #[cfg(feature = "ble")]
-                {
-                    active_ble_rx = None;
-                }
+                let ble_rx_kept = {
+                    if let Some(rx) = ble_rx {
+                        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                        let stop_t = stop.clone();
+                        let handle = std::thread::spawn(move || {
+                            while !stop_t.load(std::sync::atomic::Ordering::Relaxed) {
+                                match rx.recv_timeout(std::time::Duration::from_millis(50)) {
+                                    Ok(_) => {}
+                                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                                }
+                            }
+                            rx
+                        });
+                        Some((stop, handle))
+                    } else {
+                        None
+                    }
+                };
 
                 crate::detach::run_detached_shell()?;
+
+                #[cfg(feature = "ble")]
+                {
+                    active_ble_rx = if let Some((stop, handle)) = ble_rx_kept {
+                        stop.store(true, std::sync::atomic::Ordering::Relaxed);
+                        handle.join().ok()
+                    } else {
+                        None
+                    };
+                }
 
                 let skip_serial =
                     merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble;
