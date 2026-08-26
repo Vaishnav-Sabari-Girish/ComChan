@@ -159,6 +159,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut is_plot_mode = merged.plot;
     let mut active_port: Option<Box<dyn serialport::SerialPort>> = None;
     let mut active_rtt: Option<crate::rtt_reader::RttDefmtReader> = None;
+    let mut last_usb_id: Option<crate::port_finder::UsbIdentity> =
+        crate::port_finder::identity_for_port(&port_name)
+            .ok()
+            .flatten();
 
     #[cfg(feature = "ble")]
     let mut active_ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>> = None;
@@ -254,6 +258,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }) => {
                 is_plot_mode = resume_plotter;
 
+                if let Ok(Some(id)) = crate::port_finder::identity_for_port(&detach_port_name) {
+                    last_usb_id = Some(id);
+                }
+
                 drop(port);
                 drop(rtt_reader);
 
@@ -266,14 +274,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
                         let stop_t = stop.clone();
                         let handle = std::thread::spawn(move || {
+                            let mut saw_disconnect = false;
                             while !stop_t.load(std::sync::atomic::Ordering::Relaxed) {
                                 match rx.recv_timeout(std::time::Duration::from_millis(50)) {
-                                    Ok(_) => {}
+                                    Ok(crate::ble::BleEvent::Disconnected) => {
+                                        saw_disconnect = true;
+                                        break;
+                                    }
+                                    Ok(crate::ble::BleEvent::Payload(_)) => {}
                                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                                     Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                                 }
                             }
-                            rx
+                            (rx, saw_disconnect)
                         });
                         Some((stop, handle))
                     } else {
@@ -287,7 +300,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 {
                     active_ble_rx = if let Some((stop, handle)) = ble_rx_kept {
                         stop.store(true, std::sync::atomic::Ordering::Relaxed);
-                        handle.join().ok()
+                        match handle.join() {
+                            Ok((rx, true)) => {
+                                eprintln!("[ComChan] BLE disconnected during detach; stream ended");
+
+                                drop(rx);
+                                None
+                            }
+                            Ok((rx, false)) => Some(rx),
+                            Err(_) => None,
+                        }
                     } else {
                         None
                     };
@@ -300,7 +322,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &detach_port_name,
                     used_auto_port,
                     skip_serial,
+                    last_usb_id.as_ref(),
                 )?;
+
+                if let Ok(Some(id)) = crate::port_finder::identity_for_port(&port_name) {
+                    last_usb_id = Some(id);
+                }
             }
             Err(e) => return Err(e),
         }
