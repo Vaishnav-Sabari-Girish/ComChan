@@ -259,6 +259,11 @@ via `Ctrl+P`.
 * **Auto-Recovery & Graceful Exit** - Robust handling of connection drops and
 hardware resets.
 * **Terminal-Based Serial Plotter** - Visualize sensor values with auto-scaling.
+  Now supports the following chart types:
+  * Line Chart (Default)
+  * Bar Chart
+  * Scatter Plot
+  * Histogram
 * **3D Spatial Telemetry (IMU)** - Real-time 3D rotation dashboard.
 * **Real-Time Session Replay** - Replay previously recorded `.log` or `.csv`
 files.
@@ -268,10 +273,14 @@ files.
 * **Export Plot to SVG** - Save visualizations as high-quality SVGs.
 * **Hardware Simulation** - Generate mock sensor data for testing without
 hardware.
+* **Detach from running session**: Users can now detach from a running session,
+  flash new code and return to the session without having to run `comchan` from
+  scratch.
 
 ## Stargazers over time (Graph)
 
-[![Star History Chart](https://api.star-history.com/chart?repos=Vaishnav-Sabari-Girish/ComChan&type=timeline&theme=dark&legend=bottom-right)](https://www.star-history.com/?repos=Vaishnav-Sabari-Girish%2FComChan&type=timeline&legend=bottom-right)
+<!-- star-history:start -->
+<!-- star-history:end -->
 
 ## 🧠 (mostly) Brain made
 
