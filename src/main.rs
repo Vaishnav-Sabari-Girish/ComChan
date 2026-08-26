@@ -2,6 +2,7 @@ use clap::Parser;
 use inline_colorization::*;
 
 mod config;
+mod detach;
 mod dual_ports;
 mod export;
 mod monitor;
@@ -32,6 +33,15 @@ pub enum AppExitState {
         rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
         #[cfg(feature = "ble")]
         ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
+    },
+    Detach {
+        port: Option<Box<dyn serialport::SerialPort>>,
+        rtt_reader: Option<crate::rtt_reader::RttDefmtReader>,
+        #[cfg(feature = "ble")]
+        ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>>,
+
+        resume_plotter: bool,
+        port_name: String,
     },
 }
 
@@ -76,6 +86,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(args.config_file.clone())?;
     let merged = merge_config_and_args(config, args);
 
+    let used_auto_port = {
+        let first = merged
+            .port
+            .as_ref()
+            .and_then(|v| v.first())
+            .map(|s| s.as_str())
+            .unwrap_or("auto");
+
+        first.eq_ignore_ascii_case("auto")
+    };
+
     if merged.list_ports {
         return list_available_ports();
     }
@@ -93,50 +114,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let port_name = if merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble {
-        if merged.rtt {
-            println!("{color_magenta}Starting in RTT/DEFMT debug probe mode....{color_reset}");
-            "RTT_DEBUG_PROBE".to_string()
-        } else if merged.ble {
-            println!("{color_magenta}Starting in BLE stream mode....{color_reset}");
-            "BLE_STREAM".to_string()
-        } else {
-            println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
-            "SIMULATE_PORT".to_string()
-        }
-    } else {
-        let first_port = merged
-            .port
-            .as_ref()
-            .and_then(|v| v.first())
-            .cloned()
-            .unwrap_or_else(|| "auto".to_string());
-
-        if first_port.to_lowercase() == "auto" {
-            match port_finder::find_usb_port()? {
-                Some(detected) => {
-                    println!(
-                        "{color_green} Auto-detected USB Port: {}{color_reset}",
-                        detected
-                    );
-                    detected
-                }
-                None => {
-                    eprintln!("{color_red} No USB serial ports found{color_reset}");
-                    eprintln!(
-                        "{color_yellow} Try --list-ports to see available ports{color_reset}"
-                    );
-                    std::process::exit(1);
-                }
+    let mut port_name =
+        if merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble {
+            if merged.rtt {
+                println!("{color_magenta}Starting in RTT/DEFMT debug probe mode....{color_reset}");
+                "RTT_DEBUG_PROBE".to_string()
+            } else if merged.ble {
+                println!("{color_magenta}Starting in BLE stream mode....{color_reset}");
+                "BLE_STREAM".to_string()
+            } else {
+                println!("{color_magenta}Starting in SIMULATE/REPLAY mode....{color_reset}");
+                "SIMULATE_PORT".to_string()
             }
         } else {
-            first_port
-        }
-    };
+            let first_port = merged
+                .port
+                .as_ref()
+                .and_then(|v| v.first())
+                .cloned()
+                .unwrap_or_else(|| "auto".to_string());
+
+            if first_port.to_lowercase() == "auto" {
+                match port_finder::find_usb_port()? {
+                    Some(detected) => {
+                        println!(
+                            "{color_green} Auto-detected USB Port: {}{color_reset}",
+                            detected
+                        );
+                        detected
+                    }
+                    None => {
+                        eprintln!("{color_red} No USB serial ports found{color_reset}");
+                        eprintln!(
+                            "{color_yellow} Try --list-ports to see available ports{color_reset}"
+                        );
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                first_port
+            }
+        };
 
     let mut is_plot_mode = merged.plot;
     let mut active_port: Option<Box<dyn serialport::SerialPort>> = None;
     let mut active_rtt: Option<crate::rtt_reader::RttDefmtReader> = None;
+    let mut last_usb_id: Option<crate::port_finder::UsbIdentity> =
+        crate::port_finder::identity_for_port(&port_name)
+            .ok()
+            .flatten();
 
     #[cfg(feature = "ble")]
     let mut active_ble_rx: Option<std::sync::mpsc::Receiver<crate::ble::BleEvent>> = None;
@@ -219,6 +245,94 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 #[cfg(feature = "ble")]
                 {
                     active_ble_rx = ble_rx;
+                }
+            }
+            Ok(AppExitState::Detach {
+                port,
+                rtt_reader,
+                #[cfg(feature = "ble")]
+                ble_rx,
+
+                resume_plotter,
+                port_name: detach_port_name,
+            }) => {
+                is_plot_mode = resume_plotter;
+
+                if let Ok(Some(id)) = crate::port_finder::identity_for_port(&detach_port_name) {
+                    last_usb_id = Some(id);
+                }
+
+                drop(port);
+                drop(rtt_reader);
+
+                active_port = None;
+                active_rtt = None;
+
+                #[cfg(feature = "ble")]
+                let ble_rx_kept = {
+                    if let Some(rx) = ble_rx {
+                        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                        let stop_t = stop.clone();
+                        let handle = std::thread::spawn(move || {
+                            let mut saw_disconnect = false;
+                            while !stop_t.load(std::sync::atomic::Ordering::Relaxed) {
+                                match rx.recv_timeout(std::time::Duration::from_millis(50)) {
+                                    Ok(crate::ble::BleEvent::Disconnected) => {
+                                        saw_disconnect = true;
+                                        break;
+                                    }
+                                    Ok(crate::ble::BleEvent::Payload(_)) => {}
+                                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                                }
+                            }
+                            (rx, saw_disconnect)
+                        });
+                        Some((stop, handle))
+                    } else {
+                        None
+                    }
+                };
+
+                crate::detach::run_detached_shell()?;
+
+                #[cfg(feature = "ble")]
+                {
+                    active_ble_rx = if let Some((stop, handle)) = ble_rx_kept {
+                        stop.store(true, std::sync::atomic::Ordering::Relaxed);
+                        match handle.join() {
+                            Ok((rx, true)) => {
+                                let (tx2, rx2) = std::sync::mpsc::channel();
+                                std::thread::spawn(move || {
+                                    let _ = tx2.send(crate::ble::BleEvent::Disconnected);
+                                    while let Ok(ev) = rx.recv() {
+                                        if tx2.send(ev).is_err() {
+                                            break;
+                                        }
+                                    }
+                                });
+                                Some(rx2)
+                            }
+                            Ok((rx, false)) => Some(rx),
+                            Err(_) => None,
+                        }
+                    } else {
+                        None
+                    };
+                }
+
+                let skip_serial =
+                    merged.simulate || merged.replay_file.is_some() || merged.rtt || merged.ble;
+
+                port_name = crate::port_finder::resolve_port_after_detach(
+                    &detach_port_name,
+                    used_auto_port,
+                    skip_serial,
+                    last_usb_id.as_ref(),
+                )?;
+
+                if let Ok(Some(id)) = crate::port_finder::identity_for_port(&port_name) {
+                    last_usb_id = Some(id);
                 }
             }
             Err(e) => return Err(e),

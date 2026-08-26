@@ -69,6 +69,24 @@ fn detect_terminal() -> String {
     "Standard TTY (Braille)".to_string()
 }
 
+fn open_serial_port(
+    port_name: &str,
+    baud: u32,
+    timeout_ms: u64,
+    data_bits: serialport::DataBits,
+    stop_bits: serialport::StopBits,
+    parity: serialport::Parity,
+    flow_control: serialport::FlowControl,
+) -> serialport::Result<Box<dyn serialport::SerialPort>> {
+    serialport::new(port_name, baud)
+        .timeout(Duration::from_millis(timeout_ms))
+        .data_bits(data_bits)
+        .stop_bits(stop_bits)
+        .parity(parity)
+        .flow_control(flow_control)
+        .open()
+}
+
 /// Helper to create a centered rectangle for modals
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
@@ -393,25 +411,46 @@ pub fn run_plotter_mode(
     let skip_serial =
         config.simulate || config.replay_file.is_some() || config.rtt || port_name == "BLE_STREAM";
 
+    let has_passed_port = passed_port.is_some();
+
+    let serial_settings = if !skip_serial {
+        Some((
+            parse_data_bits(config.data_bits)?,
+            parse_stop_bits(config.stop_bits)?,
+            parse_parity(&config.parity)?,
+            parse_flow_control(&config.flow_control)?,
+        ))
+    } else {
+        None
+    };
+
     let mut port = if let Some(p) = passed_port {
         Some(p)
     } else if skip_serial {
         None
     } else {
-        let data_bits = parse_data_bits(config.data_bits)?;
-        let stop_bits = parse_stop_bits(config.stop_bits)?;
-        let parity = parse_parity(&config.parity)?;
-        let flow_control = parse_flow_control(&config.flow_control)?;
+        let (data_bits, stop_bits, parity, flow_control) = serial_settings.unwrap();
 
-        Some(
-            serialport::new(&port_name, config.baud)
-                .timeout(Duration::from_millis(config.timeout_ms))
-                .data_bits(data_bits)
-                .stop_bits(stop_bits)
-                .parity(parity)
-                .flow_control(flow_control)
-                .open()?,
-        )
+        let mut opened = None;
+        for _ in 0..20 {
+            match open_serial_port(
+                &port_name,
+                config.baud,
+                config.timeout_ms,
+                data_bits,
+                stop_bits,
+                parity,
+                flow_control,
+            ) {
+                Ok(p) => {
+                    opened = Some(p);
+                    break;
+                }
+                Err(_) => std::thread::sleep(Duration::from_millis(50)),
+            }
+        }
+
+        opened
     };
     let mut rtt_reader = if let Some(r) = passed_rtt {
         Some(r)
@@ -443,7 +482,12 @@ pub fn run_plotter_mode(
             None
         };
 
-    std::thread::sleep(Duration::from_millis(config.reset_delay_ms));
+    if !has_passed_port && !skip_serial {
+        let delay = config.reset_delay_ms;
+        if delay > 0 {
+            std::thread::sleep(Duration::from_millis(delay));
+        }
+    }
 
     if let Some(p) = port.as_mut() {
         let _ = p.clear(serialport::ClearBuffer::Input);
@@ -501,11 +545,16 @@ pub fn run_plotter_mode(
         }
     }
 
+    let mut last_draw = Instant::now();
+    const MIN_DRAW_INTERVAL: Duration = Duration::from_millis(33);
+    let mut needs_draw = true;
+
     loop {
         // ── Input handling ────────────────────────────────────────────────────
         if event::poll(Duration::from_millis(5))?
             && let event::Event::Key(key) = event::read()?
         {
+            needs_draw = true;
             if state.show_help {
                 state.show_help = false;
                 continue;
@@ -525,6 +574,21 @@ pub fn run_plotter_mode(
                         rtt_reader,
                         #[cfg(feature = "ble")]
                         ble_rx: active_ble_rx,
+                    });
+                }
+
+                // Detach
+                KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    disable_raw_mode().ok();
+                    execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
+                    return Ok(crate::AppExitState::Detach {
+                        port: None,
+                        rtt_reader: None,
+                        #[cfg(feature = "ble")]
+                        ble_rx: active_ble_rx,
+
+                        resume_plotter: true,
+                        port_name: port_name.clone(),
                     });
                 }
                 // Space: pause / resume
@@ -594,7 +658,36 @@ pub fn run_plotter_mode(
 
         // ── Serial read ───────────────────────────────────────────────────────
 
-        // The Fix: Decoupling the input streams into separate IF blocks instead of chained ELSE-IF
+        let samples_before = state.total_samples;
+
+        if port.is_none()
+            && let Some((data_bits, stop_bits, parity, flow_control)) = serial_settings
+        {
+            match open_serial_port(
+                &port_name,
+                config.baud,
+                config.timeout_ms,
+                data_bits,
+                stop_bits,
+                parity,
+                flow_control,
+            ) {
+                Ok(p) => {
+                    if config.reset_delay_ms > 0 {
+                        std::thread::sleep(Duration::from_millis(config.reset_delay_ms));
+                    }
+                    let _ = p.clear(serialport::ClearBuffer::Input);
+                    port = Some(p);
+                    state.last_error = Some(format!("Reconnected to {port_name}"));
+                    needs_draw = true;
+                }
+                Err(_) => {
+                    state.last_error = Some(format!("Waiting for {port_name}..."));
+                    needs_draw = true;
+                    std::thread::sleep(Duration::from_millis(200));
+                }
+            }
+        }
 
         if config.simulate {
             let t = state.x * 0.1;
@@ -743,6 +836,10 @@ pub fn run_plotter_mode(
                     }
                 }
             }
+        }
+
+        if state.total_samples != samples_before {
+            needs_draw = true;
         }
 
         // ---Smooth Interpolation (Lerp) ----------
@@ -895,6 +992,13 @@ pub fn run_plotter_mode(
             format!("{:.2}", (y_bounds[0] + y_bounds[1]) / 2.0),
             format!("{:.2}", y_bounds[1]),
         ];
+
+        if !needs_draw && last_draw.elapsed() < MIN_DRAW_INTERVAL {
+            continue;
+        }
+
+        needs_draw = false;
+        last_draw = Instant::now();
 
         terminal.draw(|f| {
             let outer = Layout::default()

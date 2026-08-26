@@ -21,6 +21,7 @@ use pretty_hex::*;
 enum MonitorCommand {
     Repaint(u8),
     SwitchMode,
+    Detach,
     Quit,
 }
 
@@ -54,7 +55,7 @@ fn strip_ansi(s: &str) -> String {
 
 #[cfg(feature = "ble")]
 macro_rules! poll_ctrl_rx_while_waiting {
-    ($ctrl_rx:expr, $running:expr, $ble_rx:expr) => {
+    ($ctrl_rx:expr, $running:expr, $ble_rx:expr, $port_name:expr) => {
         let range = core::range::Range { start: 0, end: 20 };
         for _ in range {
             if let Ok(cmd) = $ctrl_rx.try_recv() {
@@ -65,6 +66,17 @@ macro_rules! poll_ctrl_rx_while_waiting {
                             port: None,
                             rtt_reader: None,
                             ble_rx: $ble_rx.take(),
+                        });
+                    }
+                    MonitorCommand::Detach => {
+                        terminal::disable_raw_mode().ok();
+                        return Ok(crate::AppExitState::Detach {
+                            port: None,
+                            rtt_reader: None,
+                            #[cfg(feature = "ble")]
+                            ble_rx: $ble_rx.take(),
+                            resume_plotter: false,
+                            port_name: $port_name.clone(),
                         });
                     }
                     MonitorCommand::Quit => {
@@ -82,7 +94,7 @@ macro_rules! poll_ctrl_rx_while_waiting {
 
 #[cfg(not(feature = "ble"))]
 macro_rules! poll_ctrl_rx_while_waiting {
-    ($ctrl_rx:expr, $running:expr) => {
+    ($ctrl_rx:expr, $running:expr ,$port_name:expr) => {
         let range = core::range::Range { start: 0, end: 20 };
         for _ in range {
             if let Ok(cmd) = $ctrl_rx.try_recv() {
@@ -92,6 +104,15 @@ macro_rules! poll_ctrl_rx_while_waiting {
                         return Ok(crate::AppExitState::SwitchToPlotter {
                             port: None,
                             rtt_reader: None,
+                        });
+                    }
+                    MonitorCommand::Detach => {
+                        terminal::disable_raw_mode().ok();
+                        return Ok(crate::AppExitState::Detach {
+                            port: None,
+                            rtt_reader: None,
+                            resume_plotter: false,
+                            port_name: $port_name.clone(),
                         });
                     }
                     MonitorCommand::Quit => {
@@ -160,7 +181,9 @@ pub fn run_normal_mode(
         None
     };
 
-    println!("{color_green} Listening… (Ctrl+C to exit, Ctrl+L to clear screen){color_reset}\n");
+    println!(
+        "{color_green} Listening… (Ctrl+C to exit . Ctrl+L to clear screen . CTRL+G to detach){color_reset}\n"
+    );
 
     // 2. Setup channels and input thread ONCE
     let (input_tx, input_rx) = mpsc::channel::<String>();
@@ -198,6 +221,10 @@ pub fn run_normal_mode(
                             }
                             (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                                 ctrl_tx.send(MonitorCommand::Quit).ok();
+                                break;
+                            }
+                            (KeyCode::Char('g'), KeyModifiers::CONTROL) => {
+                                ctrl_tx.send(MonitorCommand::Detach).ok();
                                 break;
                             }
                             (KeyCode::Enter, _) => {
@@ -349,9 +376,9 @@ pub fn run_normal_mode(
                     io::stdout().flush().ok();
 
                     #[cfg(feature = "ble")]
-                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, active_ble_rx);
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, active_ble_rx, port_name);
                     #[cfg(not(feature = "ble"))]
-                    poll_ctrl_rx_while_waiting!(ctrl_rx, running);
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, port_name);
 
                     continue;
                 }
@@ -423,9 +450,9 @@ pub fn run_normal_mode(
                     io::stdout().flush().ok();
 
                     #[cfg(feature = "ble")]
-                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, active_ble_rx);
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, active_ble_rx, port_name);
                     #[cfg(not(feature = "ble"))]
-                    poll_ctrl_rx_while_waiting!(ctrl_rx, running);
+                    poll_ctrl_rx_while_waiting!(ctrl_rx, running, port_name);
 
                     continue;
                 }
@@ -768,6 +795,18 @@ pub fn run_normal_mode(
                             rtt_reader,
                             #[cfg(feature = "ble")]
                             ble_rx: active_ble_rx,
+                        });
+                    }
+                    MonitorCommand::Detach => {
+                        terminal::disable_raw_mode().ok();
+                        return Ok(crate::AppExitState::Detach {
+                            port: None,
+                            rtt_reader: None,
+                            #[cfg(feature = "ble")]
+                            ble_rx: active_ble_rx,
+
+                            resume_plotter: false,
+                            port_name: port_name.clone(),
                         });
                     }
                     MonitorCommand::Quit => {

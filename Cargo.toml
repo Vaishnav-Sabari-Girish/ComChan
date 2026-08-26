@@ -29,10 +29,10 @@ dirs = "6.0.0"
 futures = { version = "0.3.32", optional = true }
 inline_colorization = "0.1.6"
 inquire = { version = "0.9.4", optional = true }
-object = "0.39.1"
+object = "0.40.0"
 plotters = { version = "0.3.7", default-features = false, features = ["line_series", "point_series", "svg_backend", "ttf"] }
 pretty-hex = "0.4.2"
-probe-rs = "0.31.0"
+probe-rs = "0.32.0"
 ratatui = "0.30.1"
 ratatui-ratty = { version = "0.4.0", optional = true }
 ratatui-wireframe = { version = "0.7.0", path = "crates/ratatui-wireframe", features = ["ratty"] }
