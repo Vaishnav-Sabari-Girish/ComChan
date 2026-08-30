@@ -1,7 +1,7 @@
 //! Scrollable TUI serial monitor with search.
 //!
 //! Activated with `--tui`. Keys:
-//!   /          search
+//!   /          search (incremental)
 //!   n / N      next / prev match
 //!   i          TX input mode
 //!   ↑↓ PgUp/Dn scroll (disables auto-scroll)
@@ -22,6 +22,7 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
+use pretty_hex::*;
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
@@ -43,6 +44,53 @@ impl Drop for TerminalCleanup {
         let _ = disable_raw_mode();
         let _ = execute!(io::stdout(), LeaveAlternateScreen);
     }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            match chars.peek() {
+                Some('[') => {
+                    chars.next();
+                    for ch in chars.by_ref() {
+                        if ch.is_ascii_alphabetic() {
+                            break;
+                        }
+                    }
+                }
+                _ => {
+                    chars.next();
+                }
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
 }
 
 // ── App state ─────────────────────────────────────────────────────────────────
@@ -87,7 +135,6 @@ impl TuiState {
     }
 
     fn push_line(&mut self, line: String) {
-        // Live search: if query is active, record match index before push
         let will_match = if !self.search_query.is_empty() {
             line.to_lowercase()
                 .contains(&self.search_query.to_lowercase())
@@ -104,6 +151,7 @@ impl TuiState {
         if self.logs.len() > self.max_lines {
             let drop_n = self.logs.len() - self.max_lines;
             self.logs.drain(0..drop_n);
+            self.scroll = self.scroll.saturating_sub(drop_n);
             self.search_matches.retain_mut(|i| {
                 if *i >= drop_n {
                     *i -= drop_n;
@@ -168,26 +216,6 @@ impl TuiState {
     }
 }
 
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
-}
-
 // ── Public entry (all I/O on this thread — RttDefmtReader is !Send) ───────────
 
 pub fn run_tui_mode(
@@ -226,6 +254,14 @@ pub fn run_tui_mode(
         None
     };
 
+    let mut csv_streamer = if let Some(ref path) = config.csv_file {
+        crate::export::CsvStreamer::new(path)
+            .map_err(|e| format!("Failed to open CSV file {path}: {e}"))
+            .ok()
+    } else {
+        None
+    };
+
     let mut session_replayer = if let Some(ref path) = config.replay_file {
         Some(
             crate::replay::SessionReplayer::new(path)
@@ -254,18 +290,21 @@ pub fn run_tui_mode(
 
     let mut state = TuiState::new();
     let mut serial_buf = [0u8; 1024];
+    let mut hex_buf: Vec<u8> = Vec::new();
     let mut last_draw = Instant::now();
     const MIN_DRAW: Duration = Duration::from_millis(33);
     let mut sim_t = 0.0_f64;
+
+    #[cfg(feature = "ble")]
+    let active_ble_rx = active_ble_rx;
 
     loop {
         // ── Keyboard ──────────────────────────────────────────────────────────
         if event::poll(Duration::from_millis(5))?
             && let Event::Key(key) = event::read()?
         {
-            // Ignore key-release events on terminals that emit them
             if key.kind == KeyEventKind::Release {
-                // skip
+                // ignore key-release on terminals that emit them
             } else if state.show_help {
                 state.show_help = false;
             } else {
@@ -275,7 +314,6 @@ pub fn run_tui_mode(
                             state.focus = Focus::Logs;
                         }
                         KeyCode::Enter => {
-                            state.recompute_search();
                             state.focus = Focus::Logs;
                             if state.search_matches.is_empty() {
                                 state.set_status("No matches");
@@ -289,9 +327,11 @@ pub fn run_tui_mode(
                         }
                         KeyCode::Backspace => {
                             state.search_query.pop();
+                            state.recompute_search();
                         }
                         KeyCode::Char(c) => {
                             state.search_query.push(c);
+                            state.recompute_search();
                         }
                         _ => {}
                     },
@@ -304,15 +344,30 @@ pub fn run_tui_mode(
                             let line = std::mem::take(&mut state.input_buf);
                             if !line.is_empty() {
                                 if let Some(ref mut p) = port {
+                                    // Match classic monitor: CR terminator (Zephyr wants CRLF)
                                     let payload = if config.zephyr {
                                         format!("{line}\r\n")
                                     } else {
-                                        format!("{line}\n")
+                                        format!("{line}\r")
                                     };
-                                    let _ = p.write_all(payload.as_bytes());
-                                    let _ = p.flush();
+                                    match p.write_all(payload.as_bytes()).and_then(|_| p.flush()) {
+                                        Ok(()) => {
+                                            let tx_line =
+                                                format!("TX [{}]: {line}", get_timestamp());
+                                            if let Some(ref mut w) = log_writer {
+                                                let _ = writeln!(w, "{tx_line}");
+                                                let _ = w.flush();
+                                            }
+                                            state.push_line(tx_line);
+                                        }
+                                        Err(e) => {
+                                            state.set_status(&format!("Write error: {e}"));
+                                            port = None;
+                                        }
+                                    }
+                                } else {
+                                    state.set_status("No port — TX not sent");
                                 }
-                                state.push_line(format!("TX [{}]: {line}", get_timestamp()));
                             }
                             state.focus = Focus::Logs;
                         }
@@ -332,7 +387,6 @@ pub fn run_tui_mode(
                         KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                             disable_raw_mode().ok();
                             execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
-                            // Forget cleanup so Drop doesn't double-leave
                             std::mem::forget(_cleanup);
                             return Ok(crate::AppExitState::SwitchToPlotter {
                                 port,
@@ -358,6 +412,7 @@ pub fn run_tui_mode(
                         KeyCode::Char('/') => {
                             state.focus = Focus::Search;
                             state.search_query.clear();
+                            state.recompute_search();
                         }
                         KeyCode::Char('i') => {
                             state.focus = Focus::Input;
@@ -397,7 +452,7 @@ pub fn run_tui_mode(
 
         // ── Data sources ──────────────────────────────────────────────────────
 
-        // Reconnect serial if needed
+        // Reconnect serial if needed (throttled on failure)
         if port.is_none()
             && let Some((data_bits, stop_bits, parity, flow_control)) = serial_settings
         {
@@ -419,6 +474,7 @@ pub fn run_tui_mode(
                 }
                 Err(_) => {
                     state.set_status(&format!("Waiting for {port_name}…"));
+                    std::thread::sleep(Duration::from_millis(200));
                 }
             }
         }
@@ -429,10 +485,20 @@ pub fn run_tui_mode(
             let pitch = (sim_t * 0.5).sin() * 45.0;
             let roll = (sim_t * 0.8).cos() * 30.0;
             let yaw = (sim_t * 2.0) % 360.0;
-            state.push_line(format!(
-                "RX [{}]: Pitch: {pitch:.2}, Roll: {roll:.2}, Yaw: {yaw:.2}",
-                get_timestamp()
-            ));
+            let payload = format!("Pitch: {pitch:.2}, Roll: {roll:.2}, Yaw: {yaw:.2}");
+
+            if config.hex_mode || config.hex_pretty {
+                let hex_out = format!("{:?}", payload.as_bytes().hex_dump());
+                for line in hex_out.lines() {
+                    state.push_line(line.to_string());
+                }
+            } else {
+                if let Some(ref mut streamer) = csv_streamer {
+                    let readings = crate::parser::parse_sensor_data(&payload);
+                    let _ = streamer.write_row(&readings);
+                }
+                state.push_line(format!("RX [{}]: {payload}", get_timestamp()));
+            }
             std::thread::sleep(Duration::from_millis(50));
         }
 
@@ -440,7 +506,12 @@ pub fn run_tui_mode(
         if let Some(ref mut replayer) = session_replayer {
             match replayer.next_payload() {
                 crate::replay::ReplayEvent::Payload(payload) => {
-                    state.push_line(format!("RX [{}]: {}", get_timestamp(), payload.trim_end()));
+                    let trimmed = payload.trim_end().to_string();
+                    if let Some(ref mut streamer) = csv_streamer {
+                        let readings = crate::parser::parse_sensor_data(&trimmed);
+                        let _ = streamer.write_row(&readings);
+                    }
+                    state.push_line(format!("RX [{}]: {trimmed}", get_timestamp()));
                 }
                 crate::replay::ReplayEvent::Waiting => {}
                 crate::replay::ReplayEvent::Eof => {
@@ -458,7 +529,12 @@ pub fn run_tui_mode(
                             let _ = writeln!(w, "RX [{}]: {}", get_timestamp(), line.trim_end());
                             let _ = w.flush();
                         }
-                        state.push_line(format!("RX [{}]: {}", get_timestamp(), line.trim_end()));
+                        let clean = strip_ansi(line.trim_end());
+                        if let Some(ref mut streamer) = csv_streamer {
+                            let readings = crate::parser::parse_sensor_data(&clean);
+                            let _ = streamer.write_row(&readings);
+                        }
+                        state.push_line(format!("RX [{}]: {clean}", get_timestamp()));
                     }
                 }
                 Err(e) => {
@@ -495,10 +571,17 @@ pub fn run_tui_mode(
                             n += 1;
                             while let Some(pos) = state.receive_buf.find('\n') {
                                 let line = state.receive_buf.drain(..=pos).collect::<String>();
-                                let trimmed = line.trim_end().to_string();
+                                let trimmed = strip_ansi(line.trim_end());
+                                if trimmed.is_empty() {
+                                    continue;
+                                }
                                 if let Some(ref mut w) = log_writer {
                                     let _ = writeln!(w, "RX [{}]: {}", get_timestamp(), trimmed);
                                     let _ = w.flush();
+                                }
+                                if let Some(ref mut streamer) = csv_streamer {
+                                    let readings = crate::parser::parse_sensor_data(&trimmed);
+                                    let _ = streamer.write_row(&readings);
                                 }
                                 state.push_line(format!("RX [{}]: {}", get_timestamp(), trimmed));
                             }
@@ -521,16 +604,60 @@ pub fn run_tui_mode(
                 match p.bytes_to_read() {
                     Ok(avail) if avail > 0 => match p.read(&mut serial_buf) {
                         Ok(n) if n > 0 => {
-                            let chunk = String::from_utf8_lossy(&serial_buf[..n]);
-                            state.receive_buf.push_str(&chunk);
-                            while let Some(pos) = state.receive_buf.find('\n') {
-                                let line = state.receive_buf.drain(..=pos).collect::<String>();
-                                let trimmed = line.trim_end().to_string();
-                                if let Some(ref mut w) = log_writer {
-                                    let _ = writeln!(w, "RX [{}]: {}", get_timestamp(), trimmed);
-                                    let _ = w.flush();
+                            let raw = &serial_buf[..n];
+
+                            if config.hex_mode || config.hex_pretty {
+                                let (should_print, data_to_print) = if config.hex_pretty {
+                                    hex_buf.extend_from_slice(raw);
+                                    if hex_buf.contains(&b'\n') || hex_buf.len() >= 64 {
+                                        let data = std::mem::take(&mut hex_buf);
+                                        (true, data)
+                                    } else {
+                                        (false, Vec::new())
+                                    }
+                                } else {
+                                    (true, raw.to_vec())
+                                };
+
+                                if should_print {
+                                    let hex_out = format!("{:?}", data_to_print.hex_dump());
+                                    if let Some(ref mut w) = log_writer {
+                                        let _ = writeln!(
+                                            w,
+                                            "RX HEX [{}]:\n{}",
+                                            get_timestamp(),
+                                            hex_out
+                                        );
+                                        let _ = w.flush();
+                                    }
+                                    for line in hex_out.lines() {
+                                        state.push_line(line.to_string());
+                                    }
                                 }
-                                state.push_line(format!("RX [{}]: {}", get_timestamp(), trimmed));
+                            } else {
+                                let chunk = String::from_utf8_lossy(raw);
+                                state.receive_buf.push_str(&chunk);
+                                while let Some(pos) = state.receive_buf.find('\n') {
+                                    let line = state.receive_buf.drain(..=pos).collect::<String>();
+                                    let trimmed = strip_ansi(line.trim_end());
+                                    if trimmed.is_empty() {
+                                        continue;
+                                    }
+                                    if let Some(ref mut w) = log_writer {
+                                        let _ =
+                                            writeln!(w, "RX [{}]: {}", get_timestamp(), trimmed);
+                                        let _ = w.flush();
+                                    }
+                                    if let Some(ref mut streamer) = csv_streamer {
+                                        let readings = crate::parser::parse_sensor_data(&trimmed);
+                                        let _ = streamer.write_row(&readings);
+                                    }
+                                    state.push_line(format!(
+                                        "RX [{}]: {}",
+                                        get_timestamp(),
+                                        trimmed
+                                    ));
+                                }
                             }
                         }
                         Ok(_) => break,
@@ -702,7 +829,7 @@ pub fn run_tui_mode(
                     Line::from(" [n] / [N]     Next / previous match"),
                     Line::from(" [i]           TX input mode"),
                     Line::from(" [↑][↓][PgUp]  Scroll (locks auto-scroll)"),
-                    Line::from(" [Enter]/End] Jump to bottom + auto-scroll"),
+                    Line::from(" [Enter]/[End] Jump to bottom + auto-scroll"),
                     Line::from(" [c]           Clear log buffer"),
                     Line::from(" [Ctrl+P]      Switch to plotter"),
                     Line::from(" [Ctrl+G]      Detach"),
