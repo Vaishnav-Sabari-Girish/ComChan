@@ -48,28 +48,71 @@ impl Drop for TerminalCleanup {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/// Strip ANSI / VT escape sequences (CSI, OSC, and other ESC forms).
 fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars().peekable();
+
     while let Some(c) = chars.next() {
-        if c == '\x1b' {
-            match chars.peek() {
-                Some('[') => {
-                    chars.next();
-                    for ch in chars.by_ref() {
-                        if ch.is_ascii_alphabetic() {
-                            break;
-                        }
+        if c != '\x1b' {
+            out.push(c);
+            continue;
+        }
+
+        match chars.peek().copied() {
+            // CSI: ESC [ ... final-byte (0x40..=0x7E)
+            Some('[') => {
+                chars.next();
+                for ch in chars.by_ref() {
+                    if ('\x40'..='\x7e').contains(&ch) {
+                        break;
                     }
                 }
-                _ => {
+            }
+            // OSC: ESC ] ... BEL  or  ESC ] ... ESC \
+            Some(']') => {
+                chars.next();
+                while let Some(ch) = chars.next() {
+                    if ch == '\x07' {
+                        // BEL terminator
+                        break;
+                    }
+                    if ch == '\x1b' {
+                        // ST: ESC \
+                        if chars.peek() == Some(&'\\') {
+                            chars.next();
+                        }
+                        break;
+                    }
+                }
+            }
+            // Other ESC sequences: consume through ST (BEL / ESC \) or next printable run end
+            Some(_) => {
+                chars.next(); // intermediate introducer
+                while let Some(&ch) = chars.peek() {
+                    if ch == '\x07' {
+                        chars.next();
+                        break;
+                    }
+                    if ch == '\x1b' {
+                        chars.next();
+                        if chars.peek() == Some(&'\\') {
+                            chars.next();
+                        }
+                        break;
+                    }
+                    // Stop at a reasonably short single-char sequence (e.g. ESC c)
+                    if ch.is_ascii_alphabetic() || ch == '\\' {
+                        chars.next();
+                        break;
+                    }
                     chars.next();
                 }
             }
-        } else {
-            out.push(c);
+            None => {}
         }
     }
+
     out
 }
 
@@ -254,10 +297,12 @@ pub fn run_tui_mode(
         None
     };
 
+    // Propagate open errors — do not silently disable a requested --csv export
     let mut csv_streamer = if let Some(ref path) = config.csv_file {
-        crate::export::CsvStreamer::new(path)
-            .map_err(|e| format!("Failed to open CSV file {path}: {e}"))
-            .ok()
+        Some(
+            crate::export::CsvStreamer::new(path)
+                .map_err(|e| format!("Failed to open CSV file {path}: {e}"))?,
+        )
     } else {
         None
     };
@@ -479,7 +524,7 @@ pub fn run_tui_mode(
             }
         }
 
-        // Simulate
+        // Simulate — always feed CSV from the parseable payload, then choose display
         if config.simulate {
             sim_t += 0.05;
             let pitch = (sim_t * 0.5).sin() * 45.0;
@@ -487,16 +532,17 @@ pub fn run_tui_mode(
             let yaw = (sim_t * 2.0) % 360.0;
             let payload = format!("Pitch: {pitch:.2}, Roll: {roll:.2}, Yaw: {yaw:.2}");
 
+            if let Some(ref mut streamer) = csv_streamer {
+                let readings = crate::parser::parse_sensor_data(&payload);
+                let _ = streamer.write_row(&readings);
+            }
+
             if config.hex_mode || config.hex_pretty {
                 let hex_out = format!("{:?}", payload.as_bytes().hex_dump());
                 for line in hex_out.lines() {
                     state.push_line(line.to_string());
                 }
             } else {
-                if let Some(ref mut streamer) = csv_streamer {
-                    let readings = crate::parser::parse_sensor_data(&payload);
-                    let _ = streamer.write_row(&readings);
-                }
                 state.push_line(format!("RX [{}]: {payload}", get_timestamp()));
             }
             std::thread::sleep(Duration::from_millis(50));
@@ -852,6 +898,5 @@ pub fn run_tui_mode(
         })?;
     }
 
-    // Normal quit path — TerminalCleanup Drop handles leave/raw_mode
     Ok(crate::AppExitState::Quit)
 }

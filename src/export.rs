@@ -282,10 +282,12 @@ impl CsvStreamer {
             .append(true)
             .open(filename)?;
 
+        let already_has_data = file.metadata()?.len() > 0;
+
         Ok(Self {
             writer: BufWriter::new(file),
             headers: Vec::new(),
-            header_written: false,
+            header_written: already_has_data,
         })
     }
 
