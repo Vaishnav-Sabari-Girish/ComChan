@@ -89,7 +89,7 @@ fn strip_ansi(s: &str) -> String {
                 let _ = chars.next();
             }
             // DCS / PM / APC string: ESC P / ^ / _ ... ST
-            Some('P') | Some('^') | Some('_') => {
+            Some('P') | Some('X') | Some('^') | Some('_') => {
                 chars.next();
                 while let Some(ch) = chars.next() {
                     if ch == '\x07' {
