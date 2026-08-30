@@ -48,7 +48,6 @@ impl Drop for TerminalCleanup {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/// Strip ANSI / VT escape sequences (CSI, OSC, and other ESC forms).
 fn strip_ansi(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars().peekable();
@@ -60,7 +59,7 @@ fn strip_ansi(s: &str) -> String {
         }
 
         match chars.peek().copied() {
-            // CSI: ESC [ ... final-byte (0x40..=0x7E)
+            // CSI: ESC [ ... final (0x40..=0x7E)
             Some('[') => {
                 chars.next();
                 for ch in chars.by_ref() {
@@ -74,11 +73,9 @@ fn strip_ansi(s: &str) -> String {
                 chars.next();
                 while let Some(ch) = chars.next() {
                     if ch == '\x07' {
-                        // BEL terminator
                         break;
                     }
                     if ch == '\x1b' {
-                        // ST: ESC \
                         if chars.peek() == Some(&'\\') {
                             chars.next();
                         }
@@ -86,30 +83,32 @@ fn strip_ansi(s: &str) -> String {
                     }
                 }
             }
-            // Other ESC sequences: consume through ST (BEL / ESC \) or next printable run end
-            Some(_) => {
-                chars.next(); // intermediate introducer
-                while let Some(&ch) = chars.peek() {
+            // SS2 / SS3: ESC N / ESC O + one character
+            Some('N') | Some('O') => {
+                chars.next();
+                let _ = chars.next();
+            }
+            // DCS / PM / APC string: ESC P / ^ / _ ... ST
+            Some('P') | Some('^') | Some('_') => {
+                chars.next();
+                while let Some(ch) = chars.next() {
                     if ch == '\x07' {
-                        chars.next();
                         break;
                     }
                     if ch == '\x1b' {
-                        chars.next();
                         if chars.peek() == Some(&'\\') {
                             chars.next();
                         }
                         break;
                     }
-                    // Stop at a reasonably short single-char sequence (e.g. ESC c)
-                    if ch.is_ascii_alphabetic() || ch == '\\' {
-                        chars.next();
-                        break;
-                    }
-                    chars.next();
                 }
             }
-            None => {}
+            // 2-char ESC sequence: ESC + final only (e.g. ESC c, ESC 7, ESC 8)
+            Some(ch) if ('\x30'..='\x7e').contains(&ch) => {
+                chars.next();
+            }
+            // Lone ESC — drop it
+            _ => {}
         }
     }
 

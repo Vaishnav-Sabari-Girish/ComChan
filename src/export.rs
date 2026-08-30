@@ -3,8 +3,11 @@ use crate::serial::get_timestamp;
 use plotters::prelude::*;
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs::File;
 use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader};
 use std::io::{BufWriter, Write};
+use std::path::Path;
 
 // A soft dark grey looks better than blindingly pure black for backgrounds
 const DARK_BG: RGBColor = RGBColor(30, 30, 30);
@@ -277,17 +280,42 @@ pub struct CsvStreamer {
 
 impl CsvStreamer {
     pub fn new(filename: &str) -> std::io::Result<Self> {
+        let path = Path::new(filename);
+        let mut headers: Vec<String> = Vec::new();
+        let mut header_written = false;
+
+        if path.exists() {
+            let meta = std::fs::metadata(path)?;
+            if meta.len() > 0 {
+                let existing = File::open(path)?;
+                let mut reader = BufReader::new(existing);
+                let mut first_line = String::new();
+                if reader.read_line(&mut first_line)? > 0 {
+                    let cols: Vec<String> = first_line
+                        .trim_end_matches(['\r', '\n'])
+                        .split(',')
+                        .map(|s| s.to_string())
+                        .collect();
+                    // Our format is always: Timestamp,<sensor>,...
+                    if cols.first().map(|s| s.as_str()) == Some("Timestamp") {
+                        headers = cols.into_iter().skip(1).collect();
+                    } else {
+                        headers = cols;
+                    }
+                    header_written = true;
+                }
+            }
+        }
+
         let file = OpenOptions::new()
             .create(true)
             .append(true)
             .open(filename)?;
 
-        let already_has_data = file.metadata()?.len() > 0;
-
         Ok(Self {
             writer: BufWriter::new(file),
-            headers: Vec::new(),
-            header_written: already_has_data,
+            headers,
+            header_written,
         })
     }
 
@@ -303,12 +331,17 @@ impl CsvStreamer {
                 .collect();
 
             write!(self.writer, "Timestamp")?;
-
             for header in &self.headers {
                 write!(self.writer, ",{}", header)?;
             }
             writeln!(self.writer)?;
             self.header_written = true;
+        } else if self.headers.is_empty() {
+            // Fallback if the existing file had no parseable header
+            self.headers = parsed_data
+                .iter()
+                .map(|(name, _)| name.to_string())
+                .collect();
         }
 
         write!(self.writer, "{}", get_timestamp())?;
@@ -320,10 +353,8 @@ impl CsvStreamer {
                 write!(self.writer, ",")?;
             }
         }
-
         writeln!(self.writer)?;
         self.writer.flush()?;
-
         Ok(())
     }
 }
