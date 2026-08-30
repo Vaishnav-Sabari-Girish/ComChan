@@ -104,10 +104,24 @@ fn strip_ansi(s: &str) -> String {
                 }
             }
             // 2-char ESC sequence: ESC + final only (e.g. ESC c, ESC 7, ESC 8)
+            // ESC + intermediate bytes + final
+            Some(ch) if ('\x20'..='\x2f').contains(&ch) => {
+                chars.next();
+                while let Some(ch) = chars.peek().copied() {
+                    if ('\x20'..='\x2f').contains(&ch) {
+                        chars.next();
+                    } else if ('\x30'..='\x7e').contains(&ch) {
+                        chars.next();
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            // 2-char ESC sequence: ESC + final only (e.g. ESC c, ESC 7, ESC 8)
             Some(ch) if ('\x30'..='\x7e').contains(&ch) => {
                 chars.next();
             }
-            // Lone ESC — drop it
             _ => {}
         }
     }
