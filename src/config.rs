@@ -153,6 +153,7 @@ pub struct Config {
     pub log_file: Option<String>,
     pub verbose: Option<bool>,
     pub plot: Option<bool>,
+    pub tui: Option<bool>,
     pub plot_points: Option<usize>,
     pub zephyr: Option<bool>,
     pub export_limit: Option<usize>,
@@ -182,6 +183,7 @@ impl Default for Config {
             log_file: None,
             verbose: Some(false),
             plot: Some(false),
+            tui: Some(false),
             plot_points: Some(100),
             zephyr: Some(false),
             export_limit: Some(1_000_000), // Defaults to 1 million points per sensor
@@ -248,6 +250,13 @@ pub struct Args {
 
     #[arg(long = "plot", action = clap::ArgAction::SetTrue, help = "Launch the serial plotter")]
     pub plot: bool,
+
+    #[arg(
+	long = "tui",
+	action = clap::ArgAction::SetTrue,
+	help = "Launch the serial monitor in a scrollable TUI"
+    )]
+    pub tui: bool,
 
     #[arg(long = "plot-points")]
     pub plot_points: Option<usize>,
@@ -346,6 +355,7 @@ pub struct MergedConfig {
     pub list_ports: bool,
     pub verbose: bool,
     pub plot: bool,
+    pub tui: bool,
     pub plot_points: usize,
     pub zephyr: bool,
     pub export_limit: usize,
@@ -533,6 +543,7 @@ pub fn merge_config_and_args(config: Config, args: Args) -> MergedConfig {
         list_ports: args.list_ports,
         verbose: args.verbose.or(config.verbose).unwrap_or(false),
         plot: args.plot || config.plot.unwrap_or(false),
+        tui: args.tui || config.tui.unwrap_or(false),
         plot_points: args.plot_points.or(config.plot_points).unwrap_or(100),
         zephyr: args.zephyr || config.zephyr.unwrap_or(false),
         export_limit: args

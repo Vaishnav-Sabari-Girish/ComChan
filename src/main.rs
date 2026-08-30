@@ -12,6 +12,7 @@ mod port_finder;
 mod replay;
 mod rtt_reader;
 mod serial;
+mod tui_monitor;
 
 #[cfg(feature = "ble")]
 mod ble;
@@ -199,22 +200,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             res
         } else {
-            #[cfg(feature = "ble")]
-            let res = crate::monitor::run_normal_mode(
-                merged.clone(),
-                port_name.clone(),
-                active_port,
-                active_rtt,
-                active_ble_rx,
-            );
-            #[cfg(not(feature = "ble"))]
-            let res = crate::monitor::run_normal_mode(
-                merged.clone(),
-                port_name.clone(),
-                active_port,
-                active_rtt,
-            );
-            res
+            if merged.tui {
+                #[cfg(feature = "ble")]
+                let res = crate::tui_monitor::run_tui_mode(
+                    merged.clone(),
+                    port_name.clone(),
+                    active_port,
+                    active_rtt,
+                    active_ble_rx,
+                );
+
+                #[cfg(not(feature = "ble"))]
+                let res = crate::tui_monitor::run_tui_mode(
+                    merged.clone(),
+                    port_name.clone(),
+                    active_port,
+                    active_rtt,
+                );
+
+                res
+            } else {
+                #[cfg(feature = "ble")]
+                let res = crate::monitor::run_normal_mode(
+                    merged.clone(),
+                    port_name.clone(),
+                    active_port,
+                    active_rtt,
+                    active_ble_rx,
+                );
+                #[cfg(not(feature = "ble"))]
+                let res = crate::monitor::run_normal_mode(
+                    merged.clone(),
+                    port_name.clone(),
+                    active_port,
+                    active_rtt,
+                );
+                res
+            }
         };
 
         match result {
