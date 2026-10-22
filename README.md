@@ -12,6 +12,7 @@ Communication**
 [![Crates info](https://img.shields.io/crates/v/comchan.svg)](https://crates.io/crates/comchan)
 [![License: MIT](https://img.shields.io/github/license/Vaishnav-Sabari-Girish/ComChan?color=blue)](LICENSE)
 ![Rust](https://img.shields.io/github/languages/top/Vaishnav-Sabari-Girish/ComChan?color=orange)
+[![ComChan on The Terminal Index](https://cli.masoko.net/badge/comchan.svg)](https://cli.masoko.net/tools/comchan/)
 
 For detailed instructions with images and videos, take a look at `comchan`'s
 [wiki](https://github.com/Vaishnav-Sabari-Girish/ComChan/wiki)
